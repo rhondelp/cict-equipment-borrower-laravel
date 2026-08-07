@@ -34,6 +34,7 @@ Route::post('/login', [AuthenticateUser::class, 'login'])->name('login.store');
 Route::post('/logout', [AuthenticateUser::class, 'destroy'])->name('logout');
 Route::post('/register', [AuthenticateUser::class, 'register'])->name('register');
 Route::get('/register', [AuthenticateUser::class, 'registerUser'])->name('register');
+
 Route::get('/welcome', function () {
     return view('welcome');
 })->name('auth.welcome');

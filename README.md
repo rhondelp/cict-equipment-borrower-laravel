@@ -1,122 +1,170 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🧰 CICT Equipment Borrower
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel-based system for managing the borrowing and return of equipment within a college/department (CICT — College of Information and Communications Technology), with tracking for status, overdue alerts, and class-schedule linkage.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## ✨ Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Equipment inventory** — track total and available quantity per item, with a live status per unit:
+  - 🟢 Available
+  - 🔵 In Use
+  - 🟡 Maintenance
+  - 🔴 Out of Service
+- **Borrowing records** — log who borrowed what, when, how many, and for what purpose.
+- **Return tracking** — records borrow date and (nullable) return date; status moves through `Borrowed` → `Returned` / `Overdue`.
+- **Class schedule linkage** — a borrow record can optionally be tied to a specific class schedule.
+- **Remarks** — free-text notes on any borrow transaction.
+- **Automated overdue alerts** — scheduled task/scripts (`schedule.bat`, `send_alert.bat`) for triggering notifications on Windows-based deployments.
+- **Dashboard view** — at-a-glance totals for equipment count and availability.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🗄️ Data Model (Borrow Records)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Key fields from the borrowing migration:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+| Field | Type | Notes |
+|-------|------|-------|
+| `user_id` | FK → `users` | Borrower, cascades on delete |
+| `equipment_id` | FK → `equipment` | Item borrowed, cascades on delete |
+| `borrow_date` | date | When the item was checked out |
+| `return_date` | date, nullable | When the item was returned |
+| `quantity` | integer | Number of units borrowed |
+| `purpose` | string | Reason for borrowing |
+| `status` | enum | `Borrowed`, `Returned`, `Overdue` (default: `Borrowed`) |
+| `remarks` | text, nullable | Additional notes |
+| `class_schedule_id` | FK → `class_schedules`, nullable | Optional link to a class session, sets null on delete |
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 🛠️ Tech Stack
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+| Layer | Technology |
+|-------|------------|
+| Backend | [Laravel 12](https://laravel.com) (PHP ^8.2) |
+| Frontend build | [Vite](https://vitejs.dev) + Laravel Vite Plugin |
+| Styling | Tailwind CSS (`tailwind.config.js`, PostCSS) |
+| Testing | PHPUnit |
+| Dev tooling | Laravel Pint, Laravel Sail, Laravel Pail, Faker, Mockery |
+| Scheduled tasks | Windows batch scripts (`schedule.bat`, `send_alert.bat`) for cron-like alerting |
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 🚀 Getting Started
 
-## Contributing
+### Prerequisites
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- PHP >= 8.2
+- Composer
+- Node.js & npm
+- A database (MySQL/SQLite/PostgreSQL — configure via `.env`)
 
-## Code of Conduct
+### Installation
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+# 1. Clone the repository
+git clone https://github.com/rhondelp/cict-equipment-borrower-laravel.git
+cd cict-equipment-borrower-laravel
 
-## Security Vulnerabilities
+# 2. Install PHP dependencies
+composer install
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# 3. Install JS dependencies
+npm install
 
-## License
+# 4. Copy the environment file and generate an app key
+cp .env.example .env
+php artisan key:generate
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# 5. Configure your database credentials in .env, then run migrations
+php artisan migrate
 
+# 6. (Optional) Seed the database with sample data
+php artisan db:seed
+```
 
+### Running the app
 
+```bash
+# Start the Laravel dev server
+php artisan serve
 
+# In a separate terminal, run the Vite dev server for hot-reloading assets
+npm run dev
+```
 
+Visit `http://localhost:8000` in your browser.
 
-## Laravel command
-<div>
-    <p class="text-sm font-medium text-gray-500">Total Equipment</p>
-    <p class="mt-1 text-2xl font-bold text-gray-900">{{ $equipment->count() }}</p>
-</div>
+### Building for production
 
+```bash
+npm run build
+```
 
-<div>
-    <p class="text-sm font-medium text-gray-500">Available</p>
-    <p class="mt-1 text-2xl font-bold text-green-600">
-        {{ $equipment->where('status', 'available')->sum('available_quantity') }}
-    </p>
-</div>
+---
 
-    @foreach($equipment as $item)
-<td class="px-6 py-4 whitespace-nowrap">
-    <div class="text-sm font-medium text-gray-900">{{ $item->equipment_name }}</div>
-</td>
+## ⏰ Scheduled Overdue Alerts
 
-<td class="px-6 py-4 whitespace-nowrap">
-    @php
-        $statusColors = [
-            'available' => 'bg-green-100 text-green-800',
-            'in_use' => 'bg-blue-100 text-blue-800',
-            'maintenance' => 'bg-yellow-100 text-yellow-800',
-            'out_of_service' => 'bg-red-100 text-red-800'
-        ];
-        $statusColor = $statusColors[$item->status] ?? 'bg-gray-100 text-gray-800';
-    @endphp
-    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusColor }}">
-        {{ ucfirst(str_replace('_', ' ', $item->status)) }}
-    </span>
-</td>
+This project ships with Windows batch helpers for triggering Laravel's scheduler and dispatching overdue-equipment alerts outside of a Unix cron setup:
 
-    @endforeach
+- **`schedule.bat`** — runs the Laravel scheduler (equivalent to `php artisan schedule:run`) on a recurring basis, intended to be wired up to Windows Task Scheduler.
+- **`send_alert.bat`** — triggers the alert/notification logic for overdue borrows.
 
+On Linux/macOS deployments, prefer a standard cron entry instead:
 
+```bash
+* * * * * cd /path-to-project && php artisan schedule:run >> /dev/null 2>&1
+```
 
-Migrations
-    $table->id();
-    $table->foreignIdFor(User::class)->constrained()->onDelete('cascade');
-    $table->foreignIdFor(Equipment::class)->constrained()->onDelete('cascade');
-    $table->date('borrow_date');
-    $table->date('return_date')->nullable();
-    $table->integer('quantity');
-    $table->string('purpose');
-    $table->enum('status', ['Borrowed', 'Returned', 'Overdue'])->default('Borrowed');
-    $table->text('remarks')->nullable();
-    $table->foreignIdFor(ClassSchedule::class)->nullable()->constrained()->onDelete('set null');
-    $table->timestamps();
+---
 
+## 🧹 Useful Artisan Commands
 
+```bash
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
+php artisan optimize:clear
+php artisan optimize
+```
 
-git fetch origin main
-git reset --hard FETCH_HEAD
+---
+
+## 🧪 Testing
+
+```bash
+php artisan test
+```
+
+---
+
+## 📁 Project Structure
+
+Standard Laravel 12 directory layout:
+
+```
+app/          Application logic (models, controllers, policies, etc.)
+bootstrap/    Framework bootstrap files
+config/       Configuration files
+database/     Migrations, factories, and seeders
+public/       Publicly accessible entry point & compiled assets
+resources/    Views (Blade), CSS, and JS source
+routes/       Route definitions
+storage/      Logs, cache, and file uploads
+tests/        PHPUnit tests
+
+schedule.bat      Windows scheduler trigger
+send_alert.bat    Windows overdue-alert trigger
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome. Feel free to open a pull request or start a discussion.
+
+## 📄 License
+
+This project is built on the Laravel framework, which is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT). Check the repository for any project-specific license terms.
