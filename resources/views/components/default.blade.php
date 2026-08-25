@@ -135,7 +135,7 @@
         });
     </script>
 
-    {{-- Global UI helpers: toasts, modal dismissal, busy buttons --}}
+    {{-- Global UI helpers: toasts, modal dismissal, confirmations, busy buttons --}}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // 1) Toast helper - use window.toast('Saved.', 'success' | 'error' | 'info')
@@ -162,10 +162,36 @@
                 if (target) target.classList.add('hidden');
             });
 
-            // 3) Busy buttons on submit (runs after HTML5 validation passes)
+            // 3) Confirmation prompts: any form with data-confirm="message" asks first
+            document.addEventListener('submit', function (e) {
+                const form = e.target;
+                const msg = form.getAttribute('data-confirm');
+                if (!msg || form.dataset.confirmed === '1') return;
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: msg,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2563eb',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, proceed'
+                }).then(function (res) {
+                    if (res.isConfirmed) {
+                        form.dataset.confirmed = '1';
+                        const btn = form.querySelector('button[type="submit"]');
+                        if (btn) btn.disabled = true;
+                        form.submit();
+                    }
+                });
+            }, true);
+
+            // 4) Busy buttons on submit (runs after HTML5 validation passes)
             document.addEventListener('submit', function (e) {
                 const form = e.target;
                 if (form.hasAttribute('data-no-busy')) return;
+                if (form.hasAttribute('data-confirm') && form.dataset.confirmed !== '1') return;
                 window.setTimeout(function () {
                     form.querySelectorAll('button[type="submit"]').forEach(function (btn) {
                         if (btn.disabled) return;

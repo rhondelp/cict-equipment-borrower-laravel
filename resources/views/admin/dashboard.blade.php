@@ -44,132 +44,50 @@
     <!-- Main Content -->
     <main class="p-6">
 
-        <!-- Quick Stats (Compact Layout) -->
+        {{-- Flash messages incl. login welcome --}}
+        <x-ui.feedback />
+
+        <!-- Quick Stats -->
         <section class="mb-6">
             <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-                <!-- Total Equipment -->
-                <div
-                    class="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-300">
-                    <div>
-                        <p class="text-xs font-medium text-gray-500">Total Equipment</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-900">{{ $equipments->count() }}</p>
-                    </div>
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-                        <i class="fas fa-tools text-lg text-blue-600"></i>
-                    </div>
-                </div>
-
-                <!-- Active Users -->
-                <div
-                    class="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-300">
-                    <div>
-                        <p class="text-xs font-medium text-gray-500">Active Users</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-900">{{ $users->count() }}</p>
-                    </div>
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-                        <i class="fas fa-users text-lg text-blue-600"></i>
-                    </div>
-                </div>
-
-                <!-- Active Transactions -->
-                <div
-                    class="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-300">
-                    <div>
-                        <p class="text-xs font-medium text-gray-500">Transactions</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-900">{{ $transactions->count() }}</p>
-                    </div>
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-                        <i class="fas fa-exchange-alt text-lg text-blue-600"></i>
-                    </div>
-                </div>
-
-                <!-- Pending Requests -->
-                <div
-                    class="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-300">
-                    <div>
-                        <p class="text-xs font-medium text-gray-500">Total Requests</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-900">{{ $requests->count() }}</p>
-                    </div>
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-                        <i class="fas fa-clipboard-list text-lg text-blue-600"></i>
-                    </div>
-                </div>
+                <x-ui.stat-card label="Total Equipment" :value="$equipments->count()" icon="fa-tools" :href="route('admin.equipment')" />
+                <x-ui.stat-card label="Active Users" :value="$users->count()" icon="fa-users" :href="route('admin.users')" />
+                <x-ui.stat-card label="Transactions" :value="$transactions->count()" icon="fa-exchange-alt" :href="route('admin.transaction')" />
+                <x-ui.stat-card label="Pending Requests" :value="$requests->where('status', 'Pending')->count()" icon="fa-clipboard-list" :href="route('admin.request')" />
             </div>
         </section>
 
-
-        <!-- Charts and Activity Section -->
-        <div class="w-full px-4 py-4">
-            <!-- Recent Activity -->
-            <div class="w-full rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                <div class="flex items-center justify-between mb-6">
+        <!-- Recent Return Logs -->
+        <section>
+            <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                <div class="mb-4 flex items-center justify-between">
                     <h3 class="text-base font-semibold text-gray-900">Recent Return Logs</h3>
-                    <a href="{{ route('admin.logs') }}"
-                        class="text-sm font-medium text-blue-600 hover:text-blue-700">View All</a>
+                    <a href="{{ route('admin.logs') }}" class="text-sm font-medium text-brand hover:text-brand-dark">View All</a>
                 </div>
-                @foreach ($returnLogs as $returnLog)
-                <div class="flex items-start mb-4 space-x-3">
-                    <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 mt-1">
-                        <i class="fas fa-undo text-sm text-blue-600"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-900">
-                            {{ $returnLog->equipment->equipment_name ?? 'N/A' }}
-                        </p>
-                        <p class="text-xs text-gray-500">
-                            Borrowed by: {{ $returnLog->borrower->name ?? 'N/A' }}<br>
-                            Received by: {{ $returnLog->receiver->name ?? 'N/A' }} •
-                            {{ $returnLog->created_at->diffForHumans() }}
-                        </p>
-                    </div>
-                </div>
-                <hr class="my-2 border-gray-100">
-                @endforeach
+                @if ($returnLogs->isEmpty())
+                    <x-ui.empty-state icon="fa-undo" title="No returns logged yet"
+                        hint="When transactions are marked Returned, they are recorded here." />
+                @else
+                    <ul class="divide-y divide-gray-100">
+                        @foreach ($returnLogs->take(5) as $returnLog)
+                        <li class="flex items-start space-x-3 py-3">
+                            <div class="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand-light">
+                                <i class="fas fa-undo text-sm text-brand"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">
+                                    {{ $returnLog->equipment->equipment_name ?? 'N/A' }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    Borrowed by {{ $returnLog->borrower->name ?? 'N/A' }} · Received by {{ $returnLog->receiver->name ?? 'N/A' }} · {{ $returnLog->created_at->diffForHumans() }}
+                                </p>
+                            </div>
+                        </li>
+                        @endforeach
+                    </ul>
+                @endif
             </div>
-        </div>
-
-
-        <!-- Quick Actions & System Status -->
-        {{-- <div class="w-full px-4 py-4">
-            <!-- Quick Actions -->
-            <div class="p-6 bg-white border border-gray-200 rounded-2xl">
-                <h3 class="mb-6 text-lg font-semibold text-gray-900">Quick Actions</h3>
-                <div class="grid grid-cols-2 gap-4">
-                    <button
-                        class="flex flex-col items-center justify-center p-4 transition-all duration-200 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 group">
-                        <div
-                            class="flex items-center justify-center w-10 h-10 mb-2 transition-colors duration-200 bg-blue-100 rounded-lg group-hover:bg-blue-500">
-                            <i class="text-blue-500 fas fa-plus group-hover:text-white"></i>
-                        </div>
-                        <span class="text-sm font-medium text-gray-700">Add Equipment</span>
-                    </button>
-                    <button
-                        class="flex flex-col items-center justify-center p-4 transition-all duration-200 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 group">
-                        <div
-                            class="flex items-center justify-center w-10 h-10 mb-2 transition-colors duration-200 bg-blue-100 rounded-lg group-hover:bg-blue-500">
-                            <i class="text-blue-500 fas fa-user-plus group-hover:text-white"></i>
-                        </div>
-                        <span class="text-sm font-medium text-gray-700">Add User</span>
-                    </button>
-                    <button
-                        class="flex flex-col items-center justify-center p-4 transition-all duration-200 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 group">
-                        <div
-                            class="flex items-center justify-center w-10 h-10 mb-2 transition-colors duration-200 bg-blue-100 rounded-lg group-hover:bg-blue-500">
-                            <i class="text-blue-500 fas fa-clipboard-check group-hover:text-white"></i>
-                        </div>
-                        <span class="text-sm font-medium text-gray-700">Process Request</span>
-                    </button>
-                    <button
-                        class="flex flex-col items-center justify-center p-4 transition-all duration-200 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 group">
-                        <div
-                            class="flex items-center justify-center w-10 h-10 mb-2 transition-colors duration-200 bg-blue-100 rounded-lg group-hover:bg-blue-500">
-                            <i class="text-blue-500 fas fa-chart-bar group-hover:text-white"></i>
-                        </div>
-                        <span class="text-sm font-medium text-gray-700">View Reports</span>
-                    </button>
-                </div>
-            </div>
-        </div> --}}
+        </section>
     </main>
 </div>
 @endsection

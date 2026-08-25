@@ -51,7 +51,13 @@
                 <i class="fas fa-clipboard-list {{ request()->is('admin/request') ? 'text-blue-400' : 'text-gray-400' }}"></i>
             </div>
             <span class="font-medium">Requests</span>
-            {{-- <span class="px-2 py-1 ml-auto text-xs text-white bg-blue-500 rounded-full">12</span> --}}
+            @php $pendingRequests = \App\Models\ItemRequest::where('status', 'Pending')->count(); @endphp
+            @if ($pendingRequests > 0)
+                <span class="ml-auto inline-flex items-center justify-center rounded-full bg-brand px-2 py-0.5 text-xs font-semibold text-white"
+                    title="{{ $pendingRequests }} pending request(s) awaiting approval">
+                    {{ $pendingRequests }}
+                </span>
+            @endif
         </a>
 
         {{-- <a href="{{ route('admin.notifications') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('admin/logs') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
