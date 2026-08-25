@@ -22,7 +22,7 @@
                 <div class="flex items-center space-x-4">
                     <!-- Add Equipment Button -->
                     <button id="open-add-modal"
-                        class="flex items-center space-x-2 rounded-lg bg-brand px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-brand-dark">
+                        class="flex items-center px-4 py-2 space-x-2 font-medium text-white transition-colors duration-200 bg-blue-500 hover:bg-blue-600 rounded-xl">
                         <i class="fas fa-plus"></i>
                         <span>Add Equipment</span>
                     </button>
@@ -32,24 +32,25 @@
 
         <!-- Main Content -->
         <main class="p-6">
-            {{-- Flash messages + validation errors --}}
-            <x-ui.feedback />
+            @if (session('success'))
+                <div class="px-4 py-3 mb-6 text-green-800 bg-green-100 border-l-4 border-green-500 rounded shadow-sm" role="alert">
+                    <div class="flex items-center">
+                        <i class="mr-2 fas fa-check-circle"></i>
+                        <span>{{ session('success') }}</span>
+                    </div>
+                </div>
+            @endif
 
             <!-- Equipment Table -->
-            <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-                @if ($equipment->isEmpty())
-                    <x-ui.empty-state icon="fa-tools" title="No equipment registered"
-                        hint="Use the Add Equipment button to build your inventory." />
-                @else
-                <table id="equipmentTable" class="w-full display nowrap">
-                <thead class="bg-gray-50 text-left text-xs font-semibold text-gray-500">
+            <table id="equipmentTable" class="w-full display nowrap">
+                <thead class="bg-gray-50">
                     <tr>
-                        <th>Equipment Name</th>
-                        <th>Description</th>
-                        <th>Quantity</th>
-                        <th>Available Quantity</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th>EQUIPMENT NAME</th>
+                        <th>DESCRIPTION</th>
+                        <th>QUANTITY</th>
+                        <th>AVAILABLE QUANTITY</th>
+                        <th>STATUS</th>
+                        <th>ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -60,11 +61,21 @@
                             <td>{{ $item->quantity }}</td>
                             <td>{{ $item->available_quantity }}</td>
                             <td>
-                                <x-ui.status-badge :status="$item->status" />
+                                @php
+                                    $statusColors = [
+                                        'Available' => 'bg-green-100 text-green-800',
+                                        'Unavailable' => 'bg-red-100 text-red-800',
+                                    ];
+                                    $statusColor = $statusColors[$item->status] ?? 'bg-gray-100 text-gray-800';
+                                @endphp
+                                <span
+                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusColor }}">
+                                    {{ ucfirst(str_replace('_', ' ', $item->status)) }}
+                                </span>
                             </td>
                             <td>
-                                <div class="flex items-center gap-2">
-                                    <button class="rounded-lg bg-brand px-4 py-1 text-xs font-medium text-white md:text-sm hover:bg-brand-dark edit-btn" data-id="{{ $item->id }}"
+                                <div class="flex items-center space-x-2">
+                                    <button class="px-4 py-1 text-xs text-white bg-blue-600 md:text-sm hover:bg-blue-700 edit-btn" data-id="{{ $item->id }}"
                                         data-name="{{ $item->equipment_name }}" data-description="{{ $item->description }}"
                                         data-quantity="{{ $item->quantity }}"
                                         data-available="{{ $item->available_quantity }}"
@@ -72,19 +83,20 @@
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
 
-                                    <button type="button"
-                                        class="rounded-lg border border-red-600 px-4 py-1 text-xs font-medium text-red-600 md:text-sm transition-colors hover:bg-red-600 hover:text-white delete-btn"
+                                    {{-- <button class="px-4 py-1 text-xs text-white bg-red-600 md:text-sm hover:bg-red-700 delete-btn"
                                         data-id="{{ $item->id }}" data-name="{{ $item->equipment_name }}">
                                         <i class="fas fa-trash"></i> Delete
-                                    </button>
+                                    </button> --}}
                                 </div>
                             </td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
-            </div>
-        </main>
+
+    </div>
+    </div>
+    </main>
     </div>
 
     {{-- Modals For (Add, Edit, Delete) --}}
@@ -103,7 +115,7 @@
                     [10, 25, 50, "All"]
                 ],
                 language: {
-                    search: "",
+                    search: "🔍 ",
                     searchPlaceholder: "Search equipment..."
                 }
             });
@@ -149,4 +161,33 @@
             });
         });
     </script>
+
+    <style>
+        /* DataTable Styling */
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        .dataTables_wrapper .dataTables_length select {
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.4rem 0.75rem;
+            margin: 0 0.125rem;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #3b82f6;
+            color: white !important;
+            border-color: #3b82f6;
+        }
+    </style>
 @endsection

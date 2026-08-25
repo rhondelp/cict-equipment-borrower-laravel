@@ -1,5 +1,5 @@
 <!-- Sidebar Overlay -->
-<div class="fixed inset-0 z-40 sidebar-overlay bg-black/50 md:hidden" style="display: none;"></div>
+<div class="fixed inset-0 z-40 bg-black bg-opacity-50 sidebar-overlay md:hidden" style="display: none;"></div>
 
 <!-- Sidebar -->
 <div class="fixed inset-y-0 left-0 z-50 flex flex-col text-white bg-gray-900 sidebar w-80">
@@ -19,58 +19,52 @@
 
     <!-- Navigation -->
     <nav class="flex-1 px-4 py-6 space-y-2">
-        <a href="{{ route('admin.dashboard') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('admin/dashboard') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
+        <a href="{{ route('admin.dashboard') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('equipment*') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
             <div class="w-6 text-center">
-                <i class="fas fa-dashboard {{ request()->is('admin/dashboard') ? 'text-blue-400' : 'text-gray-400' }}"></i>
+                <i class="fas fa-dashboard {{ request()->is('equipment*') ? 'text-blue-400' : 'text-gray-400' }}"></i>
             </div>
             <span class="font-medium">Dashboard</span>
         </a>
-        <a href="{{ route('admin.equipment') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('admin/equipment') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
+        <a href="{{ route('admin.equipment') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('equipment*') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
             <div class="w-6 text-center">
-                <i class="fas fa-tools {{ request()->is('admin/equipment') ? 'text-blue-400' : 'text-gray-400' }}"></i>
+                <i class="fas fa-tools {{ request()->is('equipment*') ? 'text-blue-400' : 'text-gray-400' }}"></i>
             </div>
             <span class="font-medium">Equipment</span>
         </a>
 
-        <a href="{{ route('admin.users') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('admin/users') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
+        <a href="{{ route('admin.users') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('users*') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
             <div class="w-6 text-center">
-                <i class="fas fa-users {{ request()->is('admin/users') ? 'text-blue-400' : 'text-gray-400' }}"></i>
+                <i class="fas fa-users {{ request()->is('users*') ? 'text-blue-400' : 'text-gray-400' }}"></i>
             </div>
             <span class="font-medium">Users</span>
         </a>
 
-        <a href="{{ route('admin.transaction') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('admin/transaction') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
+        <a href="{{ route('admin.transaction') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('transaction*') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
             <div class="w-6 text-center">
-                <i class="fas fa-exchange-alt {{ request()->is('admin/transaction') ? 'text-blue-400' : 'text-gray-400' }}"></i>
+                <i class="fas fa-exchange-alt {{ request()->is('transaction*') ? 'text-blue-400' : 'text-gray-400' }}"></i>
             </div>
             <span class="font-medium">Borrow Transactions</span>
         </a>
 
-        <a href="{{ route('admin.request') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('admin/request') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
+        <a href="{{ route('admin.request') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('request*') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
             <div class="w-6 text-center">
-                <i class="fas fa-clipboard-list {{ request()->is('admin/request') ? 'text-blue-400' : 'text-gray-400' }}"></i>
+                <i class="fas fa-clipboard-list {{ request()->is('request*') ? 'text-blue-400' : 'text-gray-400' }}"></i>
             </div>
             <span class="font-medium">Requests</span>
-            @php $pendingRequests = \App\Models\ItemRequest::where('status', 'Pending')->count(); @endphp
-            @if ($pendingRequests > 0)
-                <span class="ml-auto inline-flex items-center justify-center rounded-full bg-brand px-2 py-0.5 text-xs font-semibold text-white"
-                    title="{{ $pendingRequests }} pending request(s) awaiting approval">
-                    {{ $pendingRequests }}
-                </span>
-            @endif
+            {{-- <span class="px-2 py-1 ml-auto text-xs text-white bg-blue-500 rounded-full">12</span> --}}
         </a>
 
-        {{-- Notification history --}}
-        <a href="{{ route('admin.notifications') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('admin/notifications') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
+        {{-- <a href="{{ route('admin.notifications') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('notification*') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
             <div class="w-6 text-center">
-                <i class="fas fa-bell {{ request()->is('admin/notifications') ? 'text-blue-400' : 'text-gray-400' }}"></i>
+                <i class="fas fa-bell {{ request()->is('notification*') ? 'text-blue-400' : 'text-gray-400' }}"></i>
             </div>
-            <span class="font-medium">Notifications</span>
-        </a>
+            <span class="font-medium">Notifications</span> --}}
+            {{-- <span class="px-2 py-1 ml-auto text-xs text-white bg-red-500 rounded-full">{{ $countNotifs }}</span> --}}
+        {{-- </a> --}}
 
-        <a href="{{ route('admin.logs') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('admin/logs') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
+        <a href="{{ route('admin.logs') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('notification*') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
             <div class="w-6 text-center">
-                <i class="fas fa-book {{ request()->is('admin/logs') ? 'text-blue-400' : 'text-gray-400' }}"></i>
+                <i class="fas fa-book {{ request()->is('notification*') ? 'text-blue-400' : 'text-gray-400' }}"></i>
             </div>
             <span class="font-medium">Return Logs</span>
             {{-- <span class="px-2 py-1 ml-auto text-xs text-white bg-red-500 rounded-full">{{ $countNotifs }}</span> --}}
@@ -90,7 +84,7 @@
                 <button id="settingsBtn" class="text-gray-400 transition-colors duration-200 hover:text-white focus:outline-none">
                     <i class="fas fa-cog"></i>
                 </button>
-                <div id="logoutDropdown" class="absolute right-0 z-50 hidden w-40 mt-2 bg-gray-800 shadow-md rounded-lg">
+                <div id="logoutDropdown" class="absolute right-0 z-50 hidden w-40 mt-2 bg-gray-800 shadow-lg rounded-xl">
                     <form id="logoutForm" method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="button" id="logoutBtn" class="block w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-gray-700 hover:text-white rounded-xl">

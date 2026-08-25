@@ -10,58 +10,60 @@
     <!-- Header -->
     <header class="bg-white border-b border-gray-200 shadow-sm">
         <div class="flex items-center justify-between px-6 py-4">
-            <div class="flex items-center space-x-4">
-                <button id="menu-toggle" class="text-gray-500 hover:text-gray-700 md:hidden">
-                    <i class="text-xl fas fa-bars"></i>
-                </button>
-                <div>
-                    <h1 class="text-xl font-semibold tracking-tight text-gray-900">Borrow Transactions</h1>
-                    <p class="text-sm text-gray-500">Track loans and process returns</p>
-                </div>
-            </div>
-            <button id="open-add-modal"
-                class="flex items-center space-x-2 rounded-lg bg-brand px-4 py-2 font-medium text-white transition-colors hover:bg-brand-dark">
-                <i class="fas fa-plus"></i>
-                <span>Add Transaction</span>
+            <h1 class="text-xl font-bold text-gray-800">BORROW TRANSACTIONS</h1>
+            <button id="open-add-modal" class="px-4 py-2 text-white bg-blue-600 rounded-lg shadow hover:bg-blue-700">
+                + Add Transaction
             </button>
         </div>
     </header>
 
     <main class="p-6">
-        {{-- Flash messages + validation errors --}}
-        <x-ui.feedback />
-
+        @if ($errors->any())
+        <div class="px-4 py-3 mb-6 text-red-800 bg-red-100 border-l-4 border-red-500 rounded shadow-sm" role="alert">
+            <div class="flex items-center">
+                <i class="mr-2 fas fa-exclamation-circle"></i>
+                <ul class="list-disc list-inside">
+                    @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+        @endif
+        @if (session('success'))
+        <div class="px-4 py-3 mb-6 text-green-800 bg-green-100 border-l-4 border-green-500 rounded shadow-sm"
+            role="alert">
+            <div class="flex items-center">
+                <i class="mr-2 fas fa-check-circle"></i>
+                <span>{{ session('success') }}</span>
+            </div>
+        </div>
+        @endif
         <!-- DataTable -->
-        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-            @if ($transactions->isEmpty())
-                <x-ui.empty-state icon="fa-exchange-alt" title="No borrow transactions"
-                    hint="Transactions you create will appear here. Use Add Transaction to release equipment." />
-            @else
+        <div class="p-4 overflow-x-auto bg-white rounded-lg shadow">
             <table id="transactions-table" class="w-full border-collapse display nowrap stripe hover responsive">
-                <thead class="bg-gray-50 text-left text-xs font-semibold text-gray-500">
+                <thead class="bg-gray-50">
                     <tr>
-                        <th>User</th>
-                        <th>Equipment</th>
-                        <th>Borrow Date</th>
-                        <th>Return Date</th>
-                        <th>Quantity</th>
-                        <th>Purpose</th>
-                        <th>Status</th>
-                        <th>Remarks</th>
-                        <th>Class Sched</th>
-                        <th>Actions</th>
+                        <th>USER</th>
+                        <th>EQUIPMENT</th>
+                        <th>BORROW DATE</th>
+                        <th>RETURN DATE</th>
+                        <th>QUANTITY</th>
+                        <th>PURPOSE</th>
+                        <th>STATUS</th>
+                        <th>REMARKS</th>
+                        <th>CLASS SCHED</th>
+                        <th>ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($transactions as $tx)
                     @php
                     $returnDate = $tx->return_date ? \Carbon\Carbon::parse($tx->return_date)->format('Y-m-d') : null;
-                    $rd = $returnDate ? \Carbon\Carbon::parse($returnDate)->startOfDay() : null;
-                    $isOverdueTx = $tx->status === 'Borrowed' && $rd && $rd->lt(\Carbon\Carbon::today());
-                    $isDueToday = $tx->status === 'Borrowed' && $rd && $rd->eq(\Carbon\Carbon::today());
+                    $isDueToday = $returnDate === now()->format('Y-m-d');
                     @endphp
 
-                    <tr class="transition-colors duration-150 hover:bg-gray-50 {{ $isOverdueTx ? 'bg-red-50/60' : '' }}">
+                    <tr class="transition-colors duration-150 hover:bg-blue-50">
 
                         <td>{{ $tx->user->name ?? 'Deleted User' }}</td>
 
@@ -70,13 +72,8 @@
                         <td>{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}</td>
 
                         <!-- Return Date Column -->
-                        <td>
-                            <span class="whitespace-nowrap">{{ $returnDate ?? 'N/A' }}</span>
-                            @if ($isOverdueTx)
-                                <span class="ml-1 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700 ring-1 ring-inset ring-red-600/20">Past due</span>
-                            @elseif ($isDueToday)
-                                <span class="ml-1 inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700 ring-1 ring-inset ring-orange-600/20">Due today</span>
-                            @endif
+                        <td @if($isDueToday) style="background-color:#ffcccc; color:#a30000; font-weight:bold;" @endif>
+                            {{ $returnDate ?? 'N/A' }}
                         </td>
 
                         <td>{{ $tx->quantity }}</td>
@@ -84,27 +81,30 @@
                         <td>{{ $tx->purpose }}</td>
 
                         <td>
-                            <select class="status-dropdown rounded-lg border px-3 py-1.5 text-sm font-medium transition
-                        focus:outline-none focus:ring-2 focus:ring-brand/20
-                        {{ $tx->status === 'Borrowed' ? 'border-blue-300 text-blue-700 bg-blue-50' : '' }}
-                        {{ $tx->status === 'Returned' ? 'border-green-500 text-green-700 bg-green-50' : '' }}
-                        {{ $tx->status === 'Overdue' ? 'border-red-500 text-red-700 bg-red-50' : '' }}"
+                            <select class="px-3 py-2 text-sm font-medium transition border rounded-full status-dropdown
+                        focus:outline-none focus:ring-2 focus:ring-blue-500
+                        {{ $tx->status === 'Borrowed' ? 'border-yellow-400 text-yellow-600 bg-yellow-100' : '' }}
+                        {{ $tx->status === 'Returned' ? 'border-green-500 text-green-600 bg-green-100' : '' }}
+                        {{ $tx->status === 'Overdue' ? 'border-red-500 text-red-600 bg-red-100' : '' }}"
                                 data-id="{{ $tx->id }}">
-                                <option value="Borrowed" {{ $tx->status === 'Borrowed' ? 'selected' : '' }}>
+                                <option value="Borrowed" class="text-yellow-600" {{ $tx->status === 'Borrowed' ?
+                                    'selected' : '' }}>
                                     Borrowed
                                 </option>
 
-                                <option value="Returned" {{ $tx->status === 'Returned' ? 'selected' : '' }}>
+                                <option value="Returned" class="text-green-600" {{ $tx->status === 'Returned' ?
+                                    'selected' : '' }}>
                                     Returned
                                 </option>
 
-                                <option value="Overdue" {{ $tx->status === 'Overdue' ? 'selected' : '' }}>
+                                <option value="Overdue" class="text-red-600" {{ $tx->status === 'Overdue' ? 'selected' :
+                                    '' }}>
                                     Overdue
                                 </option>
                             </select>
                         </td>
 
-                        <td>{{ $tx->remarks ?? '---' }}</td>
+                        <td>{{ $tx->remarks ?? '—' }}</td>
 
                         <td>
                             @if ($tx->classSchedule)
@@ -117,11 +117,11 @@
                         </td>
 
                         <td>
-                            <div class="flex flex-wrap items-center gap-2">
+                            <div class="flex items-center space-x-2">
 
                                 <!-- EDIT BUTTON -->
-                                <button type="button"
-                                    class="rounded-lg bg-brand px-3 py-1 text-xs font-medium text-white hover:bg-brand-dark edit-btn"
+                                <button
+                                    class="px-4 py-1 text-xs text-white bg-blue-600 md:text-sm hover:bg-blue-700 edit-btn"
                                     data-id="{{ $tx->id }}" data-user="{{ $tx->user->id ?? '' }}"
                                     data-equipment="{{ $tx->equipment->id ?? '' }}"
                                     data-borrow="{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}"
@@ -133,18 +133,10 @@
                                 </button>
 
                                 <!-- SEND EMAIL BUTTON -->
-                                <button type="button"
-                                    class="rounded-lg bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 send-email-btn"
+                                <button
+                                    class="px-4 py-1 text-xs text-white bg-green-600 md:text-sm hover:bg-green-700 send-email-btn"
                                     data-id="{{ $tx->id }}" data-user-email="{{ $tx->user->email ?? '' }}">
-                                    <i class="fas fa-envelope"></i> Email
-                                </button>
-
-                                <!-- DELETE BUTTON -->
-                                <button type="button"
-                                    class="rounded-lg border border-red-600 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-600 hover:text-white delete-btn"
-                                    data-id="{{ $tx->id }}"
-                                    data-name="{{ ($tx->user->name ?? 'Unknown') . ' - ' . ($tx->equipment->equipment_name ?? 'Unknown') }}">
-                                    <i class="fas fa-trash"></i> Delete
+                                    <i class="fas fa-envelope"></i> Send Email
                                 </button>
 
                             </div>
@@ -155,12 +147,12 @@
                 </tbody>
 
             </table>
-            @endif
         </div>
     </main>
 </div>
 
 <!-- Modals -->
+
 
 @include('components.admin.transaction.email-modal')
 @include('components.admin.transaction.add-modal')
@@ -168,30 +160,29 @@
 @include('components.admin.transaction.delete-modal')
 @include('components.admin.transaction.returnlog-modal')
 
-{{-- Dynamic quantity fields when multiple equipment selected --}}
+
 <script>
     document.getElementById('equipment-select').addEventListener('change', function() {
     const equipmentIds = Array.from(this.selectedOptions).map(option => option.value);
     const quantitiesDiv = document.getElementById('equipment-quantities');
 
+
     quantitiesDiv.innerHTML = '';
 
-    equipmentIds.forEach((equipmentId) => {
-        const option = this.querySelector(`option[value="${equipmentId}"]`);
-        // Option text is "ID | Equipment Name"
-        const parts = option ? option.textContent.split('|') : [];
-        const equipmentName = parts.length > 1 ? parts.slice(1).join('|').trim() : ('#' + equipmentId);
 
+    equipmentIds.forEach((equipmentId) => {
         const quantityField = document.createElement('div');
         quantityField.classList.add('space-y-2');
         quantityField.innerHTML = `
-            <label class="block text-sm font-medium text-gray-700">Quantity for ${equipmentName}</label>
+            <label class="block text-sm font-medium text-gray-700">Quantity for Equipment #${equipmentId}</label>
             <input type="number" name="quantities[${equipmentId}]" min="1" required
-                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
+                class="w-full px-3 py-2 mt-1 transition border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
         `;
         quantitiesDiv.appendChild(quantityField);
     });
 });
+
+
 </script>
 
 <script>
@@ -207,7 +198,7 @@
                 { responsivePriority: 2, targets: -1 },
             ],
         language: {
-            search: "",
+            search: "🔍 ",
             searchPlaceholder: "Search transactions..."
         }
     });
@@ -253,35 +244,22 @@
 });
 </script>
 
-{{-- Inline status updates: selecting "Returned" opens a return-log prompt first --}}
 <script>
     $(document).ready(function () {
-
-    // Remember the value before the user changes it, so we can roll back on cancel
-    let pendingSelect = null;
-
-    $('.status-dropdown').on('focus', function () {
-        $(this).data('prev', $(this).val());
-    });
-
     $('.status-dropdown').change(function () {
         let status = $(this).val();
         let id = $(this).data('id');
-        pendingSelect = this;
 
         if (status === "Returned") {
             $('#return-transaction-id').val(id);
             $('#returnLogModal').removeClass('hidden');
         } else {
-            updateStatus(this, id, status);
+            updateStatus(id, status);
         }
     });
 
-    // Cancel modal: roll the select back to its previous value
+    // Cancel modal
     $('#cancelReturn').click(function () {
-        if (pendingSelect) {
-            pendingSelect.value = $(pendingSelect).data('prev');
-        }
         $('#returnLogModal').addClass('hidden');
     });
 
@@ -293,13 +271,11 @@
         let condition = $('#return-condition').val();
         let remarks = $('#return-remarks').val();
 
-        updateStatus(pendingSelect, id, "Returned", condition, remarks);
+        updateStatus(id, "Returned", condition, remarks);
         $('#returnLogModal').addClass('hidden');
     });
 
-    function updateStatus(selectEl, id, status, condition = null, remarks = null) {
-        if (selectEl) selectEl.disabled = true;
-
+    function updateStatus(id, status, condition = null, remarks = null) {
         $.ajax({
             url: "{{ route('transactions.inlineUpdate') }}",
             method: "POST",
@@ -310,31 +286,26 @@
                 condition: condition,
                 remarks: remarks
             },
-            success: function () {
-                // Controller replies with a redirect; treat any completed response as success.
-                window.toast('Status updated successfully.', 'success');
-                window.setTimeout(function () { location.reload(); }, 600);
+            success: function (res) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: res.message,
+                    icon: 'success',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#10B981'
+                }).then(() => {
+                    location.reload();
+                });
             },
             error: function (xhr) {
-                let message = 'Could not update the status. Please try again.';
-                try {
-                    const res = JSON.parse(xhr.responseText);
-                    if (res && res.message) message = res.message;
-                } catch (e) {}
-                if (selectEl) {
-                    selectEl.disabled = false;
-                    selectEl.value = $(selectEl).data('prev');
-                }
-                window.toast(message, 'error');
+                alert("Error: " + xhr.responseText);
             }
         });
     }
 });
-</script>
 
-{{-- Email modal logic --}}
+</script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
     let selectedTransactionId = null;
 
     // Open modal
@@ -364,15 +335,6 @@
     document.getElementById('sendEmailConfirm').addEventListener('click', () => {
         const type = document.getElementById('emailType').value;
         const message = document.getElementById('modalMessage').value;
-        const sendBtn = document.getElementById('sendEmailConfirm');
-
-        if (type === 'custom' && !message.trim()) {
-            window.toast('Please write a message first.', 'error');
-            return;
-        }
-
-        sendBtn.disabled = true;
-        sendBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i>Sending...';
 
         fetch(`/send-email/${selectedTransactionId}`, {
             method: "POST",
@@ -385,28 +347,85 @@
                 message: message
             })
         })
-        .then(res => res.json().then(data => ({ ok: res.ok, data })))
-        .then(({ ok, data }) => {
-            sendBtn.disabled = false;
-            sendBtn.innerHTML = 'Send Email';
-            if (ok) {
-                document.getElementById('emailModal').classList.add('hidden');
-                window.toast(data.message || 'Email sent successfully!', 'success');
-            } else {
-                window.toast(data.message || 'Could not send the email.', 'error');
-            }
-        })
-        .catch(() => {
-            sendBtn.disabled = false;
-            sendBtn.innerHTML = 'Send Email';
-            window.toast('Could not send the email. Please try again.', 'error');
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            document.getElementById('emailModal').classList.add('hidden');
         });
     });
-
-    // Close email modal on outside click
-    document.getElementById('emailModal').addEventListener('click', function (e) {
-        if (e.target === this) this.classList.add('hidden');
-    });
-});
 </script>
+
+{{-- Enhanced Styles for DataTables --}}
+<style>
+    .dataTables_filter input {
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        margin-left: 0.5rem;
+    }
+
+    .dataTables_length select {
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        margin-left: 0.5rem;
+    }
+
+    .dataTables_wrapper .dataTables_paginate {
+        padding: 0;
+        margin: 0;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        margin-left: 0.25rem;
+        font-size: 0.875rem;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #e5e7eb;
+        border-color: #d1d5db;
+        color: #374151;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: white;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+        background: #f9fafb;
+        color: #9ca3af;
+        border-color: #d1d5db;
+        cursor: not-allowed;
+    }
+
+    /* Custom spacing for table footer */
+    #pagination-container {
+        min-height: 2.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Ensure proper spacing in table footer */
+    .dataTables_wrapper .dataTables_info {
+        padding: 0;
+        margin: 0;
+    }
+
+    /* Modal content styling */
+    .modal-content {
+        pointer-events: auto;
+    }
+</style>
 @endsection

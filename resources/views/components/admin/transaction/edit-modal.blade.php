@@ -1,20 +1,20 @@
 <!-- Edit Transaction Modal -->
-<div id="edit-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black/50">
-    <div class="modal-fade mx-4 w-full max-w-2xl rounded-lg bg-white shadow-lg">
-        <!-- Header -->
-        <div class="border-b border-gray-200 px-6 py-4">
-            <h2 class="text-base font-semibold text-gray-900">Edit Transaction</h2>
-        </div>
+<div id="edit-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50 backdrop-blur-sm">
+    <div class="w-full max-w-2xl p-6 bg-white shadow-2xl rounded-xl animate-fadeIn">
+        <!-- Title -->
+        <h2 class="flex items-center mb-6 text-2xl font-semibold text-gray-900">
+            <i class="mr-2 text-blue-600 fas fa-edit"></i> Edit Transaction
+        </h2>
 
-        <form id="edit-form" action="{{ route('admin.transaction.update') }}" method="POST" class="space-y-5 p-6">
+        <form id="edit-form" action="{{ route('admin.transaction.update') }}" method="POST" class="space-y-5">
             @csrf
             <input type="hidden" name="id" id="edit-id">
 
             <!-- User -->
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">User</label>
+                <label class="block mb-1 text-sm font-medium text-gray-700">User</label>
                 <select name="user_id" id="edit-user"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
+                    class="w-full px-3 py-2 transition border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     @foreach ($users as $user)
                         <option value="{{ $user->id }}">{{ $user->name }}</option>
                     @endforeach
@@ -23,9 +23,9 @@
 
             <!-- Equipment -->
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Equipment</label>
+                <label class="block mb-1 text-sm font-medium text-gray-700">Equipment</label>
                 <select name="equipment_id" id="edit-equipment"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
+                    class="w-full px-3 py-2 transition border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     @foreach ($equipment as $eq)
                         <option value="{{ $eq->id }}">{{ $eq->equipment_name }}</option>
                     @endforeach
@@ -35,36 +35,36 @@
             <!-- Dates -->
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700">Borrow Date</label>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Borrow Date</label>
                     <input type="date" name="borrow_date" id="edit-borrow"
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
+                        class="w-full px-3 py-2 transition border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700">Return Date</label>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Return Date</label>
                     <input type="date" name="return_date" id="edit-return"
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
+                        class="w-full px-3 py-2 transition border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
             </div>
 
             <!-- Quantity -->
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Quantity</label>
+                <label class="block mb-1 text-sm font-medium text-gray-700">Quantity</label>
                 <input type="number" name="quantity" id="edit-quantity" min="1"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
+                    class="w-full px-3 py-2 transition border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
 
             <!-- Purpose -->
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Purpose</label>
+                <label class="block mb-1 text-sm font-medium text-gray-700">Purpose</label>
                 <input type="text" name="purpose" id="edit-purpose"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
+                    class="w-full px-3 py-2 transition border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
 
             <!-- Status -->
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Status</label>
+                <label class="block mb-1 text-sm font-medium text-gray-700">Status</label>
                 <select name="status" id="edit-status"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
+                    class="w-full px-3 py-2 transition border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     <option value="Borrowed">Borrowed</option>
                     <option value="Returned">Returned</option>
                     <option value="Overdue">Overdue</option>
@@ -73,16 +73,16 @@
 
             <!-- Remarks -->
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Remarks</label>
+                <label class="block mb-1 text-sm font-medium text-gray-700">Remarks</label>
                 <textarea name="remarks" id="edit-remarks" rows="2"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"></textarea>
+                    class="w-full px-3 py-2 transition border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
             </div>
 
             <!-- Class Schedule -->
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Class Schedule (Optional)</label>
+                <label class="block mb-1 text-sm font-medium text-gray-700">Class Schedule (Optional)</label>
                 <select name="class_schedule_id" id="edit-class"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
+                    class="w-full px-3 py-2 transition border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     <option value="">-- None --</option>
                     @foreach ($classSchedules as $schedule)
                         <option value="{{ $schedule->id }}">
@@ -95,16 +95,27 @@
             </div>
 
             <!-- Actions -->
-            <div class="flex justify-end space-x-3 border-t border-gray-200 pt-4">
+            <div class="flex justify-end mt-6 space-x-3">
                 <button type="button" id="cancel-edit"
-                    class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
+                    class="px-4 py-2 text-gray-700 transition bg-gray-200 rounded-lg hover:bg-gray-300">
                     Cancel
                 </button>
                 <button type="submit"
-                    class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
+                    class="px-5 py-2 text-white transition bg-blue-600 rounded-lg shadow hover:bg-blue-700">
                     <i class="mr-1 fas fa-save"></i> Update
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<style>
+/* Smooth fade-in for modal */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+.animate-fadeIn {
+    animation: fadeIn 0.2s ease-out;
+}
+</style>
