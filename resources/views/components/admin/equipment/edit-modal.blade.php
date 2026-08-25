@@ -12,33 +12,33 @@
             <div>
                 <label for="edit-name" class="mb-1 block text-sm font-medium text-gray-700">Equipment Name</label>
                 <input type="text" id="edit-name" name="equipment_name"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <div>
                 <label for="edit-description" class="mb-1 block text-sm font-medium text-gray-700">Description</label>
                 <textarea id="edit-description" name="description" rows="3"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"></textarea>
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"></textarea>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label for="edit-quantity" class="mb-1 block text-sm font-medium text-gray-700">Total Quantity</label>
                     <input type="number" id="edit-quantity" name="quantity"
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                 </div>
 
                 <div>
                     <label for="edit-available" class="mb-1 block text-sm font-medium text-gray-700">Available Quantity</label>
                     <input type="number" id="edit-available" name="available_quantity"
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                 </div>
             </div>
 
             <div>
                 <label for="edit-status" class="mb-1 block text-sm font-medium text-gray-700">Status</label>
                 <select id="edit-status" name="status"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                     <option value="Available">Available</option>
                     <option value="Unavailable">Unavailable</option>
                 </select>
@@ -48,7 +48,7 @@
                 <button type="button" id="cancel-edit"
                     class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">Cancel</button>
                 <button type="submit" id="save-edit"
-                    class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700">Save
+                    class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-dark">Save
                     Changes</button>
             </div>
         </form>

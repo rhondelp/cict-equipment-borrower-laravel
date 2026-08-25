@@ -11,33 +11,33 @@
             <div>
                 <label for="add-name" class="mb-1 block text-sm font-medium text-gray-700">Equipment Name</label>
                 <input type="text" id="add-name" name="equipment_name" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <div>
                 <label for="add-description" class="mb-1 block text-sm font-medium text-gray-700">Description</label>
                 <textarea id="add-description" name="description" rows="3"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"></textarea>
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"></textarea>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label for="add-quantity" class="mb-1 block text-sm font-medium text-gray-700">Total Quantity</label>
                     <input type="number" id="add-quantity" name="quantity" required min="1"
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                 </div>
 
                 <div>
                     <label for="add-available" class="mb-1 block text-sm font-medium text-gray-700">Available Quantity</label>
                     <input type="number" id="add-available" name="available_quantity" required min="0"
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                 </div>
             </div>
 
             <div>
                 <label for="add-status" class="mb-1 block text-sm font-medium text-gray-700">Status</label>
                 <select id="add-status" name="status"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                     <option value="Available">Available</option>
                     <option value="Unavailable">Unavailable</option>
                 </select>
@@ -47,7 +47,7 @@
                 <button type="button" id="cancel-add"
                     class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">Cancel</button>
                 <button type="submit"
-                    class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700">Add
+                    class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-dark">Add
                     Equipment</button>
             </div>
         </form>

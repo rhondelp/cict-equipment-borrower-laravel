@@ -22,17 +22,15 @@
 
         <!-- Main Content -->
         <main class="p-6">
-            @if (session('success'))
-                <div class="px-4 py-3 mb-6 text-green-800 bg-green-100 border-l-4 border-green-500 rounded shadow-sm" role="alert">
-                    <div class="flex items-center">
-                        <i class="mr-2 fas fa-check-circle"></i>
-                        <span>{{ session('success') }}</span>
-                    </div>
-                </div>
-            @endif
+            {{-- Flash messages --}}
+            <x-ui.feedback />
 
             <!-- Notifications Table -->
             <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+            @if ($notifications->isEmpty())
+                <x-ui.empty-state icon="fa-bell" title="No notifications sent"
+                    hint="Automated return reminders and manual emails are recorded here." />
+            @else
             <table id="notificationTable" class="w-full display nowrap">
                 <thead class="bg-gray-50 text-left text-xs font-semibold text-gray-500">
                     <tr>
@@ -47,12 +45,13 @@
                         <tr class="transition-colors duration-150 hover:bg-gray-50">
                             <td>{{ $notif->user->name }}</td>
                             <td class="break-words whitespace-normal">{{ $notif->message }}</td>
-                            <td>{{ $notif->notification_type }}</td>
+                            <td><x-ui.status-badge :status="$notif->notification_type" /></td>
                             <td>{{ $notif->send_date ? \Carbon\Carbon::parse($notif->send_date)->format('M j, Y g:i A') : 'N/A' }}</td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
+            @endif
             </div>
         </main>
     </div>

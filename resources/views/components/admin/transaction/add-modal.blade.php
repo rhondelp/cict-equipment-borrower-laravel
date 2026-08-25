@@ -19,7 +19,7 @@
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Select User</label>
                 <select name="user_id" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                     <option value="" disabled selected>-- Select User --</option>
                     @foreach ($users as $user)
                     <option value="{{ $user->id }}">{{ $user->name }}</option>
@@ -31,7 +31,7 @@
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Select Equipment</label>
                 <select name="equipment[]" id="equipment-select" multiple required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                     <option value="" disabled selected>-- Select Equipment --</option>
                     @foreach ($equipment->where('status', 'Available')->where('available_quantity', '>', 0) as $eq)
                     <option value="{{ $eq->id }}">{{ $eq->id }} | {{ $eq->equipment_name }}</option>
@@ -50,12 +50,12 @@
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700">Borrow Date</label>
                     <input type="date" name="borrow_date" required
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                 </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700">Return Date</label>
                     <input type="date" name="return_date" required
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                 </div>
             </div>
 
@@ -63,14 +63,14 @@
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Purpose</label>
                 <input type="text" name="purpose" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <!-- Status Selection -->
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Transaction Status</label>
                 <select name="status" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                     <option value="Borrowed">Borrowed</option>
                     <option value="Returned">Returned</option>
                     <option value="Overdue">Overdue</option>
@@ -81,14 +81,14 @@
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Remarks (Optional)</label>
                 <textarea name="remarks" rows="2"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"></textarea>
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"></textarea>
             </div>
 
             <!-- Class Schedule (Optional) -->
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Class Schedule (Optional)</label>
                 <select name="class_schedule_id"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                     <option value="" selected>-- None --</option>
                     @foreach ($classSchedules as $schedule)
                     <option value="{{ $schedule->id }}">
@@ -107,7 +107,7 @@
                     Cancel
                 </button>
                 <button type="submit"
-                    class="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                    class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
                     <i class="mr-1 fas fa-save"></i> Create Transaction
                 </button>
             </div>

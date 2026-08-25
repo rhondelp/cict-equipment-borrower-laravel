@@ -29,7 +29,7 @@
 
                 <!-- User Menu -->
                 <div class="flex items-center space-x-3">
-                    <img class="h-9 w-9 rounded-lg border-2 border-blue-600 object-cover"
+                    <img class="h-9 w-9 rounded-lg border-2 border-brand object-cover"
                         src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=2563eb&color=fff&bold=true"
                         alt="{{ Auth::user()->name }}">
                     <div class="hidden md:block">

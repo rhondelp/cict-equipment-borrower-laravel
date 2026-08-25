@@ -23,17 +23,15 @@
 
         <!-- Main Content -->
         <main class="p-6">
-            @if (session('success'))
-                <div class="px-4 py-3 mb-6 text-green-800 bg-green-100 border-l-4 border-green-500 rounded shadow-sm" role="alert">
-                    <div class="flex items-center">
-                        <i class="mr-2 fas fa-check-circle"></i>
-                        <span>{{ session('success') }}</span>
-                    </div>
-                </div>
-            @endif
+            {{-- Flash messages --}}
+            <x-ui.feedback />
 
             <!-- Logs Table -->
                 <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+                @if ($logs->isEmpty())
+                    <x-ui.empty-state icon="fa-undo" title="No returns logged yet"
+                        hint="Return records appear here when transactions are marked as Returned." />
+                @else
                 <table id="logsTable" class="w-full text-sm display nowrap">
                     <thead class="bg-gray-50 text-left text-xs font-semibold text-gray-500">
                         <tr>
@@ -60,16 +58,7 @@
 
                                 <!-- Condition -->
                                 <td class="px-4 py-3">
-                                    @php
-                                        $conditionColors = [
-                                            'Good' => 'bg-green-100 text-green-700',
-                                            'Damaged' => 'bg-red-100 text-red-700',
-                                            'Needs Repair' => 'bg-yellow-100 text-yellow-700',
-                                        ];
-                                    @endphp
-                                    <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $conditionColors[$log->condition] ?? 'bg-gray-100 text-gray-700' }}">
-                                        {{ $log->condition }}
-                                    </span>
+                                    <x-ui.status-badge :status="$log->condition" />
                                 </td>
 
                                 <!-- Remarks -->
@@ -91,6 +80,7 @@
                     </tbody>
 
                 </table>
+                @endif
                 </div>
         </main>
     </div>

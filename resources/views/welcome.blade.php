@@ -11,7 +11,7 @@
         <div class="place-self-center mx-auto flex flex-col items-center space-y-6 text-center lg:col-span-7 lg:items-start lg:text-left">
             <h1 class="max-w-2xl text-4xl font-semibold leading-tight tracking-tight text-gray-900 md:text-5xl">
                 Welcome to
-                <span class="text-blue-600">CICT Equipment Borrower System</span>
+                <span class="text-brand">CICT Equipment Borrower System</span>
             </h1>
             <p class="max-w-xl text-base leading-relaxed text-gray-600">
                 Borrow, track, and return department equipment with one record for every transaction.
@@ -20,7 +20,7 @@
             <div class="flex flex-col justify-center gap-4 sm:flex-row lg:justify-start">
                 <!-- Login Button -->
                 <a href="{{ route('login') }}"
-                   class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                   class="inline-flex items-center justify-center rounded-lg bg-brand px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
                     Login to System
                     <i class="fas fa-arrow-right ml-2"></i>
                 </a>

@@ -13,7 +13,7 @@
             <div>
                 <label for="return-condition" class="mb-1 block text-sm font-medium text-gray-700">Condition</label>
                 <select id="return-condition"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                     <option value="Good">Good</option>
                     <option value="Damaged">Damaged</option>
                     <option value="Needs Repair">Needs Repair</option>
@@ -24,7 +24,7 @@
             <div>
                 <label for="return-remarks" class="mb-1 block text-sm font-medium text-gray-700">Remarks</label>
                 <textarea id="return-remarks" rows="2"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
                     placeholder="Optional remarks..."></textarea>
             </div>
 
@@ -32,7 +32,7 @@
                 <button type="button" id="cancelReturn"
                     class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">Cancel</button>
                 <button type="submit"
-                    class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Confirm</button>
+                    class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">Confirm</button>
             </div>
         </form>
     </div>

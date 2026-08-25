@@ -20,13 +20,13 @@
             <div class="flex items-center space-x-4">
                 <!-- Add Schedule Button -->
                 <button id="open-add-sched-modal"
-                    class="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-700">
+                    class="flex items-center space-x-2 rounded-lg bg-brand px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-brand-dark">
                     <i class="fas fa-calendar-check"></i>
                     <span>Add Schedule</span>
                 </button>
                 <!-- Add User Button -->
                 <button id="open-add-modal"
-                    class="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-700">
+                    class="flex items-center space-x-2 rounded-lg bg-brand px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-brand-dark">
                     <i class="fas fa-user-plus"></i>
                     <span>Add User</span>
                 </button>
@@ -36,32 +36,15 @@
 
     <!-- Main Content -->
     <main class="p-6">
-        <!-- Error Message -->
-        @if ($errors->any())
-        <div class="px-4 py-3 mb-6 text-red-800 bg-red-100 border-l-4 border-red-500 rounded shadow-sm" role="alert">
-            <div class="flex items-center">
-                <i class="mr-2 fas fa-exclamation-circle"></i>
-                <ul class="list-disc list-inside">
-                    @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-        @endif
-        <!-- Success Message -->
-        @if (session('success'))
-        <div class="px-4 py-3 mb-6 text-green-800 bg-green-100 border-l-4 border-green-500 rounded shadow-sm"
-            role="alert">
-            <div class="flex items-center">
-                <i class="mr-2 fas fa-check-circle"></i>
-                <span>{{ session('success') }}</span>
-            </div>
-        </div>
-        @endif
+        {{-- Flash messages + validation errors --}}
+        <x-ui.feedback />
 
         <!-- Users Table -->
         <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+            @if ($users->isEmpty())
+                <x-ui.empty-state icon="fa-users" title="No users registered"
+                    hint="Add instructors and students, or let them self-register." />
+            @else
             <table id="users-table" class="w-full display nowrap">
                 <thead class="bg-gray-50 text-left text-xs font-semibold text-gray-500">
                     <tr>
@@ -78,41 +61,42 @@
                     <tr class="transition-colors duration-150 ease-in-out hover:bg-gray-50">
                         <td>{{ $user->name }}</td>
                         <td>{{ $user->email }}</td>
-                        <td>{{ $user->user_type }}</td>
+                        <td><x-ui.status-badge :status="$user->user_type" /></td>
                         <td>{{ $user->contact_number ?? 'N/A' }}</td>
                         <td>
                             @if ($user->classSchedules->count() > 0)
-                            <ul class="text-sm text-gray-700">
+                            <div class="flex flex-col gap-1 py-1">
                                 @foreach ($user->classSchedules as $sched)
-                                <li>
-                                    {{ $sched->subject_code }} - {{ $sched->subject_name }}
-                                    ({{ $sched->schedule_time }})
-                                    - Room: {{ $sched->room }}
-                                </li>
+                                <div class="w-fit max-w-xs rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs leading-relaxed text-gray-700">
+                                    <span class="font-semibold">{{ $sched->subject_code }}</span>
+                                    {{ $sched->subject_name }}<br>
+                                    <span class="text-gray-500">{{ $sched->schedule_time }} · Room {{ $sched->room }}</span>
+                                </div>
                                 @endforeach
-                            </ul>
+                            </div>
                             @else
-                            <span class="text-gray-400">No schedules</span>
+                            <span class="text-xs italic text-gray-400">No schedules</span>
                             @endif
                         </td>
 
                         <td>
-                            <button
-                                class="rounded-lg px-4 py-1 text-xs text-white bg-blue-600 md:text-sm hover:bg-blue-700 edit-btn"
+                            <button type="button"
+                                class="rounded-lg bg-brand px-4 py-1 text-xs font-medium text-white md:text-sm hover:bg-brand-dark edit-btn"
                                 data-id="{{ $user->id }}" data-name="{{ $user->name }}" data-email="{{ $user->email }}"
                                 data-user_type="{{ $user->user_type }}" data-contact="{{ $user->contact_number }}">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
-                            {{-- <button
-                                class="px-4 py-1 text-xs text-white bg-red-600 md:text-sm hover:bg-red-700 delete-btn"
+                            <button type="button"
+                                class="rounded-lg border border-red-600 px-4 py-1 text-xs font-medium text-red-600 md:text-sm transition-colors hover:bg-red-600 hover:text-white delete-btn"
                                 data-id="{{ $user->id }}" data-name="{{ $user->name }}">
                                 <i class="fas fa-trash"></i> Delete
-                            </button> --}}
+                            </button>
                         </td>
                     </tr>
                     @endforeach
                 </tbody>
             </table>
+            @endif
         </div>
     </main>
 </div>
@@ -137,7 +121,7 @@
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Instructor</label>
                 <select name="user_id" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                     @foreach ($instructors as $inst)
                     <option value="{{ $inst->id }}">{{ $inst->name }}</option>
                     @endforeach
@@ -148,42 +132,42 @@
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Year Level</label>
                 <input type="text" name="year_level" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <!-- Block Name -->
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Block Name</label>
                 <input type="text" name="block_name" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <!-- Subject Code -->
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Subject Code</label>
                 <input type="text" name="subject_code" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <!-- Subject Name -->
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Subject Name</label>
                 <input type="text" name="subject_name" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <!-- Schedule Time -->
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Schedule Time</label>
                 <input type="text" name="schedule_time" required placeholder="e.g., Mon/Wed 8:00 AM - 10:00 AM"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <!-- Room -->
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Room</label>
                 <input type="text" name="room" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <!-- Actions -->
@@ -192,7 +176,7 @@
                     class="cancel-sched rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
                     Cancel
                 </button>
-                <button type="submit" class="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                <button type="submit" class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
                     Add Schedule
                 </button>
             </div>
@@ -209,7 +193,7 @@
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
             <h3 class="text-lg font-semibold text-gray-900">Add User</h3>
-            <button type="button" id="cancel-add" class="text-gray-400 transition hover:text-gray-600">
+            <button type="button" data-dismiss="#add-modal" class="text-gray-400 transition hover:text-gray-600">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -222,21 +206,21 @@
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Full Name</label>
                 <input type="text" name="name" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <!-- Email -->
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Email Address</label>
                 <input type="email" name="email" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <!-- User Type -->
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">User Type</label>
                 <select name="user_type" required
-                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                     <option value="" disabled selected>-- Select User Type --</option>
                     <option value="Admin">Admin</option>
                     <option value="Instructor">Instructor</option>
@@ -248,7 +232,7 @@
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Contact Number</label>
                 <input type="text" name="contact_number"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <!-- Password -->
@@ -256,12 +240,12 @@
                 <div>
                     <label class="block mb-1 text-sm font-medium text-gray-700">Password</label>
                     <input type="password" name="password" required
-                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                 </div>
                 <div>
                     <label class="block mb-1 text-sm font-medium text-gray-700">Confirm Password</label>
                     <input type="password" name="password_confirmation" required
-                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                 </div>
             </div>
 
@@ -272,7 +256,7 @@
                     Cancel
                 </button>
                 <button type="submit"
-                    class="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
+                    class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-dark">
                     Add User
                 </button>
             </div>
@@ -293,17 +277,17 @@
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Name</label>
                 <input type="text" name="name" id="edit-name"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Email</label>
                 <input type="email" name="email" id="edit-email"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">User Type</label>
                 <select name="user_type" id="edit-user_type"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                     <option value="Admin">Admin</option>
                     <option value="Instructor">Instructor</option>
                     <option value="Student">Student</option>
@@ -312,24 +296,24 @@
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Contact Number</label>
                 <input type="text" name="contact_number" id="edit-contact"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Password (leave blank to keep
                     current)</label>
                 <input type="password" name="password" id="edit-password"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Confirm Password</label>
                 <input type="password" name="password_confirmation" id="edit-password-confirmation"
-                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
             </div>
 
             <div class="flex justify-end pt-4 space-x-3 border-t">
                 <button type="button" id="cancel-edit"
                     class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">Cancel</button>
-                <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Save
+                <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">Save
                     Changes</button>
             </div>
         </form>

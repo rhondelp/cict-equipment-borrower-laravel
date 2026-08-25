@@ -60,13 +60,13 @@
             @endif
         </a>
 
-        {{-- <a href="{{ route('admin.notifications') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('admin/logs') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
+        {{-- Notification history --}}
+        <a href="{{ route('admin.notifications') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('admin/notifications') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
             <div class="w-6 text-center">
-                <i class="fas fa-bell {{ request()->is('admin/logs') ? 'text-blue-400' : 'text-gray-400' }}"></i>
+                <i class="fas fa-bell {{ request()->is('admin/notifications') ? 'text-blue-400' : 'text-gray-400' }}"></i>
             </div>
-            <span class="font-medium">Notifications</span> --}}
-            {{-- <span class="px-2 py-1 ml-auto text-xs text-white bg-red-500 rounded-full">{{ $countNotifs }}</span> --}}
-        {{-- </a> --}}
+            <span class="font-medium">Notifications</span>
+        </a>
 
         <a href="{{ route('admin.logs') }}" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:text-white {{ request()->is('admin/logs') ? 'active bg-gray-800 text-white' : 'text-gray-300' }}">
             <div class="w-6 text-center">

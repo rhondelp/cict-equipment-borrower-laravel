@@ -22,7 +22,7 @@
                 <div class="flex items-center space-x-4">
                     <!-- Add Equipment Button -->
                     <button id="open-add-modal"
-                        class="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-700">
+                        class="flex items-center space-x-2 rounded-lg bg-brand px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-brand-dark">
                         <i class="fas fa-plus"></i>
                         <span>Add Equipment</span>
                     </button>
@@ -32,18 +32,16 @@
 
         <!-- Main Content -->
         <main class="p-6">
-            @if (session('success'))
-                <div class="px-4 py-3 mb-6 text-green-800 bg-green-100 border-l-4 border-green-500 rounded shadow-sm" role="alert">
-                    <div class="flex items-center">
-                        <i class="mr-2 fas fa-check-circle"></i>
-                        <span>{{ session('success') }}</span>
-                    </div>
-                </div>
-            @endif
+            {{-- Flash messages + validation errors --}}
+            <x-ui.feedback />
 
             <!-- Equipment Table -->
             <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-            <table id="equipmentTable" class="w-full display nowrap">
+                @if ($equipment->isEmpty())
+                    <x-ui.empty-state icon="fa-tools" title="No equipment registered"
+                        hint="Use the Add Equipment button to build your inventory." />
+                @else
+                <table id="equipmentTable" class="w-full display nowrap">
                 <thead class="bg-gray-50 text-left text-xs font-semibold text-gray-500">
                     <tr>
                         <th>Equipment Name</th>
@@ -62,21 +60,11 @@
                             <td>{{ $item->quantity }}</td>
                             <td>{{ $item->available_quantity }}</td>
                             <td>
-                                @php
-                                    $statusColors = [
-                                        'Available' => 'bg-green-100 text-green-800',
-                                        'Unavailable' => 'bg-red-100 text-red-800',
-                                    ];
-                                    $statusColor = $statusColors[$item->status] ?? 'bg-gray-100 text-gray-800';
-                                @endphp
-                                <span
-                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusColor }}">
-                                    {{ ucfirst(str_replace('_', ' ', $item->status)) }}
-                                </span>
+                                <x-ui.status-badge :status="$item->status" />
                             </td>
                             <td>
-                                <div class="flex items-center space-x-2">
-                                    <button class="rounded-lg px-4 py-1 text-xs text-white bg-blue-600 md:text-sm hover:bg-blue-700 edit-btn" data-id="{{ $item->id }}"
+                                <div class="flex items-center gap-2">
+                                    <button class="rounded-lg bg-brand px-4 py-1 text-xs font-medium text-white md:text-sm hover:bg-brand-dark edit-btn" data-id="{{ $item->id }}"
                                         data-name="{{ $item->equipment_name }}" data-description="{{ $item->description }}"
                                         data-quantity="{{ $item->quantity }}"
                                         data-available="{{ $item->available_quantity }}"
@@ -84,10 +72,11 @@
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
 
-                                    {{-- <button class="px-4 py-1 text-xs text-white bg-red-600 md:text-sm hover:bg-red-700 delete-btn"
+                                    <button type="button"
+                                        class="rounded-lg border border-red-600 px-4 py-1 text-xs font-medium text-red-600 md:text-sm transition-colors hover:bg-red-600 hover:text-white delete-btn"
                                         data-id="{{ $item->id }}" data-name="{{ $item->equipment_name }}">
                                         <i class="fas fa-trash"></i> Delete
-                                    </button> --}}
+                                    </button>
                                 </div>
                             </td>
                         </tr>

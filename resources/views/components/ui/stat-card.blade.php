@@ -6,7 +6,7 @@
 @endphp
 
 @if ($href)
-<a href="{{ $href }}" {{ $attributes->merge(['class' => $base.' hover:border-blue-300']) }}>
+<a href="{{ $href }}" {{ $attributes->merge(['class' => $base.' hover:border-brand/40']) }}>
 @else
 <div {{ $attributes->merge(['class' => $base]) }}>
 @endif
