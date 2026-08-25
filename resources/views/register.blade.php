@@ -24,14 +24,23 @@
                   Create an account
               </h1>
 
-              <!-- Validation Errors -->
-              @if ($errors->any())
-                  <div role="alert" class="rounded-lg border-l-4 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      @foreach ($errors->all() as $error)
-                          <div>{{ $error }}</div>
-                      @endforeach
+              <!-- Feedback -->
+              <x-ui.feedback />
+
+              @if (session('success'))
+                  <!-- Account created: clear next step instead of an empty repeat form -->
+                  <div class="rounded-lg border border-green-200 bg-green-50 p-6 text-center" role="status">
+                      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                          <i class="fas fa-check text-xl text-green-600"></i>
+                      </div>
+                      <h2 class="mt-3 text-lg font-semibold text-gray-900">Account created</h2>
+                      <p class="mt-1 text-sm text-gray-600">Sign in with your email and password to start borrowing equipment.</p>
+                      <a href="{{ route('login') }}"
+                         class="mt-4 inline-flex items-center justify-center rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
+                          Go to Login <i class="fas fa-arrow-right ml-2"></i>
+                      </a>
                   </div>
-              @endif
+              @else
 
               <!-- Register Form -->
               <form class="space-y-5" action="{{ route('register') }}" method="POST">
@@ -41,28 +50,28 @@
                 <div>
                     <label for="name" class="mb-2 block text-sm font-medium text-gray-700">Full Name</label>
                     <input type="text" name="name" id="name" placeholder="Your name"
-                           class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" required>
+                           class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20" required>
                 </div>
 
                 <!-- Email -->
                 <div>
                     <label for="email" class="mb-2 block text-sm font-medium text-gray-700">Your Email</label>
                     <input type="email" name="email" id="email" placeholder="name@company.com"
-                           class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" required>
+                           class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20" required>
                 </div>
 
                 <!-- Contact Number -->
                 <div>
                     <label for="contact_number" class="mb-2 block text-sm font-medium text-gray-700">Contact Number</label>
                     <input type="text" name="contact_number" id="contact_number" placeholder="09XXXXXXXXX"
-                           class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                           class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20">
                 </div>
 
                 <!-- User Type -->
                 <div>
                     <label for="user_type" class="mb-2 block text-sm font-medium text-gray-700">User Type</label>
                     <select name="user_type" id="user_type"
-                            class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" required>
+                            class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20" required>
                         <option value="" disabled selected>Select user type</option>
                         {{-- <option value="admin">Admin</option> --}}
                         <option value="Instructor">Instructor</option>
@@ -74,14 +83,14 @@
                 <div>
                     <label for="password" class="mb-2 block text-sm font-medium text-gray-700">Password</label>
                     <input type="password" name="password" id="password" placeholder="••••••••"
-                           class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" required>
+                           class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20" required>
                 </div>
 
                 <!-- Confirm Password -->
                 <div>
                     <label for="password_confirmation" class="mb-2 block text-sm font-medium text-gray-700">Confirm Password</label>
                     <input type="password" name="password_confirmation" id="password_confirmation" placeholder="••••••••"
-                           class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" required>
+                           class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20" required>
                 </div>
 
                 <!-- Terms -->
@@ -99,18 +108,19 @@
 
                 <!-- Button -->
                 <button type="submit"
-                        class="w-full rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        class="w-full rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
                     Create an account
                 </button>
 
                 <!-- Login Link -->
                 <p class="text-sm text-gray-600">
                     Already have an account?
-                    <a href="{{ route('login') }}" class="font-medium text-blue-600 hover:underline">
+                    <a href="{{ route('login') }}" class="font-medium text-brand hover:underline">
                         Login here
                     </a>
                 </p>
               </form>
+              @endif
           </div>
       </div>
   </div>

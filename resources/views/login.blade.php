@@ -24,14 +24,8 @@
                   Sign in to your account
               </h1>
 
-              <!-- Validation Errors -->
-              @if ($errors->any())
-                  <div role="alert" class="rounded-lg border-l-4 border-red-500 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      @foreach ($errors->all() as $error)
-                          <div>{{ $error }}</div>
-                      @endforeach
-                  </div>
-              @endif
+              <!-- Feedback -->
+              <x-ui.feedback />
 
               <!-- Login Form -->
               <form class="space-y-5" action="{{ route('login.store') }}" method="POST">
@@ -39,25 +33,25 @@
                   <div>
                       <label for="email" class="mb-2 block text-sm font-medium text-gray-700">Email Address</label>
                       <input type="email" name="email" id="email" placeholder="name@company.com"
-                             class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" required>
+                             class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20" required>
                   </div>
 
                   <div>
                       <label for="password" class="mb-2 block text-sm font-medium text-gray-700">Password</label>
                       <input type="password" name="password" id="password" placeholder="••••••••"
-                             class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" required>
+                             class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20" required>
                   </div>
 
                   <!-- Button -->
                   <button type="submit"
-                          class="w-full rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                          class="w-full rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
                       Sign in
                   </button>
 
                   <!-- Register Link -->
                   <p class="text-sm text-gray-600">
                       Don’t have an account yet?
-                      <a href="{{ route('register') }}" class="font-medium text-blue-600 hover:underline">
+                      <a href="{{ route('register') }}" class="font-medium text-brand hover:underline">
                           Sign up
                       </a>
                   </p>
