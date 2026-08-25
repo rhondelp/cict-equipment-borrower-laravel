@@ -6,44 +6,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>@yield("title", "Welcome")</title>
+
+    <!-- Tailwind (runtime CDN build) -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
     <script src="https://code.jquery.com/jquery-3.7.1.js"
         integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 
-    <!-- Google Font: Poppins -->
+    <!-- Fonts + icons -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="shortcut icon" href="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png"
         type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Include DataTables -->
+    <!-- DataTables 2.x: single build (core + Tailwind skin) -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.3.4/css/dataTables.tailwindcss.css">
-    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js">
-    </script>
-    <script src="https://cdn.datatables.net/2.3.4/js/dataTables.js"></script>
-    <script type="text/javascript" charset="utf8"
-        src="https://cdn.datatables.net/1.13.4/js/dataTables.tailwindcss.min.js"></script>
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+    <script src="https://cdn.datatables.net/2.3.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.3.4/js/dataTables.tailwindcss.min.js"></script>
 
     <style>
         body {
             font-family: 'Poppins', sans-serif;
+            color: #111827;
         }
-    </style>
-    <style>
+
+        /* Sidebar behavior */
         .sidebar {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .nav-item {
             position: relative;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
 
         .nav-item.active::before {
@@ -54,18 +50,8 @@
             transform: translateY(-50%);
             width: 4px;
             height: 24px;
-            background: #3b82f6;
+            background: #2563eb;
             border-radius: 0 2px 2px 0;
-        }
-
-        .stats-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            transition: all 0.3s ease;
-        }
-
-        .stats-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
         @media (max-width: 768px) {
@@ -75,6 +61,22 @@
 
             .sidebar.active {
                 transform: translateX(0);
+            }
+        }
+
+        /* Shared modal entrance */
+        @keyframes modalFade {
+            from { opacity: 0; transform: translateY(6px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .modal-fade {
+            animation: modalFade 0.18s ease-out;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .modal-fade {
+                animation: none;
             }
         }
     </style>
@@ -87,41 +89,41 @@
 </head>
 
 <body>
-    <div class="my-4"></div>
     @yield("content")
     @stack('scripts')
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js">
-        </>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const menuToggle = document.getElementById('menu-toggle');
-                const sidebar = document.querySelector('.sidebar');
-                const overlay = document.querySelector('.sidebar-overlay');
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuToggle = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
 
-                // Mobile menu toggle
-                menuToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('active');
-                    overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
-                    document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
-                });
+            if (!menuToggle || !sidebar || !overlay) return;
 
-                // Close sidebar when clicking overlay
-                overlay.addEventListener('click', function() {
+            // Mobile menu toggle
+            menuToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+                overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            });
+
+            // Close sidebar when clicking overlay
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('active');
+                overlay.style.display = 'none';
+                document.body.style.overflow = '';
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 768) {
                     sidebar.classList.remove('active');
                     overlay.style.display = 'none';
                     document.body.style.overflow = '';
-                });
-
-                // Handle window resize
-                window.addEventListener('resize', function() {
-                    if (window.innerWidth >= 768) {
-                        sidebar.classList.remove('active');
-                        overlay.style.display = 'none';
-                        document.body.style.overflow = '';
-                    }
-                });
+                }
             });
+        });
     </script>
 </body>
 
