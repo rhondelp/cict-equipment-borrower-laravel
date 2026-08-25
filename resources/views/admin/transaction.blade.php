@@ -10,9 +10,16 @@
     <!-- Header -->
     <header class="bg-white border-b border-gray-200 shadow-sm">
         <div class="flex items-center justify-between px-6 py-4">
-            <h1 class="text-xl font-bold text-gray-800">BORROW TRANSACTIONS</h1>
-            <button id="open-add-modal" class="px-4 py-2 text-white bg-blue-600 rounded-lg shadow hover:bg-blue-700">
-                + Add Transaction
+            <div class="flex items-center space-x-4">
+                <button id="menu-toggle" class="text-gray-500 hover:text-gray-700 md:hidden">
+                    <i class="text-xl fas fa-bars"></i>
+                </button>
+                <h1 class="text-xl font-semibold tracking-tight text-gray-900">Borrow Transactions</h1>
+            </div>
+            <button id="open-add-modal"
+                class="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700">
+                <i class="fas fa-plus"></i>
+                <span>Add Transaction</span>
             </button>
         </div>
     </header>
@@ -40,20 +47,20 @@
         </div>
         @endif
         <!-- DataTable -->
-        <div class="p-4 overflow-x-auto bg-white rounded-lg shadow">
+        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
             <table id="transactions-table" class="w-full border-collapse display nowrap stripe hover responsive">
-                <thead class="bg-gray-50">
+                <thead class="bg-gray-50 text-left text-xs font-semibold text-gray-500">
                     <tr>
-                        <th>USER</th>
-                        <th>EQUIPMENT</th>
-                        <th>BORROW DATE</th>
-                        <th>RETURN DATE</th>
-                        <th>QUANTITY</th>
-                        <th>PURPOSE</th>
-                        <th>STATUS</th>
-                        <th>REMARKS</th>
-                        <th>CLASS SCHED</th>
-                        <th>ACTIONS</th>
+                        <th>User</th>
+                        <th>Equipment</th>
+                        <th>Borrow Date</th>
+                        <th>Return Date</th>
+                        <th>Quantity</th>
+                        <th>Purpose</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                        <th>Class Sched</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -63,7 +70,7 @@
                     $isDueToday = $returnDate === now()->format('Y-m-d');
                     @endphp
 
-                    <tr class="transition-colors duration-150 hover:bg-blue-50">
+                    <tr class="transition-colors duration-150 hover:bg-gray-50">
 
                         <td>{{ $tx->user->name ?? 'Deleted User' }}</td>
 
@@ -72,7 +79,7 @@
                         <td>{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}</td>
 
                         <!-- Return Date Column -->
-                        <td @if($isDueToday) style="background-color:#ffcccc; color:#a30000; font-weight:bold;" @endif>
+                        <td {{ $isDueToday ? 'class="bg-red-50 font-semibold text-red-700"' : '' }}>
                             {{ $returnDate ?? 'N/A' }}
                         </td>
 
@@ -81,8 +88,8 @@
                         <td>{{ $tx->purpose }}</td>
 
                         <td>
-                            <select class="px-3 py-2 text-sm font-medium transition border rounded-full status-dropdown
-                        focus:outline-none focus:ring-2 focus:ring-blue-500
+                            <select class="status-dropdown rounded-lg border px-3 py-1.5 text-sm font-medium transition
+                        focus:outline-none focus:ring-2 focus:ring-blue-200
                         {{ $tx->status === 'Borrowed' ? 'border-yellow-400 text-yellow-600 bg-yellow-100' : '' }}
                         {{ $tx->status === 'Returned' ? 'border-green-500 text-green-600 bg-green-100' : '' }}
                         {{ $tx->status === 'Overdue' ? 'border-red-500 text-red-600 bg-red-100' : '' }}"
@@ -104,7 +111,7 @@
                             </select>
                         </td>
 
-                        <td>{{ $tx->remarks ?? '—' }}</td>
+                        <td>{{ $tx->remarks ?? '---' }}</td>
 
                         <td>
                             @if ($tx->classSchedule)
@@ -121,7 +128,7 @@
 
                                 <!-- EDIT BUTTON -->
                                 <button
-                                    class="px-4 py-1 text-xs text-white bg-blue-600 md:text-sm hover:bg-blue-700 edit-btn"
+                                    class="rounded-lg px-4 py-1 text-xs text-white bg-blue-600 md:text-sm hover:bg-blue-700 edit-btn"
                                     data-id="{{ $tx->id }}" data-user="{{ $tx->user->id ?? '' }}"
                                     data-equipment="{{ $tx->equipment->id ?? '' }}"
                                     data-borrow="{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}"
@@ -134,7 +141,7 @@
 
                                 <!-- SEND EMAIL BUTTON -->
                                 <button
-                                    class="px-4 py-1 text-xs text-white bg-green-600 md:text-sm hover:bg-green-700 send-email-btn"
+                                    class="rounded-lg px-4 py-1 text-xs text-white bg-green-600 md:text-sm hover:bg-green-700 send-email-btn"
                                     data-id="{{ $tx->id }}" data-user-email="{{ $tx->user->email ?? '' }}">
                                     <i class="fas fa-envelope"></i> Send Email
                                 </button>
@@ -198,7 +205,7 @@
                 { responsivePriority: 2, targets: -1 },
             ],
         language: {
-            search: "🔍 ",
+            search: "",
             searchPlaceholder: "Search transactions..."
         }
     });
@@ -355,77 +362,4 @@
     });
 </script>
 
-{{-- Enhanced Styles for DataTables --}}
-<style>
-    .dataTables_filter input {
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        padding: 0.5rem;
-        margin-left: 0.5rem;
-    }
-
-    .dataTables_length select {
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        padding: 0.5rem;
-        margin-left: 0.5rem;
-    }
-
-    .dataTables_wrapper .dataTables_paginate {
-        padding: 0;
-        margin: 0;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button {
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
-        padding: 0.5rem 0.75rem;
-        margin-left: 0.25rem;
-        font-size: 0.875rem;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-        background: #3b82f6;
-        color: white;
-        border-color: #3b82f6;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-        background: #e5e7eb;
-        border-color: #d1d5db;
-        color: #374151;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-        background: #2563eb;
-        border-color: #2563eb;
-        color: white;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
-    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
-        background: #f9fafb;
-        color: #9ca3af;
-        border-color: #d1d5db;
-        cursor: not-allowed;
-    }
-
-    /* Custom spacing for table footer */
-    #pagination-container {
-        min-height: 2.5rem;
-        display: flex;
-        align-items: center;
-    }
-
-    /* Ensure proper spacing in table footer */
-    .dataTables_wrapper .dataTables_info {
-        padding: 0;
-        margin: 0;
-    }
-
-    /* Modal content styling */
-    .modal-content {
-        pointer-events: auto;
-    }
-</style>
 @endsection

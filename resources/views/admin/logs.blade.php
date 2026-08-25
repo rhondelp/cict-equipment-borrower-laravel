@@ -33,50 +33,57 @@
             @endif
 
             <!-- Logs Table -->
+                <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
                 <table id="logsTable" class="w-full text-sm display nowrap">
-                    <thead class="bg-gray-100">
+                    <thead class="bg-gray-50 text-left text-xs font-semibold text-gray-500">
                         <tr>
-                            <th class="px-4 py-2 text-left">BORROWER</th>
-                            <th class="px-4 py-2 text-left">EQUIPMENT</th>
-                            <th class="px-4 py-2 text-left">CONDITION</th>
-                            <th class="px-4 py-2 text-left">REMARKS</th>
-                            <th class="px-4 py-2 text-left">RETURN DATE</th>
-                            <th class="px-4 py-2 text-left">RECEIVED BY</th>
+                            <th class="px-4 py-3 text-left">Borrower</th>
+                            <th class="px-4 py-3 text-left">Equipment</th>
+                            <th class="px-4 py-3 text-left">Condition</th>
+                            <th class="px-4 py-3 text-left">Remarks</th>
+                            <th class="px-4 py-3 text-left">Return Date</th>
+                            <th class="px-4 py-3 text-left">Received By</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($logs as $log)
                             <tr class="transition border-b hover:bg-gray-50">
                                 <!-- Borrower -->
-                                <td class="px-4 py-2 font-medium text-gray-800">
+                                <td class="px-4 py-3 font-medium text-gray-800">
                                     {{ $log->borrower->name ?? 'N/A' }}
                                 </td>
 
                                 <!-- Equipment -->
-                                <td class="px-4 py-2">
+                                <td class="px-4 py-3">
                                     {{ $log->equipment->equipment_name ?? 'N/A' }}
                                 </td>
 
                                 <!-- Condition -->
-                                <td class="px-4 py-2">
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                        {{ $log->condition === 'Good' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                <td class="px-4 py-3">
+                                    @php
+                                        $conditionColors = [
+                                            'Good' => 'bg-green-100 text-green-700',
+                                            'Damaged' => 'bg-red-100 text-red-700',
+                                            'Needs Repair' => 'bg-yellow-100 text-yellow-700',
+                                        ];
+                                    @endphp
+                                    <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $conditionColors[$log->condition] ?? 'bg-gray-100 text-gray-700' }}">
                                         {{ $log->condition }}
                                     </span>
                                 </td>
 
                                 <!-- Remarks -->
-                                <td class="max-w-xs px-4 py-2 truncate">
+                                <td class="max-w-xs px-4 py-3 truncate">
                                     {{ $log->remarks }}
                                 </td>
 
                                 <!-- Return Date -->
-                                <td class="px-4 py-2 text-gray-600">
+                                <td class="px-4 py-3 text-gray-600">
                                     {{ \Carbon\Carbon::parse($log->return_date)->format('M j, Y') }}
                                 </td>
 
                                 <!-- Receiver -->
-                                <td class="px-4 py-2 text-gray-800">
+                                <td class="px-4 py-3 text-gray-800">
                                     {{ $log->receiver->name ?? 'N/A' }}
                                 </td>
                             </tr>
@@ -84,6 +91,7 @@
                     </tbody>
 
                 </table>
+                </div>
         </main>
     </div>
 
@@ -98,36 +106,10 @@
                     [10, 25, 50, "All"]
                 ],
                 language: {
-                    search: "🔍 ",
+                    search: "",
                     searchPlaceholder: "Search logs..."
                 }
             });
         });
     </script>
-
-    <style>
-        /* DataTable Styling */
-        .dataTables_wrapper .dataTables_filter input {
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            padding: 0.5rem 0.75rem;
-            margin-left: 0.5rem;
-        }
-        .dataTables_wrapper .dataTables_length select {
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            padding: 0.25rem 0.5rem;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button {
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            padding: 0.4rem 0.75rem;
-            margin: 0 0.125rem;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-            background: #3b82f6;
-            color: white !important;
-            border-color: #3b82f6;
-        }
-    </style>
 @endsection

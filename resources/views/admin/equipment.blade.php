@@ -22,7 +22,7 @@
                 <div class="flex items-center space-x-4">
                     <!-- Add Equipment Button -->
                     <button id="open-add-modal"
-                        class="flex items-center px-4 py-2 space-x-2 font-medium text-white transition-colors duration-200 bg-blue-500 hover:bg-blue-600 rounded-xl">
+                        class="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-700">
                         <i class="fas fa-plus"></i>
                         <span>Add Equipment</span>
                     </button>
@@ -42,15 +42,16 @@
             @endif
 
             <!-- Equipment Table -->
+            <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
             <table id="equipmentTable" class="w-full display nowrap">
-                <thead class="bg-gray-50">
+                <thead class="bg-gray-50 text-left text-xs font-semibold text-gray-500">
                     <tr>
-                        <th>EQUIPMENT NAME</th>
-                        <th>DESCRIPTION</th>
-                        <th>QUANTITY</th>
-                        <th>AVAILABLE QUANTITY</th>
-                        <th>STATUS</th>
-                        <th>ACTIONS</th>
+                        <th>Equipment Name</th>
+                        <th>Description</th>
+                        <th>Quantity</th>
+                        <th>Available Quantity</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -75,7 +76,7 @@
                             </td>
                             <td>
                                 <div class="flex items-center space-x-2">
-                                    <button class="px-4 py-1 text-xs text-white bg-blue-600 md:text-sm hover:bg-blue-700 edit-btn" data-id="{{ $item->id }}"
+                                    <button class="rounded-lg px-4 py-1 text-xs text-white bg-blue-600 md:text-sm hover:bg-blue-700 edit-btn" data-id="{{ $item->id }}"
                                         data-name="{{ $item->equipment_name }}" data-description="{{ $item->description }}"
                                         data-quantity="{{ $item->quantity }}"
                                         data-available="{{ $item->available_quantity }}"
@@ -93,10 +94,8 @@
                     @endforeach
                 </tbody>
             </table>
-
-    </div>
-    </div>
-    </main>
+            </div>
+        </main>
     </div>
 
     {{-- Modals For (Add, Edit, Delete) --}}
@@ -115,7 +114,7 @@
                     [10, 25, 50, "All"]
                 ],
                 language: {
-                    search: "🔍 ",
+                    search: "",
                     searchPlaceholder: "Search equipment..."
                 }
             });
@@ -161,33 +160,4 @@
             });
         });
     </script>
-
-    <style>
-        /* DataTable Styling */
-        .dataTables_wrapper .dataTables_filter input {
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            padding: 0.5rem 0.75rem;
-            margin-left: 0.5rem;
-        }
-
-        .dataTables_wrapper .dataTables_length select {
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            padding: 0.25rem 0.5rem;
-        }
-
-        .dataTables_wrapper .dataTables_paginate .paginate_button {
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            padding: 0.4rem 0.75rem;
-            margin: 0 0.125rem;
-        }
-
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-            background: #3b82f6;
-            color: white !important;
-            border-color: #3b82f6;
-        }
-    </style>
 @endsection

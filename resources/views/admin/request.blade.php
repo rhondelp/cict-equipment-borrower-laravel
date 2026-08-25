@@ -10,7 +10,12 @@
     <!-- Header -->
     <header class="bg-white border-b border-gray-200 shadow-sm">
         <div class="flex items-center justify-between px-6 py-4">
-            <h1 class="text-xl font-bold text-gray-800">ITEM REQUEST</h1>
+            <div class="flex items-center space-x-4">
+                <button id="menu-toggle" class="text-gray-500 hover:text-gray-700 md:hidden">
+                    <i class="text-xl fas fa-bars"></i>
+                </button>
+                <h1 class="text-xl font-semibold tracking-tight text-gray-900">Item Request</h1>
+            </div>
         </div>
     </header>
 
@@ -36,22 +41,22 @@
         </div>
     @endif
         <!-- DataTable -->
-        <div class="p-4 bg-white rounded-lg shadow">
+        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
             <table id="requestTable" class="w-full display nowrap">
-                <thead class="bg-gray-50">
+                <thead class="bg-gray-50 text-left text-xs font-semibold text-gray-500">
                     <tr>
-                        <th>USER</th>
-                        <th>UQUIPMENT</th>
-                        <th>QUANTITY</th>
-                        <th>REQUESTED DATE</th>
-                        <th>REMARKS</th>
-                        <th>STATUS</th>
-                        <th>ACTIONS</th>
+                        <th>User</th>
+                        <th>Equipment</th>
+                        <th>Quantity</th>
+                        <th>Requested Date</th>
+                        <th>Remarks</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($requests as $request)
-                        <tr class="transition-colors duration-150 hover:bg-blue-50">
+                        <tr class="transition-colors duration-150 hover:bg-gray-50">
                             <td>{{ $request->user->name ?? 'Deleted User' }}</td>
                             <td>{{ $request->equipment->equipment_name ?? 'Deleted Equipment' }}</td>
                             <td>{{ $request->quantity }}</td>
@@ -77,7 +82,7 @@
                                             @csrf
                                             <input type="hidden" name="id" value="{{ $request->id }}">
                                             <button type="submit"
-                                                class="px-4 py-1 text-xs text-white bg-green-600 rounded md:text-sm hover:bg-green-700">
+                                                class="rounded-lg px-4 py-1 text-xs text-white bg-green-600 md:text-sm hover:bg-green-700">
                                                 <i class="fas fa-check"></i> Approve
                                             </button>
                                         </form>
@@ -87,7 +92,7 @@
                                             @csrf
                                             <input type="hidden" name="id" value="{{ $request->id }}">
                                             <button type="submit"
-                                                class="px-4 py-1 text-xs text-white bg-red-600 rounded md:text-sm hover:bg-red-700">
+                                                class="rounded-lg px-4 py-1 text-xs text-white bg-red-600 md:text-sm hover:bg-red-700">
                                                 <i class="fas fa-times"></i> Decline
                                             </button>
                                         </form>
@@ -114,90 +119,11 @@ $(document).ready(function () {
         pageLength: 10,
         lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
         language: {
-            search: "🔍 ",
+            search: "",
             searchPlaceholder: "Search request..."
         }
-    });
-
-
-
-    // Approve modal
-    $('.edit-btn').on('click', function() {
-
-    });
-
-
-    // Close when clicking outside
-    $('#approve-modal').on('click', function(e) {
-        if (e.target === this) $(this).addClass('hidden');
     });
 });
 </script>
 
-    {{-- Enhanced Styles for DataTables --}}
-    <style>
-        .dataTables_filter input {
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            padding: 0.5rem;
-            margin-left: 0.5rem;
-        }
-        .dataTables_length select {
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            padding: 0.5rem;
-            margin-left: 0.5rem;
-        }
-        .dataTables_wrapper .dataTables_paginate {
-            padding: 0;
-            margin: 0;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button {
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            padding: 0.5rem 0.75rem;
-            margin-left: 0.25rem;
-            font-size: 0.875rem;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-            background: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-            background: #e5e7eb;
-            border-color: #d1d5db;
-            color: #374151;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-            background: #2563eb;
-            border-color: #2563eb;
-            color: white;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
-        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
-            background: #f9fafb;
-            color: #9ca3af;
-            border-color: #d1d5db;
-            cursor: not-allowed;
-        }
-
-        /* Custom spacing for table footer */
-        #pagination-container {
-            min-height: 2.5rem;
-            display: flex;
-            align-items: center;
-        }
-
-        /* Ensure proper spacing in table footer */
-        .dataTables_wrapper .dataTables_info {
-            padding: 0;
-            margin: 0;
-        }
-
-        /* Modal content styling */
-        .modal-content {
-            pointer-events: auto;
-        }
-    </style>
 @endsection
