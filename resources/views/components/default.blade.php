@@ -50,7 +50,7 @@
             transform: translateY(-50%);
             width: 4px;
             height: 24px;
-            background: #2563eb;
+            background: var(--color-brand, #2563eb);
             border-radius: 0 2px 2px 0;
         }
 
@@ -78,6 +78,15 @@
             .modal-fade {
                 animation: none;
             }
+        }
+    </style>
+
+    {{-- Design system tokens (Tailwind v4 runtime theme) --}}
+    <style type="text/tailwindcss">
+        @theme {
+            --color-brand: #2563eb;
+            --color-brand-dark: #1d4ed8;
+            --color-brand-light: #eff6ff;
         }
     </style>
 
@@ -121,6 +130,60 @@
                     sidebar.classList.remove('active');
                     overlay.style.display = 'none';
                     document.body.style.overflow = '';
+                }
+            });
+        });
+    </script>
+
+    {{-- Global UI helpers: toasts, modal dismissal, busy buttons --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 1) Toast helper - use window.toast('Saved.', 'success' | 'error' | 'info')
+            window.toast = function (message, type) {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3200,
+                    timerProgressBar: true,
+                    didOpen: function (el) {
+                        el.addEventListener('mouseenter', Swal.stopTimer);
+                        el.addEventListener('mouseleave', Swal.resumeTimer);
+                    }
+                });
+                Toast.fire({ icon: type || 'success', title: message });
+            };
+
+            // 2) Universal dismiss: any element with data-dismiss="#selector" hides the target
+            document.addEventListener('click', function (e) {
+                const trigger = e.target.closest('[data-dismiss]');
+                if (!trigger) return;
+                const target = document.querySelector(trigger.getAttribute('data-dismiss'));
+                if (target) target.classList.add('hidden');
+            });
+
+            // 3) Busy buttons on submit (runs after HTML5 validation passes)
+            document.addEventListener('submit', function (e) {
+                const form = e.target;
+                if (form.hasAttribute('data-no-busy')) return;
+                window.setTimeout(function () {
+                    form.querySelectorAll('button[type="submit"]').forEach(function (btn) {
+                        if (btn.disabled) return;
+                        btn.disabled = true;
+                        btn.dataset.busyLabel = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i>' + btn.innerHTML;
+                    });
+                }, 0);
+            }, true);
+
+            // Restore buttons when returning via back/forward cache
+            window.addEventListener('pageshow', function (e) {
+                if (e.persisted) {
+                    document.querySelectorAll('button[disabled][data-busy-label]').forEach(function (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = btn.dataset.busyLabel;
+                        delete btn.dataset.busyLabel;
+                    });
                 }
             });
         });
