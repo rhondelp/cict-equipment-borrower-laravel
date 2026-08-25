@@ -1,38 +1,49 @@
 <!-- Email Modal -->
-<div id="emailModal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50">
-    <div class="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
-
-        <h2 class="mb-4 text-xl font-semibold">Send Email</h2>
-
-        <!-- Email (disabled) -->
-        <label class="block mb-1 text-sm font-medium">Recipient Email</label>
-        <input type="email" id="modalEmail" disabled
-            class="w-full px-3 py-2 mb-4 bg-gray-100 border rounded cursor-not-allowed">
-
-        <!-- Email Type Select -->
-        <label class="block mb-1 text-sm font-medium">Email Type</label>
-        <select id="emailType" class="w-full px-3 py-2 mb-4 border rounded focus:ring-blue-500">
-            <option value="template">Use Template</option>
-            <option value="custom">Write Custom Message</option>
-        </select>
-
-        <!-- Custom Message -->
-        <div id="customMessageBox" class="hidden">
-            <label class="block mb-1 text-sm font-medium">Message</label>
-            <textarea id="modalMessage" rows="4"
-                class="w-full px-3 py-2 border rounded focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Type your message here..."></textarea>
+<div id="emailModal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black/50">
+    <div class="modal-fade mx-4 w-full max-w-md rounded-lg bg-white shadow-lg">
+        <!-- Header -->
+        <div class="border-b border-gray-200 px-6 py-4">
+            <h2 class="text-base font-semibold text-gray-900">Send Email</h2>
         </div>
 
-        <!-- Buttons -->
-        <div class="flex justify-end mt-4 space-x-2">
-            <button id="closeEmailModal" class="px-4 py-2 text-white bg-gray-400 rounded hover:bg-gray-500">
-                Close
-            </button>
+        <div class="space-y-4 p-6">
+            <!-- Email (disabled) -->
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Recipient Email</label>
+                <input type="email" id="modalEmail" disabled
+                    class="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-500">
+            </div>
 
-            <button id="sendEmailConfirm" class="px-4 py-2 text-white bg-green-600 rounded hover:bg-green-700">
-                Send Email
-            </button>
+            <!-- Email Type Select -->
+            <div>
+                <label for="emailType" class="mb-1 block text-sm font-medium text-gray-700">Email Type</label>
+                <select id="emailType"
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    <option value="template">Use Template</option>
+                    <option value="custom">Write Custom Message</option>
+                </select>
+            </div>
+
+            <!-- Custom Message -->
+            <div id="customMessageBox" class="hidden">
+                <label for="modalMessage" class="mb-1 block text-sm font-medium text-gray-700">Message</label>
+                <textarea id="modalMessage" rows="4"
+                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    placeholder="Type your message here..."></textarea>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex justify-end space-x-3 border-t border-gray-200 pt-4">
+                <button id="closeEmailModal"
+                    class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
+                    Close
+                </button>
+
+                <button id="sendEmailConfirm"
+                    class="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700">
+                    Send Email
+                </button>
+            </div>
         </div>
     </div>
 </div>
