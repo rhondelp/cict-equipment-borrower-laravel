@@ -7,7 +7,6 @@ use App\Http\Controllers\ItemRequestController;
 use App\Http\Controllers\ReturnLogsController;
 use App\Http\Controllers\ClassScheduleController;
 use App\Http\Controllers\NotificationController;
-use App\Mail\ReturnNotification;
 use App\Http\Controllers\User;
 use Illuminate\Support\Facades\Route;
 
@@ -16,19 +15,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/test-mail', function () {
-    $details = [
-        'title' => 'RETURN NOW',
-        'body' => 'ANG EMUHA IS EMUHA UG AND DILI DILI JUD NA EMUHA PALIHUG KO ULI DIRI SA OFFICE'
-    ];
-
-    Mail::to('rhondel.pagobo@nmsc.edu.ph')->send(new ReturnNotification($details));
-
-    return 'Test email sent!';
-});
-
-Route::get('/send-return-alerts', [BorrowTransactionController::class, 'sendReturnAlertNotification']);
-Route::get('components/admin/navbar', [NotificationController::class, 'countNotif'])->name('admin.navbar');
 Route::get('/login', [User::class, 'index'])->name('login');
 Route::post('/login', [AuthenticateUser::class, 'login'])->name('login.store');
 Route::post('/logout', [AuthenticateUser::class, 'destroy'])->name('logout');
@@ -66,7 +52,9 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/admin/logs', [ReturnLogsController::class, 'index'])->name('admin.logs');
 
-
+        // Admin-only mail utilities (previously public)
+        Route::get('/admin/send-return-alerts', [BorrowTransactionController::class, 'sendReturnAlertNotification'])
+            ->name('admin.send-return-alerts');
 
     });
 

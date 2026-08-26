@@ -98,6 +98,11 @@ class User extends Controller
      */
     public function destroy(string $id)
     {
+        // Prevent an admin from deleting their own account while logged in.
+        if ((int) $id === (int) auth()->id()) {
+            return redirect()->back()->withErrors(['error' => 'You cannot delete your own account.']);
+        }
+
         $user = UserModel::findOrFail($id);
         $user->delete();
         return redirect()->back()->with('success', 'User deleted successfully.');

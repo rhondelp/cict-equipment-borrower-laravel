@@ -183,7 +183,6 @@
         </div>
     </div>
 </div>
-w
 
 {{-- Modals --}}
 @include('components.instructor.request-item-modal')

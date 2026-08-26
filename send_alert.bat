@@ -1,2 +1,3 @@
 @echo off
-curl http://127.0.0.1:8000/send-return-alerts
+cd /d C:\xampp\htdocs\cict-equipment-borrower
+php artisan notifications:return

@@ -105,6 +105,11 @@ class ItemRequestController extends Controller
 
         $itemRequest = ItemRequest::findOrFail($validated['id']);
 
+        // A borrower may only update their own requests.
+        if ($itemRequest->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $itemRequest->update([
             'quantity' => $validated['quantity'],
             'remarks' => $validated['remarks'] ?? null,
@@ -122,6 +127,12 @@ class ItemRequestController extends Controller
     {
         //
         $itemRequest = ItemRequest::findOrFail($id);
+
+        // A borrower may only delete their own requests.
+        if ($itemRequest->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $itemRequest->delete();
 
         return redirect()

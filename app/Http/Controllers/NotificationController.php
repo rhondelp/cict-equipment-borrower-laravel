@@ -24,12 +24,6 @@ class NotificationController extends Controller
 
 
     }
-    public function countNotif()
-    {
-        $countNotifs = Notification::count();
-        return view('components.admin.navbar', compact('countNotifs'));
-    }
-
     /**
      * Show the form for creating a new resource.
      */

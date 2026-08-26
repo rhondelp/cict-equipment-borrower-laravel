@@ -91,13 +91,14 @@
     @yield("content")
     @stack('scripts')
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js">
-        </>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
                 const menuToggle = document.getElementById('menu-toggle');
                 const sidebar = document.querySelector('.sidebar');
                 const overlay = document.querySelector('.sidebar-overlay');
+
+                if (!menuToggle || !sidebar || !overlay) return;
 
                 // Mobile menu toggle
                 menuToggle.addEventListener('click', function() {

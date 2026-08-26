@@ -18,8 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {
-        // Your scheduled commands here
-        $schedule->command('notifications:return')->everyMinute();
+        // Daily return reminders at 8:00 AM.
+        // Note: previously everyMinute(), which would email borrowers repeatedly all day
+        // and duplicate notification rows if schedule:run is registered per-minute.
+        $schedule->command('notifications:return')->dailyAt('08:00');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

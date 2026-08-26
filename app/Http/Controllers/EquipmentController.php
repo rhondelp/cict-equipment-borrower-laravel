@@ -43,11 +43,11 @@ class EquipmentController extends Controller
     {
         //$
         $validated = $request->validate([
-            'equipment_name' => 'required',
-            'description' => 'max:500',
-            'quantity' => 'required|integer',
-            'available_quantity' => 'required|integer',
-            'status' => 'required',
+            'equipment_name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
+            'quantity' => 'required|integer|min:0',
+            'available_quantity' => 'required|integer|min:0|lte:quantity',
+            'status' => 'required|in:Available,Unavailable',
         ]);
         Equipment::create($validated);
         return redirect()->back()->with('success', 'Equipment added successfully.');
@@ -77,17 +77,18 @@ class EquipmentController extends Controller
     {
         //
         $validated = $request->validate([
-            'equipment_name' => 'required',
-            'description' => 'max:500',
-            'quantity' => 'required|integer',
-            'available_quantity' => 'required|integer',
-            'status' => 'required',
+            'id' => 'required|integer|exists:equipment,id',
+            'equipment_name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
+            'quantity' => 'required|integer|min:0',
+            'available_quantity' => 'required|integer|min:0|lte:quantity',
+            'status' => 'required|in:Available,Unavailable',
         ]);
 
+        $equipment = Equipment::findOrFail($validated['id']);
+        $equipment->update(collect($validated)->except('id')->all());
 
-        $update = Equipment::where('id', $request->id)->update($validated);
         return redirect()->back()->with('success', 'Equipment updated successfully.');
-
     }
 
     /**

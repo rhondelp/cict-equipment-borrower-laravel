@@ -61,6 +61,7 @@ class BorrowTransactionController extends Controller
             if ($request->status === 'Returned') {
                 // Add back equipment
                 $equipment->available_quantity += $transaction->quantity;
+                $equipment->status = $equipment->available_quantity > 0 ? 'Available' : 'Unavailable';
                 $equipment->save();
 
                 // Log return
@@ -77,6 +78,7 @@ class BorrowTransactionController extends Controller
                     return response()->json(['message' => 'Not enough equipment available'], 422);
                 }
                 $equipment->available_quantity -= $transaction->quantity;
+                $equipment->status = $equipment->available_quantity > 0 ? 'Available' : 'Unavailable';
                 $equipment->save();
             }
         }
@@ -84,7 +86,8 @@ class BorrowTransactionController extends Controller
         $transaction->status = $request->status;
         $transaction->save();
 
-        return redirect()->back()->with('success', 'Status updated successfully!');
+        // The admin UI calls this via AJAX and expects a JSON response.
+        return response()->json(['message' => 'Status updated successfully!']);
     }
 
     public function getOnlyTransactionsHasClassSchedule()
@@ -217,6 +220,8 @@ class BorrowTransactionController extends Controller
             ->where('status', 'Borrowed')
             ->get();
 
+        $sent = 0;
+
         foreach ($transactions as $transaction) {
             if ($transaction->user && $transaction->user->email) {
                 $details = [
@@ -225,8 +230,18 @@ class BorrowTransactionController extends Controller
                     . Carbon::parse($transaction->return_date)->format('F j, Y') . ").",
                 ];
 
+                // Skip users who already received a return notice today
+                // (guards against double sends when multiple triggers run the same day).
+                $alreadyNotified = Notification::where('user_id', $transaction->user->id)
+                    ->where('notification_type', 'Return Notice')
+                    ->whereDate('send_date', $today)
+                    ->exists();
+
+                if ($alreadyNotified) {
+                    continue;
+                }
+
                 // Send the email
-                // Mail::to($transaction->user->email)->send(new ReturnNotification($details));
                 Mail::to($transaction->user->email)->send(new ReturnNotification($details));
 
                 // Save the notification into DB
@@ -237,11 +252,11 @@ class BorrowTransactionController extends Controller
                     'send_date'         => Carbon::now(),
                 ]);
 
+                $sent++;
             }
         }
 
-        // return "Return notifications sent and logged for today.";
-        return count($transactions) . " return notifications sent and logged for today.";
+        return $sent . " return notifications sent and logged for today.";
     }
 
     /**
@@ -293,6 +308,11 @@ class BorrowTransactionController extends Controller
 
             // Deduct new quantity from new equipment if status is Borrowed
             if ($validated['status'] === 'Borrowed') {
+                if ($equipment->available_quantity < $validated['quantity']) {
+                    return redirect()->back()
+                        ->withErrors(['quantity' => 'Not enough equipment available.'])
+                        ->withInput();
+                }
                 $equipment->available_quantity -= $validated['quantity'];
                 $equipment->status = $equipment->available_quantity > 0 ? 'Available' : 'Unavailable';
                 $equipment->save();
@@ -304,9 +324,20 @@ class BorrowTransactionController extends Controller
                 $equipment->available_quantity += $transaction->quantity;
             } elseif ($transaction->status === 'Returned' && $validated['status'] === 'Borrowed') {
                 // Borrowed again: subtract quantity
+                if ($equipment->available_quantity < $validated['quantity']) {
+                    return redirect()->back()
+                        ->withErrors(['quantity' => 'Not enough equipment available.'])
+                        ->withInput();
+                }
                 $equipment->available_quantity -= $validated['quantity'];
             } elseif ($transaction->status === 'Borrowed' && $validated['status'] === 'Borrowed') {
                 // Quantity changed while still borrowed
+                if ($validated['quantity'] > $transaction->quantity
+                    && ($validated['quantity'] - $transaction->quantity) > $equipment->available_quantity) {
+                    return redirect()->back()
+                        ->withErrors(['quantity' => 'Not enough equipment available.'])
+                        ->withInput();
+                }
                 $diff = $transaction->quantity - $validated['quantity'];
                 $equipment->available_quantity += $diff;
             }

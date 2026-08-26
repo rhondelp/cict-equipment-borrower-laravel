@@ -298,7 +298,19 @@
                 });
             },
             error: function (xhr) {
-                alert("Error: " + xhr.responseText);
+                let msg = "Something went wrong. Please try again.";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    msg = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                }
+                Swal.fire({
+                    title: 'Error!',
+                    text: msg,
+                    icon: 'error',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#d33'
+                });
             }
         });
     }

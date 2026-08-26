@@ -39,7 +39,6 @@ class AuthenticateUser extends Controller
         $requests     = ItemRequest::where('user_id', $userId)->with('equipment')->get();
         $transactions = BorrowTransaction::where('user_id', $userId)->with('equipment')->get();
         $equipments   = Equipment::all();
-        $users        = User::all();
         return view('borrower.dashboard', compact('requests', 'transactions', 'equipments'));
     }
 
@@ -50,12 +49,12 @@ class AuthenticateUser extends Controller
 
     public function login(Request $request)
     {
-        try {
-            $credentials = $request->validate([
-                'email'    => 'required|email',
-                'password' => 'required',
-            ]);
+        $credentials = $request->validate([
+            'email'    => 'required|email',
+            'password' => 'required',
+        ]);
 
+        try {
             if (Auth::attempt($credentials)) {
                 $request->session()->regenerate();
 
@@ -77,7 +76,7 @@ class AuthenticateUser extends Controller
             \Log::error('Login error: ' . $e->getMessage());
 
             return back()->withErrors([
-                'error' => 'Something went wrong. Please try again later.',
+                'email' => 'Something went wrong. Please try again later.',
             ]);
         }
     }
@@ -107,8 +106,13 @@ class AuthenticateUser extends Controller
             'contact_number' => 'nullable|string|max:15',
         ]);
 
+        // Only admins may assign roles; public self-registration is always a Student account.
+        $userType = $request->routeIs('admin.user.register')
+            ? $validatedData['user_type']
+            : 'Student';
+
         $user = User::create([
-            'user_type'      => $validatedData['user_type'],
+            'user_type'      => $userType,
             'name'           => $validatedData['name'],
             'email'          => $validatedData['email'],
             'password'       => Hash::make($validatedData['password']),
