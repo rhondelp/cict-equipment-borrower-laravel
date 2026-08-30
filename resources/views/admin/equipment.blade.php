@@ -6,32 +6,29 @@
     @include('components.admin.navbar')
 
     <div class="dash-bg min-h-screen md:ml-80">
-        <!-- Header -->
+        <!-- Header — dense -->
         <header class="dash-header">
-            <div class="flex items-center justify-between px-6 py-4">
-                <div class="flex items-center space-x-4">
-                    <button id="menu-toggle" class="text-gray-500 hover:text-gray-700 md:hidden">
-                        <i class="text-xl fas fa-bars"></i>
+            <div class="flex items-center justify-between px-4 py-3">
+                <div class="flex items-center gap-3">
+                    <button id="menu-toggle" class="text-[#94a3b8] hover:text-white md:hidden">
+                        <i class="text-lg fas fa-bars"></i>
                     </button>
                     <div>
-                        <h1 class="text-2xl font-bold text-white">EQUIPMENT MANAGEMENT</h1>
-                        <p class="text-sm text-gray-500">Manage all equipment</p>
+                        <h1 class="text-[11px] font-medium tracking-widest uppercase text-[#94a3b8]">Equipment</h1>
+                        <p class="text-[13px] font-semibold tracking-tight text-white -mt-0.5">Manage inventory</p>
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-4">
-                    <!-- Add Equipment Button -->
-                    <button id="open-add-modal"
-                        class="flex items-center px-4 py-2 space-x-2 font-medium text-white transition-colors duration-200 bg-blue-500 hover:bg-blue-600 rounded-xl">
-                        <i class="fas fa-plus"></i>
-                        <span>Add Equipment</span>
+                <div class="flex items-center gap-2">
+                    <button id="open-add-modal" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] transition">
+                        <i class="fas fa-plus text-[10px]"></i> Add equipment
                     </button>
                 </div>
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="p-6">
+        <!-- Main Content — denser -->
+        <main class="p-4">
             {{-- Alerts now handled by global components.alerts (fixed toast) --}}
 
             <!-- Equipment Table -->
@@ -67,13 +64,13 @@
                                 </span>
                             </td>
                             <td>
-                                <div class="flex items-center space-x-2">
-                                    <button class="px-4 py-1 text-xs text-white bg-blue-600 md:text-sm hover:bg-blue-700 edit-btn" data-id="{{ $item->id }}"
+                                <div class="flex items-center gap-1.5">
+                                    <button class="px-2.5 py-1 text-xs font-medium bg-[rgba(148,163,184,0.08)] text-[#cbd5e1] border border-[rgba(255,255,255,0.06)] rounded-md hover:bg-[rgba(148,163,184,0.12)] transition edit-btn" data-id="{{ $item->id }}"
                                         data-name="{{ $item->equipment_name }}" data-description="{{ $item->description }}"
                                         data-quantity="{{ $item->quantity }}"
                                         data-available="{{ $item->available_quantity }}"
                                         data-status="{{ $item->status }}">
-                                        <i class="fas fa-edit"></i> Edit
+                                        <i class="fas fa-edit text-[11px]"></i> Edit
                                     </button>
 
                                     {{-- <button class="px-4 py-1 text-xs text-white bg-red-600 md:text-sm hover:bg-red-700 delete-btn"
