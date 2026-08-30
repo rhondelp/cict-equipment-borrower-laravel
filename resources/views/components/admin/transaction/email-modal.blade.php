@@ -1,5 +1,5 @@
-<!-- Email Modal -->
-<div id="emailModal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50">
+<!-- Email Modal — z-[60] -->
+<div id="emailModal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
     <div class="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
 
         <h2 class="mb-4 text-xl font-semibold">Send Email</h2>
