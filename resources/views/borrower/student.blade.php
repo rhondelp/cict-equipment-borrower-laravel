@@ -91,7 +91,7 @@
 
 <script>
     $(document).ready(function () {
-        $('#requestTable, #transactionTable').DataTable({ responsive: true, pageLength: 10, lengthMenu: [[10,25,50,-1],[10,25,50,"All"]], language: { search: "🔍 ", searchPlaceholder: "Search..." } });
+        try { $('#requestTable, #transactionTable').DataTable({ responsive: true, pageLength: 10, lengthMenu: [[10,25,50,-1],[10,25,50,"All"]], language: { search: "🔍 ", searchPlaceholder: "Search..." } }); } catch(e) { console.error('DataTable init failed (student)', e); }
         // Delegated — survive DataTables redraw
         $('#requestTable').on('click', '.edit-btn', function() {
             $('#edit-id').val($(this).data('id')); $('#edit-equipment-name').text($(this).data('equipment-name')); $('#edit-quantity').val($(this).data('quantity')); $('#edit-status').val($(this).data('status')); $('#edit-remarks').val($(this).data('remarks'));
