@@ -114,38 +114,143 @@
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const menuToggle = document.getElementById('menu-toggle');
-            const sidebar = document.querySelector('.sidebar');
-            const overlay = document.querySelector('.sidebar-overlay');
-            if (!menuToggle || !sidebar || !overlay) return;
-            menuToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('active');
-                overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
-                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
-            });
-            overlay.addEventListener('click', function() {
-                sidebar.classList.remove('active');
-                overlay.style.display = 'none';
-                document.body.style.overflow = '';
-            });
-            window.addEventListener('resize', function() {
-                if (window.innerWidth >= 768) {
-                    sidebar.classList.remove('active');
-                    overlay.style.display = 'none';
-                    document.body.style.overflow = '';
+            // Sidebar toggle — guard each element so one missing doesn't break later listeners
+            try {
+                const menuToggle = document.getElementById('menu-toggle');
+                const sidebar = document.querySelector('.sidebar');
+                const overlay = document.querySelector('.sidebar-overlay');
+                if (menuToggle && sidebar && overlay) {
+                    menuToggle.addEventListener('click', function() {
+                        sidebar.classList.toggle('active');
+                        overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+                        document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+                    });
+                    overlay.addEventListener('click', function() {
+                        sidebar.classList.remove('active');
+                        overlay.style.display = 'none';
+                        document.body.style.overflow = '';
+                    });
+                    window.addEventListener('resize', function() {
+                        if (window.innerWidth >= 768) {
+                            sidebar.classList.remove('active');
+                            overlay.style.display = 'none';
+                            document.body.style.overflow = '';
+                        }
+                    });
+                }
+            } catch(e) { console.error('Sidebar init error', e); }
+
+            // eye toggle for any .eye-btn
+            try {
+                document.querySelectorAll('.eye-btn').forEach(function(btn){
+                    btn.addEventListener('click', function(){
+                        const wrap = btn.closest('.input-wrap');
+                        const input = wrap ? wrap.querySelector('input') : null;
+                        if(!input) return;
+                        const isPwd = input.type === 'password';
+                        input.type = isPwd ? 'text' : 'password';
+                        const icon = btn.querySelector('i');
+                        if(icon){ icon.className = isPwd ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'; }
+                    });
+                });
+            } catch(e) { console.error('eye toggle error', e); }
+
+            // Global vanilla delegation fallback for the 6 critical admin buttons
+            // Works even if jQuery/DataTables fails or rows are re-rendered (responsive child rows)
+            // Uses e.target.closest so clicks on <i> inside button still trigger
+            document.addEventListener('click', function(e) {
+                // Add Equipment / Add User / Add Transaction all use #open-add-modal (one per page)
+                const addBtn = e.target.closest('#open-add-modal');
+                if (addBtn) {
+                    const modal = document.getElementById('add-modal');
+                    if (modal) modal.classList.remove('hidden');
+                }
+                // Add Schedule
+                const addSchedBtn = e.target.closest('#open-add-sched-modal');
+                if (addSchedBtn) {
+                    const m = document.getElementById('add-sched-modal');
+                    if (m) m.classList.remove('hidden');
+                }
+                // Edit Equipment / Edit User / Edit Transaction — all use .edit-btn, distinguish by closest table
+                const editBtn = e.target.closest('.edit-btn');
+                if (editBtn) {
+                    // Equipment table
+                    if (editBtn.closest('#equipmentTable')) {
+                        const d = editBtn.dataset;
+                        const el = (id) => document.getElementById(id);
+                        if (el('edit-id')) el('edit-id').value = d.id || '';
+                        if (el('edit-name')) el('edit-name').value = d.name || '';
+                        if (el('edit-description')) el('edit-description').value = d.description || '';
+                        if (el('edit-quantity')) el('edit-quantity').value = d.quantity || '';
+                        if (el('edit-available')) el('edit-available').value = d.available || '';
+                        if (el('edit-status')) el('edit-status').value = d.status || '';
+                        document.getElementById('edit-modal')?.classList.remove('hidden');
+                    }
+                    // Users table
+                    else if (editBtn.closest('#users-table')) {
+                        const d = editBtn.dataset;
+                        const get = (k) => editBtn.getAttribute('data-'+k) || d[k] || '';
+                        const el = (id) => document.getElementById(id);
+                        if (el('edit-id')) el('edit-id').value = get('id');
+                        if (el('edit-name')) el('edit-name').value = get('name');
+                        if (el('edit-email')) el('edit-email').value = get('email');
+                        // user_type may be data-user-type (hyphen) or legacy data-user_type
+                        const ut = get('user-type') || editBtn.getAttribute('data-user_type') || d.user_type || '';
+                        const sel = el('edit-user-type') || el('edit-user_type');
+                        if (sel) sel.value = ut;
+                        if (el('edit-contact')) el('edit-contact').value = get('contact');
+                        document.getElementById('edit-modal')?.classList.remove('hidden');
+                    }
+                    // Transactions table
+                    else if (editBtn.closest('#transactions-table')) {
+                        const d = editBtn.dataset;
+                        const get = (k) => editBtn.getAttribute('data-'+k) || d[k] || '';
+                        const el = (id) => document.getElementById(id);
+                        if (el('edit-id')) el('edit-id').value = get('id');
+                        if (el('edit-user')) el('edit-user').value = get('user');
+                        if (el('edit-equipment')) el('edit-equipment').value = get('equipment');
+                        if (el('edit-borrow')) el('edit-borrow').value = get('borrow');
+                        if (el('edit-return')) el('edit-return').value = get('return');
+                        if (el('edit-quantity')) el('edit-quantity').value = get('quantity');
+                        if (el('edit-purpose')) el('edit-purpose').value = get('purpose');
+                        if (el('edit-status')) el('edit-status').value = get('status');
+                        if (el('edit-remarks')) el('edit-remarks').value = get('remarks');
+                        if (el('edit-class')) el('edit-class').value = get('class');
+                        document.getElementById('edit-modal')?.classList.remove('hidden');
+                    }
+                }
+                // Cancel / close buttons (handle both id and class, header X and footer)
+                if (e.target.closest('#cancel-add') || e.target.closest('.cancel-add')) {
+                    document.getElementById('add-modal')?.classList.add('hidden');
+                }
+                if (e.target.closest('#cancel-edit') || e.target.closest('.cancel-edit')) {
+                    document.getElementById('edit-modal')?.classList.add('hidden');
+                }
+                if (e.target.closest('#cancel-delete')) {
+                    document.getElementById('delete-modal')?.classList.add('hidden');
+                }
+                if (e.target.closest('.cancel-sched')) {
+                    document.getElementById('add-sched-modal')?.classList.add('hidden');
+                }
+                if (e.target.closest('#cancelReturn')) {
+                    document.getElementById('returnLogModal')?.classList.add('hidden');
+                }
+                if (e.target.closest('#closeEmailModal')) {
+                    document.getElementById('emailModal')?.classList.add('hidden');
+                }
+                // Click on backdrop itself to close (only if click target is the overlay)
+                const addModal = e.target.closest('#add-modal');
+                const editModal = e.target.closest('#edit-modal');
+                const delModal = e.target.closest('#delete-modal');
+                // Backdrop click already handled per-modal via direct check in page scripts; global fallback:
+                if (e.target.id === 'add-modal' || e.target.id === 'edit-modal' || e.target.id === 'delete-modal' || e.target.id === 'add-sched-modal' || e.target.id === 'emailModal' || e.target.id === 'returnLogModal') {
+                    e.target.classList.add('hidden');
                 }
             });
-            // eye toggle for any .eye-btn
-            document.querySelectorAll('.eye-btn').forEach(function(btn){
-                btn.addEventListener('click', function(){
-                    const wrap = btn.closest('.input-wrap');
-                    const input = wrap ? wrap.querySelector('input') : null;
-                    if(!input) return;
-                    const isPwd = input.type === 'password';
-                    input.type = isPwd ? 'text' : 'password';
-                    const icon = btn.querySelector('i');
-                    if(icon){ icon.className = isPwd ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'; }
-                });
+
+            // Global error guard so one failing DataTable init doesn't kill other listeners
+            window.addEventListener('error', function(ev) {
+                console.error('Global JS error (non-blocking):', ev.message, ev.filename, ev.lineno);
             });
         });
     </script>
