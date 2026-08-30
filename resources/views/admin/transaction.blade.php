@@ -255,7 +255,6 @@
         $('#returnLogModal').addClass('hidden');
     });
 
-    // Uses global appToast (shared JS toast) for consistent UX
     function updateStatus(id, status, condition = null, remarks = null) {
         $.ajax({
             url: "{{ route('transactions.inlineUpdate') }}",
@@ -268,7 +267,7 @@
                 remarks: remarks
             },
             success: function (res) {
-                window.appToastSuccess(res.message || 'Status updated successfully!');
+                showAlert('success', res.message || 'Status updated successfully!');
                 setTimeout(function(){ location.reload(); }, 900);
             },
             error: function (xhr) {
@@ -278,7 +277,7 @@
                 } else if (xhr.responseJSON && xhr.responseJSON.errors) {
                     msg = Object.values(xhr.responseJSON.errors).flat().join("\n");
                 }
-                window.appToastError(msg);
+                showAlert('error', msg);
             }
         });
     }
@@ -311,7 +310,6 @@
         document.getElementById('emailModal').classList.add('hidden');
     });
 
-    // Send email — uses reusable appToast for consistent alerts
     document.getElementById('sendEmailConfirm').addEventListener('click', () => {
         const type = document.getElementById('emailType').value;
         const message = document.getElementById('modalMessage').value;
@@ -333,11 +331,11 @@
             return data;
         })
         .then(data => {
-            window.appToastSuccess(data.message || 'Email sent successfully!');
+            showAlert('success', data.message || 'Email sent successfully!');
             document.getElementById('emailModal').classList.add('hidden');
         })
         .catch(err => {
-            window.appToastError(err.message || 'Failed to send email');
+            showAlert('error', err.message || 'Failed to send email');
         });
     });
 </script>
