@@ -92,15 +92,16 @@
 <script>
     $(document).ready(function () {
         $('#requestTable, #transactionTable').DataTable({ responsive: true, pageLength: 10, lengthMenu: [[10,25,50,-1],[10,25,50,"All"]], language: { search: "🔍 ", searchPlaceholder: "Search..." } });
-        $('.edit-btn').on('click', function() {
+        // Delegated — survive DataTables redraw
+        $('#requestTable').on('click', '.edit-btn', function() {
             $('#edit-id').val($(this).data('id')); $('#edit-equipment-name').text($(this).data('equipment-name')); $('#edit-quantity').val($(this).data('quantity')); $('#edit-status').val($(this).data('status')); $('#edit-remarks').val($(this).data('remarks'));
             $('#edit-modal').removeClass('hidden').addClass('flex');
         });
-        $('.delete-btn').on('click', function () { $('#delete-item-name').text($(this).data('equipment-name')); $('#delete-form').attr('action', '/instructor/item-request/' + $(this).data('id')); $('#delete-modal').removeClass('hidden').addClass('flex'); });
-        $('#confirm-delete').on('click', function () { $('#delete-form').submit(); });
-        $('#open-add-modal').on('click', function() { $('#add-modal').removeClass('hidden').addClass('flex'); });
-        $('#cancel-add, #cancel-edit, #cancel-delete').on('click', function() { $('#add-modal, #edit-modal, #delete-modal').addClass('hidden').removeClass('flex'); });
-        $('#add-modal, #edit-modal, #delete-modal').on('click', function(e) { if (e.target === this) $(this).addClass('hidden').removeClass('flex'); });
+        $('#requestTable').on('click', '.delete-btn', function () { $('#delete-item-name').text($(this).data('equipment-name')); $('#delete-form').attr('action', '/borrower/request/' + $(this).data('id')); $('#delete-modal').removeClass('hidden').addClass('flex'); });
+        $(document).on('click', '#confirm-delete', function () { $('#delete-form').submit(); });
+        $(document).on('click', '#open-add-modal', function() { $('#add-modal').removeClass('hidden').addClass('flex'); });
+        $(document).on('click', '#cancel-add, #cancel-edit, #cancel-delete', function() { $('#add-modal, #edit-modal, #delete-modal').addClass('hidden').removeClass('flex'); });
+        $(document).on('click', '#add-modal, #edit-modal, #delete-modal', function(e) { if (e.target === this) $(this).addClass('hidden').removeClass('flex'); });
     });
 </script>
 @endsection
