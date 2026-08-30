@@ -78,7 +78,7 @@
                             <button
                                 class="px-4 py-1 text-xs text-white bg-blue-600 md:text-sm hover:bg-blue-700 edit-btn"
                                 data-id="{{ $user->id }}" data-name="{{ $user->name }}" data-email="{{ $user->email }}"
-                                data-user_type="{{ $user->user_type }}" data-contact="{{ $user->contact_number }}">
+                                data-user-type="{{ $user->user_type }}" data-contact="{{ $user->contact_number }}">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
                             {{-- <button
@@ -278,7 +278,7 @@
             </div>
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">User Type</label>
-                <select name="user_type" id="edit-user_type"
+                <select name="user_type" id="edit-user-type"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     <option value="Admin">Admin</option>
                     <option value="Instructor">Instructor</option>
@@ -368,11 +368,14 @@
     });
 
     // Edit User — delegated from table (rows are re-rendered by DataTables)
+    // Note: data-user-type uses hyphen (standard HTML5), jQuery .data('user-type') reads it
     $('#users-table').on('click', '.edit-btn', function() {
         $('#edit-id').val($(this).data('id'));
         $('#edit-name').val($(this).data('name'));
         $('#edit-email').val($(this).data('email'));
-        $('#edit-user_type').val($(this).data('user_type'));
+        // Support both hyphen and legacy underscore
+        const userType = $(this).data('user-type') || $(this).data('user_type') || $(this).attr('data-user-type');
+        $('#edit-user-type').val(userType);
         $('#edit-contact').val($(this).data('contact'));
         $('#edit-modal').removeClass('hidden');
     });
