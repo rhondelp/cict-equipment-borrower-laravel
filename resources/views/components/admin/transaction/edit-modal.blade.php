@@ -1,5 +1,5 @@
-<!-- Edit Transaction Modal -->
-<div id="edit-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50 backdrop-blur-sm">
+<!-- Edit Transaction Modal — z-[60] above sidebar -->
+<div id="edit-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50 backdrop-blur-sm">
     <div class="w-full max-w-2xl p-6 bg-white shadow-2xl rounded-xl animate-fadeIn">
         <!-- Title -->
         <h2 class="flex items-center mb-6 text-2xl font-semibold text-gray-900">
