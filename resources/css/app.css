@@ -36,6 +36,20 @@
   /* Tabular numbers for data-heavy dashboard */
   .tabular { font-variant-numeric: tabular-nums; }
 
+  /* Light theme — when html has no .dark, invert surfaces for readability */
+  html:not(.dark) body { background: #f1f5f9; color: #0f172a; }
+  html:not(.dark) .dash-bg { background: #f1f5f9; }
+  html:not(.dark) .dash-card, html:not(.dark) .dash-table-wrap, html:not(.dark) .stat-card { background: #ffffff; border-color: rgba(15,23,42,0.08); box-shadow: 0 1px 3px rgba(15,23,42,0.08), 0 4px 12px rgba(15,23,42,0.04); }
+  html:not(.dark) .dash-header { background: rgba(255,255,255,0.92); border-color: rgba(15,23,42,0.08); backdrop-filter: blur(12px); }
+  html:not(.dark) .sidebar { background: #ffffff; border-color: rgba(15,23,42,0.08); }
+  html:not(.dark) .sidebar .nav-item.active { background: rgba(91,141,224,0.10) !important; }
+  html:not(.dark) #add-modal > div, html:not(.dark) #edit-modal > div, html:not(.dark) #delete-modal > div, html:not(.dark) #add-sched-modal > div, html:not(.dark) #emailModal > div, html:not(.dark) #returnLogModal > div { background: #ffffff !important; border-color: rgba(15,23,42,0.08) !important; color: #0f172a !important; }
+  html:not(.dark) .dataTables_wrapper { color: #334155; }
+  html:not(.dark) .dataTables_wrapper .dataTables_filter input, html:not(.dark) .dataTables_wrapper .dataTables_length select { background: #ffffff !important; border-color: rgba(15,23,42,0.12) !important; color: #0f172a !important; }
+  html:not(.dark) table.dataTable thead th { color: #64748b !important; }
+  html:not(.dark) .dash-bg table td { color: #334155 !important; }
+  html:not(.dark) .dash-bg table th { color: #0f172a !important; }
+
   html { scroll-behavior: smooth; }
 
   body {
@@ -369,10 +383,22 @@
 .dataTables_wrapper .dataTables_info { color: #94a3b8 !important; }
 table.dataTable thead th { color: #e2e8f0 !important; font-size: 11.5px; letter-spacing: 0.06em; }
 
-/* Denser tables — functional density */
-.dash-bg table th { padding: 10px 12px !important; font-size: 11px !important; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
-.dash-bg table td { padding: 10px 12px !important; font-size: 13px !important; line-height: 1.45; }
+/* Denser tables — functional density, sticky header, consistent row height */
+.dash-bg table th { padding: 10px 12px !important; font-size: 11px !important; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; position: sticky; top: 0; z-index: 5; background: var(--bg-card); }
+.dash-bg table td { padding: 10px 12px !important; font-size: 13px !important; line-height: 1.45; vertical-align: middle; }
+.dash-bg table tbody tr { height: 44px; }
 .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter { margin-bottom: 10px; }
+/* Responsive: horizontal scroll on small screens, card-like on very small */
+.dash-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.dash-table-wrap table { min-width: 640px; }
+@media (max-width: 640px) {
+  .dash-table-wrap table { min-width: 520px; }
+  .dash-bg table th, .dash-bg table td { padding: 8px 10px !important; font-size: 12px !important; }
+}
+/* Status badges — consistent shape/weight/sizing, only color differs */
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 500; line-height: 1.4; border: 1px solid transparent; letter-spacing: -0.01em; }
+/* Light theme badges keep same shape */
+html:not(.dark) .badge { border-color: rgba(15,23,42,0.08) !important; }
 
 /* Motion low — hover only */
 @media (prefers-reduced-motion: no-preference) {
