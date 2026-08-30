@@ -124,6 +124,16 @@ class BorrowTransactionController extends Controller
      */
     public function store(Request $request)
     {
+        // Filter out empty placeholder values from multi-select (prevents "equipment.0 is invalid" validation error)
+        if ($request->has('equipment')) {
+            $filteredEquip = array_values(array_filter((array) $request->input('equipment'), fn($v) => $v !== '' && $v !== null));
+            $request->merge(['equipment' => $filteredEquip]);
+        }
+        if ($request->has('quantities')) {
+            $filteredQty = array_filter((array) $request->input('quantities'), fn($v, $k) => $k !== '' && $v !== '' && $v !== null, ARRAY_FILTER_USE_BOTH);
+            $request->merge(['quantities' => $filteredQty]);
+        }
+
         // Validate the input
         $validated = $request->validate([
             'user_id'           => 'required|exists:users,id',
