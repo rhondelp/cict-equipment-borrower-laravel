@@ -15,12 +15,12 @@ export function showAlert(type, message, options = {}) {
 
     const base = {
         background: '#131a2b',
-        color: '#e2e8f0',
-        confirmButtonColor: '#3b82f6',
+        color: '#f1f5f9',
+        confirmButtonColor: '#5b8de0',
         customClass: {
-            popup: 'rounded-2xl border border-white/10 shadow-2xl',
-            title: 'text-white',
-            htmlContainer: 'text-slate-300 text-sm',
+            popup: 'rounded-xl border border-white/10 shadow-2xl',
+            title: 'text-white tracking-tight',
+            htmlContainer: 'text-slate-300 text-[13px] leading-relaxed',
         },
     };
 
@@ -83,21 +83,21 @@ export function showSuccess(msg, opts) { return showAlert('success', msg, opts);
 export function showError(msg, opts) { return showAlert('error', msg, opts); }
 export function showWarning(msg, opts) { return showAlert('warning', msg, opts); }
 
-// Confirm dialog — uses same SweetAlert2 styling, centralizes button colors
+// Confirm dialog — same language, desaturated accent
 export function showConfirm({ title = 'Are you sure?', text = '', icon = 'warning', confirmText = 'Confirm', cancelText = 'Cancel' } = {}) {
     return Swal.fire({
         background: '#131a2b',
-        color: '#e2e8f0',
-        customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl', title: 'text-white', htmlContainer: 'text-slate-300 text-sm' },
+        color: '#f1f5f9',
+        customClass: { popup: 'rounded-xl border border-white/10 shadow-2xl', title: 'text-white tracking-tight', htmlContainer: 'text-slate-300 text-[13px]' },
         title,
         text,
         icon,
         showCancelButton: true,
-        confirmButtonColor: '#3b82f6',
+        confirmButtonColor: '#5b8de0',
         cancelButtonColor: '#1e293b',
         confirmButtonText: confirmText,
         cancelButtonText: cancelText,
-        iconColor: icon === 'warning' ? '#f59e0b' : undefined,
+        iconColor: icon === 'warning' ? '#f59e0b' : '#5b8de0',
     });
 }
 
