@@ -17,8 +17,10 @@
     --border-subtle: rgba(255,255,255,0.07);
     --border-input: rgba(255,255,255,0.09);
     --border-input-focus: rgba(96,165,250,0.45);
-    --text-muted: #8b93a8;
-    --text-muted-2: #6b7280;
+    --text-muted: #94a3b8; /* lightened from #8b93a8 for readability on dark */
+    --text-muted-2: #94a3b8;
+    --text-soft: #cbd5e1;
+    --text-placeholder: #7a8aaa;
     --blue-accent: #3b82f6;
     --blue-accent-2: #60a5fa;
     --radius-card: 20px;
@@ -145,7 +147,7 @@
     transition: border-color .18s, box-shadow .18s, background .18s;
     -webkit-appearance: none; appearance: none;
   }
-  .ds-input::placeholder { color: #5a6584; }
+  .ds-input::placeholder { color: var(--text-placeholder); opacity: 1; }
   .ds-input:focus {
     background: var(--bg-input-focus);
     border-color: var(--border-input-focus);
@@ -281,48 +283,61 @@
   .dark-table { color: #e2e8f0; }
 }
 
-/* Auto-darken legacy white cards/tables inside dash-bg */
-.dash-bg .bg-white { background: #131a2b !important; color: #e2e8f0 !important; border-color: rgba(255,255,255,0.06) !important; }
-.dash-bg .bg-gray-50, .dash-bg .bg-gray-100 { background: #0d1220 !important; color: #94a3b8 !important; }
-.dash-bg .text-gray-900, .dash-bg .text-gray-800, .dash-bg .text-gray-700 { color: #e2e8f0 !important; }
-.dash-bg .text-gray-600, .dash-bg .text-gray-500 { color: #8b93a8 !important; }
+/* Auto-darken legacy white cards/tables inside dash-bg — high-contrast, easy to read */
+.dash-bg .bg-white { background: #131a2b !important; color: #f1f5f9 !important; border-color: rgba(255,255,255,0.06) !important; }
+.dash-bg .bg-gray-50, .dash-bg .bg-gray-100 { background: #0d1220 !important; color: #e2e8f0 !important; }
+/* All gray text on dark must be light enough — override every shade */
+.dash-bg .text-gray-900, .dash-bg .text-gray-800, .dash-bg .text-gray-700 { color: #f1f5f9 !important; }
+.dash-bg .text-gray-600, .dash-bg .text-gray-500, .dash-bg .text-gray-400, .dash-bg .text-gray-300 { color: #cbd5e1 !important; }
+.dash-bg .text-slate-800, .dash-bg .text-slate-700, .dash-bg .text-slate-600 { color: #e2e8f0 !important; }
 .dash-bg .border-gray-200, .dash-bg .border-gray-300 { border-color: rgba(255,255,255,0.07) !important; }
 .dash-bg table tbody tr { border-color: rgba(255,255,255,0.05) !important; }
 .dash-bg table tbody tr:hover { background: rgba(255,255,255,0.03) !important; }
-.dash-bg table td, .dash-bg table th { color: #cbd5e1; }
+.dash-bg table td { color: #e2e8f0 !important; }
+.dash-bg table th { color: #f1f5f9 !important; font-weight: 600 !important; }
+.dash-bg p, .dash-bg span, .dash-bg li, .dash-bg td { line-height: 1.5; }
+.dash-bg h1, .dash-bg h2, .dash-bg h3 { color: #fff !important; letter-spacing: -0.01em; }
 
-/* Dark modals — override any bg-white modal panels */
+/* Dark modals — override any bg-white modal panels — keep high contrast */
 #add-modal > div, #edit-modal > div, #delete-modal > div,
 #add-sched-modal > div, #emailModal > div, #returnLogModal > div,
 #logout-modal > div, #add-modal .bg-white, #edit-modal .bg-white, #delete-modal .bg-white {
   background: #131a2b !important;
   border: 1px solid rgba(255,255,255,0.07) !important;
-  color: #e2e8f0 !important;
+  color: #f1f5f9 !important;
 }
 #add-modal label, #edit-modal label, #delete-modal label,
-#add-sched-modal label, #emailModal label { color: #cbd5e1 !important; }
+#add-sched-modal label, #emailModal label { color: #e2e8f0 !important; font-weight: 500; }
 #add-modal input, #edit-modal input, #delete-modal input,
 #add-sched-modal input, #add-modal select, #edit-modal select, #add-modal textarea, #edit-modal textarea,
 #emailModal input, #emailModal select, #emailModal textarea, #returnLogModal select, #returnLogModal textarea {
   background: #0d1220 !important;
   border: 1px solid rgba(255,255,255,0.09) !important;
-  color: #e2e8f0 !important;
+  color: #f1f5f9 !important;
 }
-#add-modal input::placeholder, #edit-modal input::placeholder { color: #5a6584 !important; }
+#add-modal input::placeholder, #edit-modal input::placeholder, #add-sched-modal input::placeholder { color: var(--text-placeholder) !important; opacity: 1; }
 
-/* DataTables dark overrides — global */
-.dataTables_wrapper { color: #cbd5e1; }
+/* Fix low-contrast arbitrary colors used across Blades — make system easy to read */
+.dash-bg .text-\[\#8b93a8\] { color: #cbd5e1 !important; }
+.dash-bg .text-\[\#6b7a99\] { color: #94a3b8 !important; }
+.text-\[\#8b93a8\] { color: #94a3b8 !important; }
+.text-\[\#6b7a99\] { color: #94a3b8 !important; }
+.placeholder\:text-\[\#5a6584\]::placeholder { color: #7a8aaa !important; opacity: 1; }
+
+/* DataTables dark overrides — global — higher contrast */
+.dataTables_wrapper { color: #e2e8f0; }
 .dataTables_wrapper .dataTables_filter input,
 .dataTables_wrapper .dataTables_length select {
   background: #0d1220 !important;
   border: 1px solid rgba(255,255,255,0.08) !important;
-  color: #e2e8f0 !important;
+  color: #f1f5f9 !important;
   border-radius: 10px !important;
 }
+.dataTables_wrapper .dataTables_filter input::placeholder { color: var(--text-placeholder) !important; }
 .dataTables_wrapper .dataTables_paginate .paginate_button {
   background: #0d1220 !important;
   border: 1px solid rgba(255,255,255,0.07) !important;
-  color: #94a3b8 !important;
+  color: #cbd5e1 !important;
   border-radius: 8px !important;
 }
 .dataTables_wrapper .dataTables_paginate .paginate_button.current {
@@ -330,8 +345,8 @@
   color: #fff !important;
   border-color: transparent !important;
 }
-.dataTables_wrapper .dataTables_info { color: #64748b !important; }
-table.dataTable thead th { color: #94a3b8 !important; font-size: 11.5px; letter-spacing: 0.06em; }
+.dataTables_wrapper .dataTables_info { color: #94a3b8 !important; }
+table.dataTable thead th { color: #e2e8f0 !important; font-size: 11.5px; letter-spacing: 0.06em; }
 
 /* Anim */
 @keyframes fadeInUp {
