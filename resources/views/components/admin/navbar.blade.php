@@ -85,7 +85,7 @@
     });
     document.getElementById('logoutBtn')?.addEventListener('click', function(e) {
         e.preventDefault();
-        Swal.fire({
+        (window.showConfirm ? window.showConfirm({ title: 'Are you sure?', text: 'You will be logged out!', icon: 'warning', confirmText: 'Yes, logout' }) : Swal.fire({
             title: 'Are you sure?',
             text: 'You will be logged out!',
             icon: 'warning',
@@ -95,7 +95,7 @@
             confirmButtonText: 'Yes, logout',
             background: '#131a2b',
             color: '#e2e8f0'
-        }).then((result) => {
+        })).then((result) => {
             if (result.isConfirmed) document.getElementById('logoutForm').submit();
         });
     });
