@@ -1,5 +1,5 @@
-    <!-- Delete Confirmation Modal -->
-    <div id="delete-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50">
+    <!-- Delete Confirmation Modal — z-[60] -->
+    <div id="delete-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
         <div class="w-full max-w-md mx-4 bg-white shadow-2xl rounded-xl">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="text-lg font-semibold text-gray-900">Delete Equipment</h3>
