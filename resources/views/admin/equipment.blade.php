@@ -97,21 +97,23 @@
     @include('components.admin.equipment.edit-modal')
     @include('components.admin.equipment.delete-modal')
 
-    {{-- DataTables & Script — uses delegation so buttons survive DataTables redraw/pagination --}}
+    {{-- DataTables & Script — uses delegation so buttons survive DataTables redraw/pagination; wrapped in try/catch so one error doesn't block later listeners --}}
     <script>
         $(document).ready(function() {
-            let table = $('#equipmentTable').DataTable({
-                responsive: true,
-                pageLength: 10,
-                lengthMenu: [
-                    [10, 25, 50, -1],
-                    [10, 25, 50, "All"]
-                ],
-                language: {
-                    search: "🔍 ",
-                    searchPlaceholder: "Search equipment..."
-                }
-            });
+            try {
+                let table = $('#equipmentTable').DataTable({
+                    responsive: true,
+                    pageLength: 10,
+                    lengthMenu: [
+                        [10, 25, 50, -1],
+                        [10, 25, 50, "All"]
+                    ],
+                    language: {
+                        search: "🔍 ",
+                        searchPlaceholder: "Search equipment..."
+                    }
+                });
+            } catch(e) { console.error('DataTable init failed (equipmentTable)', e); }
 
             // Edit modal — delegated (rows are re-rendered by DataTables)
             $('#equipmentTable').on('click', '.edit-btn', function() {
