@@ -19,7 +19,7 @@
         <p class="text-[13px] text-[#8b93a8] mb-6 leading-relaxed">Please fill in the details below to create your account.</p>
         {{-- Validation / flash alerts handled by global components.alerts --}}
 
-        <form class="space-y-4" action="{{ route('register') }}" method="POST">
+        <form class="space-y-4" action="{{ route('register.store') }}" method="POST">
             @csrf
 
             {{-- Full Name --}}
