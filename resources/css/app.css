@@ -10,25 +10,31 @@
 @layer base {
   :root {
     --bg-deep: #0a0e1a;
-    --bg-deep-2: #0f1420;
+    --bg-deep-2: #0e1426; /* slightly tinted, off-black */
     --bg-card: #131a2b;
     --bg-input: #0d1220;
     --bg-input-focus: #111a33;
-    --border-subtle: rgba(255,255,255,0.07);
-    --border-input: rgba(255,255,255,0.09);
-    --border-input-focus: rgba(96,165,250,0.45);
-    --text-muted: #94a3b8; /* lightened from #8b93a8 for readability on dark */
+    --border-subtle: rgba(148,163,184,0.08); /* cool gray family, single hue */
+    --border-input: rgba(148,163,184,0.10);
+    --border-input-focus: rgba(91,141,224,0.45); /* desaturated accent */
+    --text-muted: #94a3b8;
     --text-muted-2: #94a3b8;
     --text-soft: #cbd5e1;
     --text-placeholder: #7a8aaa;
-    --blue-accent: #3b82f6;
-    --blue-accent-2: #60a5fa;
-    --radius-card: 20px;
-    --radius-input: 10px;
-    --radius-btn: 12px;
+    --accent: #5b8de0; /* desaturated single accent, <80% saturation */
+    --accent-strong: #4a6fa5;
+    --accent-soft: #8aa8e8;
+    --blue-accent: #5b8de0; /* keep alias for legacy */
+    --blue-accent-2: #8aa8e8;
+    --radius-card: 14px; /* tighter radius for functional density */
+    --radius-input: 8px;
+    --radius-btn: 8px;
+    --shadow-tinted: 0 8px 24px rgba(10,14,26,0.45), 0 1px 0 rgba(148,163,184,0.04) inset;
   }
 
   * { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  /* Tabular numbers for data-heavy dashboard */
+  .tabular { font-variant-numeric: tabular-nums; }
 
   html { scroll-behavior: smooth; }
 
@@ -95,11 +101,11 @@
   .auth-logo img { width: 100%; height: 100%; object-fit: cover; }
 
   .auth-title {
-    font-size: 26px; line-height: 1.2;
-    font-weight: 700; letter-spacing: -0.02em; color: #fff;
+    font-size: 24px; line-height: 1.15;
+    font-weight: 700; letter-spacing: -0.03em; color: #fff; text-wrap: balance;
   }
   .auth-subtitle {
-    font-size: 14px; line-height: 1.5; color: var(--text-muted); font-weight: 400; margin-top: 6px;
+    font-size: 13px; line-height: 1.5; color: var(--text-muted); font-weight: 500; margin-top: 6px; letter-spacing: -0.01em;
   }
   .auth-helper {
     font-size: 12.5px; color: var(--text-muted); margin-top: 2px;
@@ -151,7 +157,13 @@
   .ds-input:focus {
     background: var(--bg-input-focus);
     border-color: var(--border-input-focus);
-    box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    box-shadow: 0 0 0 3px rgba(91,141,224,0.15);
+  }
+  .ds-input:focus-visible { outline: none; }
+  /* Unified focus ring for all interactive */
+  :where(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid rgba(91,141,224,0.5);
+    outline-offset: 2px;
   }
   .ds-input.has-trailing { padding-right: 40px; }
   .ds-input.no-leading { padding-left: 14px; }
@@ -180,27 +192,36 @@
     content: '✓'; color: #fff; font-size: 11px; font-weight: 800; line-height: 1;
   }
 
-  /* Primary button — blue gradient pill */
+  /* Primary button — desaturated single accent, no generic blue+shadow */
   .btn-primary {
     width: 100%;
     display: inline-flex; align-items: center; justify-content: center;
     gap: 8px;
-    padding: 14px 20px;
+    padding: 11px 16px; /* denser */
     border-radius: var(--radius-btn);
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: var(--accent);
     color: #fff;
-    font-weight: 600; font-size: 14.5px; letter-spacing: -0.01em;
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 8px 24px rgba(37,99,235,0.35), 0 1px 0 rgba(255,255,255,0.12) inset;
+    font-weight: 600; font-size: 13.5px; letter-spacing: -0.01em; line-height: 1;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: var(--shadow-tinted);
     cursor: pointer;
-    transition: filter .15s, transform .15s, box-shadow .15s;
+    transition: background 200ms, transform 200ms, box-shadow 200ms;
   }
   .btn-primary:hover {
-    filter: brightness(1.07);
-    box-shadow: 0 10px 28px rgba(37,99,235,0.45), 0 1px 0 rgba(255,255,255,0.14) inset;
+    background: var(--accent-strong);
     transform: translateY(-1px);
+    box-shadow: 0 10px 28px rgba(10,14,26,0.50), 0 1px 0 rgba(255,255,255,0.06) inset;
   }
-  .btn-primary:active { transform: translateY(0); filter: brightness(0.98); }
+  .btn-primary:active { transform: translateY(0) scale(0.98); }
+  .btn-secondary {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px; padding: 8px 12px; border-radius: var(--radius-btn);
+    background: rgba(148,163,184,0.08); border: 1px solid var(--border-subtle);
+    color: #e2e8f0; font-weight: 500; font-size: 13px; line-height: 1;
+    transition: background 200ms, transform 200ms;
+  }
+  .btn-secondary:hover { background: rgba(148,163,184,0.12); transform: translateY(-1px); }
+  .btn-secondary:active { transform: scale(0.98); }
 
   .btn-ghost-dark {
     display: inline-flex; align-items: center; justify-content: center;
@@ -240,43 +261,43 @@
   .inline-link { color: #60a5fa; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
   .inline-link:hover { color: #93c5fd; }
 
-  /* Dashboard shell */
+  /* Dashboard shell — denser, tinted shadows, single accent */
   .dash-bg {
     background:
-      radial-gradient(ellipse 900px 600px at 72% 12%, rgba(59,130,246,0.10) 0%, transparent 62%),
+      radial-gradient(ellipse 800px 500px at 72% 10%, rgba(91,141,224,0.07) 0%, transparent 62%),
       linear-gradient(180deg, #0a0e1a 0%, #0c1222 100%);
     min-height: 100vh;
   }
   .dash-card {
     background: #131a2b;
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 16px;
-    box-shadow: 0 10px 32px rgba(0,0,0,0.35);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-tinted);
   }
   .dash-header {
-    background: rgba(19,26,43,0.85);
-    backdrop-filter: blur(14px);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(19,26,43,0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle);
   }
   .dash-table-wrap {
     background: #131a2b;
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 16px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
     overflow: hidden;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.32);
+    box-shadow: var(--shadow-tinted);
   }
   .stat-card {
-    background: linear-gradient(135deg, #131a2b 0%, #162040 100%);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 16px;
-    padding: 18px 20px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.30);
-    transition: transform .18s, box-shadow .18s, border-color .18s;
+    background: #131a2b; /* flat, no gradient — less templated */
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
+    padding: 14px 16px; /* denser: 18x20 → 14x16 */
+    box-shadow: none; /* remove generic shadow, rely on border */
+    transition: border-color 200ms, transform 200ms;
   }
   .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 14px 36px rgba(0,0,0,0.42);
-    border-color: rgba(96,165,250,0.18);
+    transform: translateY(-1px);
+    border-color: rgba(91,141,224,0.18);
+    box-shadow: var(--shadow-tinted);
   }
 
   /* Dark table typography overrides for DataTables */
@@ -348,9 +369,19 @@
 .dataTables_wrapper .dataTables_info { color: #94a3b8 !important; }
 table.dataTable thead th { color: #e2e8f0 !important; font-size: 11.5px; letter-spacing: 0.06em; }
 
-/* Anim */
+/* Denser tables — functional density */
+.dash-bg table th { padding: 10px 12px !important; font-size: 11px !important; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+.dash-bg table td { padding: 10px 12px !important; font-size: 13px !important; line-height: 1.45; }
+.dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter { margin-bottom: 10px; }
+
+/* Motion low — hover only */
+@media (prefers-reduced-motion: no-preference) {
+  .dash-card, .stat-card, .btn-primary, .btn-secondary { transition: border-color 200ms, background 200ms, transform 200ms, box-shadow 200ms; }
+}
+
+/* Anim — subtle, low intensity */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-fade-in { animation: fadeInUp .7s ease both; }
+.animate-fade-in { animation: fadeInUp .4s ease both; }
