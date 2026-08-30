@@ -334,18 +334,20 @@
     </div>
 </div>
 
-{{-- Scripts — delegated so buttons survive DataTables redraw; z-[60] modals sit above sidebar --}}
+{{-- Scripts — delegated so buttons survive DataTables redraw; z-[60] modals sit above sidebar; wrapped in try/catch --}}
 <script>
     $(document).ready(function() {
-    let table = $('#users-table').DataTable({
-        responsive: true,
-        pageLength: 10,
-        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
-        language: {
-            search: "🔍 ",
-            searchPlaceholder: "Search users..."
-        }
-    });
+    try {
+        let table = $('#users-table').DataTable({
+            responsive: true,
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            language: {
+                search: "🔍 ",
+                searchPlaceholder: "Search users..."
+            }
+        });
+    } catch(e) { console.error('DataTable init failed (users-table)', e); }
 
     // Open Add Modal — delegated (button outside table)
     $(document).on('click', '#open-add-modal', function() {
