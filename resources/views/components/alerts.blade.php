@@ -1,80 +1,57 @@
-{{-- Reusable alerts: reads session('success'), session('welcome'), session('error'), $errors --}}
+{{-- SweetAlert2 flash alerts — single source for all server-rendered pages.
+     Reads session('success') / session('welcome'), session('error'), validation $errors
+     and triggers the reusable JS helper showAlert(type,message) on page load.
+     No plain HTML alert divs — every path goes through SweetAlert2. --}}
 @php
     $flashSuccess = session('success') ?: session('welcome');
     $flashError = session('error');
+    $validationErrors = $errors->any() ? $errors->all() : [];
 @endphp
-
-<div id="app-alerts" class="pointer-events-none fixed top-4 right-4 z-[9999] flex flex-col gap-3 w-[92vw] max-w-md">
-    @if ($flashSuccess)
-        <div class="alert-item pointer-events-auto flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-[#0d1f1a] px-4 py-3 text-sm text-emerald-300 shadow-2xl shadow-emerald-900/20" role="alert" data-auto-dismiss="5000">
-            <i class="fa-solid fa-circle-check mt-0.5 shrink-0 text-emerald-400"></i>
-            <span class="flex-1 leading-snug">{{ $flashSuccess }}</span>
-            <button type="button" class="ml-2 -mr-1 grid h-6 w-6 place-items-center rounded-lg text-emerald-300/70 hover:bg-white/10 hover:text-emerald-200" onclick="this.closest('.alert-item').remove()" aria-label="Close">&times;</button>
-        </div>
-    @endif
-
-    @if ($flashError)
-        <div class="alert-item pointer-events-auto flex items-start gap-3 rounded-xl border border-red-500/20 bg-[#1f0d14] px-4 py-3 text-sm text-red-300 shadow-2xl shadow-red-900/20" role="alert" data-auto-dismiss="7000">
-            <i class="fa-solid fa-circle-exclamation mt-0.5 shrink-0 text-red-400"></i>
-            <span class="flex-1 leading-snug">{{ $flashError }}</span>
-            <button type="button" class="ml-2 -mr-1 grid h-6 w-6 place-items-center rounded-lg text-red-300/70 hover:bg-white/10 hover:text-red-200" onclick="this.closest('.alert-item').remove()" aria-label="Close">&times;</button>
-        </div>
-    @endif
-
-    @if ($errors->any())
-        <div class="alert-item pointer-events-auto rounded-xl border border-red-500/20 bg-[#1f0d14] px-4 py-3 text-sm text-red-300 shadow-2xl shadow-red-900/20" role="alert" data-auto-dismiss="8000">
-            <div class="flex items-start gap-2">
-                <i class="fa-solid fa-triangle-exclamation mt-0.5 shrink-0 text-red-400"></i>
-                <div class="flex-1">
-                    <p class="font-semibold text-red-200">Please fix the following:</p>
-                    <ul class="mt-1 list-disc list-inside space-y-0.5 text-red-300/90">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-                <button type="button" class="ml-2 -mr-1 grid h-6 w-6 shrink-0 place-items-center rounded-lg text-red-300/70 hover:bg-white/10 hover:text-red-200" onclick="this.closest('.alert-item').remove()" aria-label="Close">&times;</button>
-            </div>
-        </div>
-    @endif
-</div>
 
 <script>
 (function() {
-    // Auto-dismiss inline flash banners
-    document.querySelectorAll('#app-alerts [data-auto-dismiss]').forEach(function(el) {
-        var ms = parseInt(el.getAttribute('data-auto-dismiss'), 10) || 5000;
-        setTimeout(function() {
-            el.style.transition = 'opacity 220ms, transform 220ms';
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(-6px)';
-            setTimeout(function(){ el.remove(); }, 240);
-        }, ms);
-    });
+    const flashSuccess = @json($flashSuccess);
+    const flashError = @json($flashError);
+    const validationErrors = @json($validationErrors);
 
-    // Global toast helpers for AJAX actions (inlineUpdate, sendManualEmail etc.)
-    // Uses SweetAlert2 if available, falls back to app-alerts container
-    window.appToast = function(type, message) {
-        type = (type || 'success').toLowerCase();
-        if (window.Swal && typeof Swal.fire === 'function') {
-            var icon = type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'success';
-            var color = type === 'error' ? '#ef4444' : '#10B981';
-            Swal.fire({ title: type === 'error' ? 'Error!' : 'Success!', text: message, icon: icon, confirmButtonText: 'OK', confirmButtonColor: color });
-            return;
+    function runAlerts() {
+        const hasShowAlert = typeof window.showAlert === 'function';
+        // If Vite bundle hasn't loaded yet, retry briefly; fallback to global Swal CDN if still missing
+        if (!hasShowAlert) {
+            if (typeof window.Swal !== 'undefined' && typeof window.Swal.fire === 'function') {
+                // Minimal fallback shimming showAlert if alert.js not yet loaded
+                window.showAlert = function(type, msg, opts = {}) {
+                    const t = (type||'info').toLowerCase();
+                    const isHtml = opts.html === true;
+                    const base = { background:'#131a2b', color:'#e2e8f0', confirmButtonColor:'#3b82f6', customClass:{popup:'rounded-2xl border border-white/10'} };
+                    if (t==='success') return window.Swal.fire({...base, icon:'success', title:'Success!', text:isHtml?undefined:msg, html:isHtml?msg:undefined, timer:2600, timerProgressBar:true, showConfirmButton:false});
+                    if (t==='error') return window.Swal.fire({...base, icon:'error', title:'Error!', text:isHtml?undefined:msg, html:isHtml?msg:undefined, confirmButtonColor:'#ef4444'});
+                    if (t==='warning') return window.Swal.fire({...base, icon:'warning', title:'Validation Error', text:isHtml?undefined:msg, html:isHtml?msg:undefined, confirmButtonColor:'#f59e0b'});
+                    return window.Swal.fire({...base, icon:'info', title:'Notice', text:isHtml?undefined:msg, html:isHtml?msg:undefined});
+                };
+            } else {
+                // Still not ready — retry once
+                setTimeout(runAlerts, 120);
+                return;
+            }
         }
-        // Fallback: inject into #app-alerts
-        var container = document.getElementById('app-alerts');
-        if (!container) return alert(message);
-        var div = document.createElement('div');
-        var isErr = type === 'error';
-        div.className = 'alert-item pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl ' + (isErr ? 'border-red-500/20 bg-[#1f0d14] text-red-300 shadow-red-900/20' : 'border-emerald-500/20 bg-[#0d1f1a] text-emerald-300 shadow-emerald-900/20');
-        div.setAttribute('role','alert');
-        div.innerHTML = '<i class="fa-solid '+(isErr ? 'fa-circle-exclamation text-red-400' : 'fa-circle-check text-emerald-400')+' mt-0.5 shrink-0"></i><span class="flex-1 leading-snug"></span><button type="button" class="ml-2 -mr-1 grid h-6 w-6 place-items-center rounded-lg hover:bg-white/10" onclick="this.parentElement.remove()">&times;</button>';
-        div.querySelector('span').textContent = message;
-        container.appendChild(div);
-        setTimeout(function(){ div.remove(); }, isErr ? 7000 : 5000);
-    };
-    window.appToastSuccess = function(msg){ window.appToast('success', msg); };
-    window.appToastError = function(msg){ window.appToast('error', msg); };
+
+        if (flashSuccess) {
+            window.showAlert('success', flashSuccess);
+        }
+        if (flashError) {
+            window.showAlert('error', flashError);
+        }
+        if (validationErrors && validationErrors.length) {
+            const html = '<ul style="text-align:left;margin:0;padding-left:18px;">' + validationErrors.map(e => '<li>' + String(e).replace(/</g,'&lt;') + '</li>').join('') + '</ul>';
+            window.showAlert('warning', html, { html: true, title: 'Validation Error' });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', runAlerts);
+    } else {
+        runAlerts();
+    }
 })();
 </script>
