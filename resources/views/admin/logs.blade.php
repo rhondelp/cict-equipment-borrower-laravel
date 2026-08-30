@@ -6,35 +6,36 @@
     @include('components.admin.navbar')
 
     <div class="dash-bg min-h-screen md:ml-80">
-        <!-- Header -->
+        <!-- Header — dense -->
         <header class="dash-header">
-            <div class="flex items-center justify-between px-6 py-4">
-                <div class="flex items-center space-x-4">
-                    <button id="menu-toggle" class="text-gray-500 hover:text-gray-700 md:hidden">
-                        <i class="text-xl fas fa-bars"></i>
+            <div class="flex items-center justify-between px-4 py-3">
+                <div class="flex items-center gap-3">
+                    <button id="menu-toggle" class="text-[#94a3b8] hover:text-white md:hidden">
+                        <i class="text-lg fas fa-bars"></i>
                     </button>
                     <div>
-                        <h1 class="text-2xl font-bold text-white">RETURN LOGS</h1>
-                        <p class="text-sm text-gray-500">History of returned equipment</p>
+                        <h1 class="text-[11px] font-medium tracking-widest uppercase text-[#94a3b8]">Return logs</h1>
+                        <p class="text-[13px] font-semibold tracking-tight text-white -mt-0.5">History</p>
                     </div>
                 </div>
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="p-6">
+        <!-- Main Content — denser -->
+        <main class="p-4">
             {{-- Alerts handled by global components.alerts --}}
 
-            <!-- Logs Table -->
+            <!-- Logs Table — dense -->
+                <div class="dash-table-wrap p-3">
                 <table id="logsTable" class="w-full text-sm display nowrap">
-                    <thead class="bg-gray-100">
+                    <thead class="text-[#94a3b8] text-xs tracking-widest uppercase">
                         <tr>
-                            <th class="px-4 py-2 text-left">BORROWER</th>
-                            <th class="px-4 py-2 text-left">EQUIPMENT</th>
-                            <th class="px-4 py-2 text-left">CONDITION</th>
-                            <th class="px-4 py-2 text-left">REMARKS</th>
-                            <th class="px-4 py-2 text-left">RETURN DATE</th>
-                            <th class="px-4 py-2 text-left">RECEIVED BY</th>
+                            <th class="px-3 py-2 text-left font-medium">Borrower</th>
+                            <th class="px-3 py-2 text-left font-medium">Equipment</th>
+                            <th class="px-3 py-2 text-left font-medium">Condition</th>
+                            <th class="px-3 py-2 text-left font-medium">Remarks</th>
+                            <th class="px-3 py-2 text-left font-medium">Return date</th>
+                            <th class="px-3 py-2 text-left font-medium">Received by</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -77,6 +78,7 @@
                     </tbody>
 
                 </table>
+                </div>
         </main>
     </div>
 
