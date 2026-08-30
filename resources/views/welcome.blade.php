@@ -15,7 +15,7 @@
         <h1 class="landing-title">CICT Equipment Borrower System</h1>
 
         <p class="landing-desc">
-            Request, track and return laboratory equipment in one secure workspace for CICT students and instructors.
+            Request, track and return laboratory equipment in one secure workspace.
         </p>
 
         <div class="landing-actions">
@@ -27,7 +27,7 @@
         </div>
     </main>
 
-    <p class="landing-foot">College of Information &amp; Communications Technology, UNM — CICT Equipment Borrower System</p>
+    <p class="landing-foot">Authorized access for students and instructors</p>
 </div>
 
 <style>
@@ -53,7 +53,7 @@
 }
 .landing-simple-inner{
     position:relative; z-index:1;
-    width:100%; max-width:620px;
+    width:100%; max-width:680px;
     display:flex; flex-direction:column; align-items:center;
 }
 /* Logo — better: larger, clean ring, soft halo, no card */
@@ -77,19 +77,19 @@
 }
 .landing-kicker{
     margin:0;
-    font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+    font-size:13.5px; font-weight:700; letter-spacing:0.11em; text-transform:uppercase;
     color:#94a3b8;
 }
 .landing-title{
-    margin:14px 0 0;
-    font-size: clamp(32px, 5vw, 48px);
-    font-weight:800; line-height:0.98; letter-spacing:-0.04em;
+    margin:16px 0 0;
+    font-size: clamp(42px, 6vw, 62px);
+    font-weight:800; line-height:0.94; letter-spacing:-0.045em;
     color:#fff; text-wrap:balance;
 }
 .landing-desc{
-    margin:16px 0 0;
-    font-size:15px; line-height:1.6; color:#94a3b8;
-    max-width:48ch; text-wrap:pretty;
+    margin:18px 0 0;
+    font-size:19px; line-height:1.55; color:#94a3b8;
+    max-width:42ch; text-wrap:pretty;
 }
 .landing-actions{
     display:flex; flex-wrap:wrap; gap:12px;
@@ -99,15 +99,15 @@
 }
 .landing-primary{
     width:auto !important;
-    padding:13px 24px !important;
+    padding:15px 30px !important;
     border-radius:999px !important;
-    font-size:14px !important;
+    font-size:16px !important;
 }
 .landing-secondary{
     display:inline-flex; align-items:center; justify-content:center;
-    padding:13px 24px;
+    padding:15px 30px;
     border-radius:999px;
-    font-size:14px; font-weight:600; letter-spacing:-0.01em; text-decoration:none;
+    font-size:16px; font-weight:600; letter-spacing:-0.01em; text-decoration:none;
     color:#e2e8f0;
     background: rgba(255,255,255,0.06);
     border:1px solid rgba(255,255,255,0.10);
@@ -129,8 +129,9 @@
 @media (max-width: 640px){
     .landing-simple{padding:32px 16px 24px;}
     .landing-logo{width:96px; height:96px; margin-bottom:18px;}
-    .landing-title{font-size: clamp(28px, 8vw, 36px);}
-    .landing-desc{font-size:14px;}
+    .landing-kicker{font-size:12px;}
+    .landing-title{font-size: clamp(34px, 9vw, 42px);}
+    .landing-desc{font-size:16px;}
     .landing-actions{flex-direction:column;}
     .landing-actions a{width:100% !important; justify-content:center;}
 }
