@@ -18,27 +18,7 @@
     </header>
 
     <main class="p-6">
-        @if ($errors->any())
-        <div class="px-4 py-3 mb-6 text-red-800 bg-red-100 border-l-4 border-red-500 rounded shadow-sm" role="alert">
-            <div class="flex items-center">
-                <i class="mr-2 fas fa-exclamation-circle"></i>
-                <ul class="list-disc list-inside">
-                    @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-        @endif
-        @if (session('success'))
-        <div class="px-4 py-3 mb-6 text-green-800 bg-green-100 border-l-4 border-green-500 rounded shadow-sm"
-            role="alert">
-            <div class="flex items-center">
-                <i class="mr-2 fas fa-check-circle"></i>
-                <span>{{ session('success') }}</span>
-            </div>
-        </div>
-        @endif
+        {{-- Alerts handled by global components.alerts --}}
         <!-- DataTable -->
         <div class="p-4 overflow-x-auto bg-white rounded-lg shadow">
             <table id="transactions-table" class="w-full border-collapse display nowrap stripe hover responsive">
@@ -275,6 +255,7 @@
         $('#returnLogModal').addClass('hidden');
     });
 
+    // Uses global appToast (shared JS toast) for consistent UX
     function updateStatus(id, status, condition = null, remarks = null) {
         $.ajax({
             url: "{{ route('transactions.inlineUpdate') }}",
@@ -287,15 +268,8 @@
                 remarks: remarks
             },
             success: function (res) {
-                Swal.fire({
-                    title: 'Success!',
-                    text: res.message,
-                    icon: 'success',
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#10B981'
-                }).then(() => {
-                    location.reload();
-                });
+                window.appToastSuccess(res.message || 'Status updated successfully!');
+                setTimeout(function(){ location.reload(); }, 900);
             },
             error: function (xhr) {
                 let msg = "Something went wrong. Please try again.";
@@ -304,13 +278,7 @@
                 } else if (xhr.responseJSON && xhr.responseJSON.errors) {
                     msg = Object.values(xhr.responseJSON.errors).flat().join("\n");
                 }
-                Swal.fire({
-                    title: 'Error!',
-                    text: msg,
-                    icon: 'error',
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#d33'
-                });
+                window.appToastError(msg);
             }
         });
     }
@@ -343,7 +311,7 @@
         document.getElementById('emailModal').classList.add('hidden');
     });
 
-    // Send email
+    // Send email — uses reusable appToast for consistent alerts
     document.getElementById('sendEmailConfirm').addEventListener('click', () => {
         const type = document.getElementById('emailType').value;
         const message = document.getElementById('modalMessage').value;
@@ -359,10 +327,17 @@
                 message: message
             })
         })
-        .then(res => res.json())
+        .then(async res => {
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.message || 'Failed to send email');
+            return data;
+        })
         .then(data => {
-            alert(data.message);
+            window.appToastSuccess(data.message || 'Email sent successfully!');
             document.getElementById('emailModal').classList.add('hidden');
+        })
+        .catch(err => {
+            window.appToastError(err.message || 'Failed to send email');
         });
     });
 </script>

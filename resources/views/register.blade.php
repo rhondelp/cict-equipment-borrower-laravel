@@ -17,14 +17,7 @@
             </div>
         </div>
         <p class="text-[13px] text-[#8b93a8] mb-6 leading-relaxed">Please fill in the details below to create your account.</p>
-
-        @if ($errors->any())
-            <div class="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                @foreach ($errors->all() as $error)
-                    <div class="flex items-center gap-2"><i class="fa-solid fa-circle-exclamation text-xs"></i> {{ $error }}</div>
-                @endforeach
-            </div>
-        @endif
+        {{-- Validation / flash alerts handled by global components.alerts --}}
 
         <form class="space-y-4" action="{{ route('register') }}" method="POST">
             @csrf

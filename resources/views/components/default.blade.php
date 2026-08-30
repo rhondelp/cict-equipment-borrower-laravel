@@ -105,6 +105,8 @@
     @endif
 </head>
 <body class="antialiased">
+    {{-- Global consistent alerts (success/error/validation) — available on every page --}}
+    @include('components.alerts')
     @yield("content")
     @stack('scripts')
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>

@@ -59,7 +59,10 @@ class AuthenticateUser extends Controller
                 $request->session()->regenerate();
 
                 $user = Auth::user();
-                $request->session()->flash('welcome', 'Welcome back, ' . $user->name . '!');
+                $msg = 'Welcome back, ' . $user->name . '!';
+                // FIX: flash both 'welcome' (legacy) and 'success' so shared alerts + existing checks show it
+                $request->session()->flash('welcome', $msg);
+                $request->session()->flash('success', $msg);
 
                 if ($user->user_type === 'Admin') {
                     return redirect()->intended(route('admin.dashboard'));

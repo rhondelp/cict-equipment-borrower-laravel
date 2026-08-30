@@ -18,19 +18,7 @@
         </div>
 
         <p class="text-[13px] text-[#8b93a8] mb-5 leading-relaxed">Please enter your credentials to access the CICT Equipment Borrower System.</p>
-
-        @if ($errors->any())
-            <div class="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                @foreach ($errors->all() as $error)
-                    <div class="flex items-center gap-2"><i class="fa-solid fa-circle-exclamation text-xs"></i> {{ $error }}</div>
-                @endforeach
-            </div>
-        @endif
-        @if (session('success'))
-            <div class="mb-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 flex items-center gap-2">
-                <i class="fa-solid fa-circle-check text-xs"></i> {{ session('success') }}
-            </div>
-        @endif
+        {{-- Validation / flash alerts handled by global components.alerts --}}
 
         <form class="space-y-5" action="{{ route('login.store') }}" method="POST">
             @csrf

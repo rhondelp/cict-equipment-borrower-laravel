@@ -23,14 +23,7 @@
 
         <!-- Main Content -->
         <main class="p-6">
-            @if (session('success'))
-                <div class="px-4 py-3 mb-6 text-green-800 bg-green-100 border-l-4 border-green-500 rounded shadow-sm" role="alert">
-                    <div class="flex items-center">
-                        <i class="mr-2 fas fa-check-circle"></i>
-                        <span>{{ session('success') }}</span>
-                    </div>
-                </div>
-            @endif
+            {{-- Alerts handled by global components.alerts --}}
 
             <!-- Logs Table -->
                 <table id="logsTable" class="w-full text-sm display nowrap">

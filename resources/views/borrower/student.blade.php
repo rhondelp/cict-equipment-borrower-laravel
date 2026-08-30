@@ -23,9 +23,7 @@
     </header>
 
     <main class="flex-1 p-4 md:p-8 space-y-8 max-w-[1400px] w-full mx-auto">
-        @if (session('success'))
-            <div class="flex items-center gap-2 px-4 py-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 text-sm"><i class="fas fa-check-circle"></i> <span>{{ session('success') }}</span></div>
-        @endif
+        {{-- Alerts handled by global components.alerts --}}
 
         <section>
             <h2 class="flex items-center gap-2 mb-3 text-sm font-bold tracking-tight text-white">
