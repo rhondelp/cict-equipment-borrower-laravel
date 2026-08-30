@@ -4,30 +4,30 @@
 
 @section('content')
 <div class="dash-bg min-h-screen flex flex-col">
-    <!-- Header -->
+    <!-- Header — dense -->
     <header class="sticky top-0 z-40 dash-header">
-        <div class="flex flex-wrap items-center justify-between px-4 py-4 md:px-8 gap-3">
-            <div class="flex items-center gap-3">
-                <img class="h-10 w-10 rounded-xl object-cover border border-white/10 bg-white/5" src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" alt="CICT">
-                <div>
-                    <h1 class="text-[15px] font-bold tracking-tight text-white">BORROWER DASHBOARD</h1>
-                    <p class="text-xs text-[#8b93a8]">View borrow transactions and Request Item</p>
+        <div class="flex flex-wrap items-center justify-between px-4 py-3 gap-3">
+            <div class="flex items-center gap-2.5">
+                <img class="h-9 w-9 rounded-lg object-cover border border-white/10 bg-white/5" src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" alt="CICT">
+                <div class="leading-none">
+                    <h1 class="text-[11px] font-medium tracking-widest uppercase text-[#94a3b8]">Borrower</h1>
+                    <p class="text-[13px] font-semibold tracking-tight text-white">Dashboard</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
-                <button id="open-add-modal" class="btn-primary !w-auto px-5 py-2.5 text-sm rounded-xl">
-                    <i class="fas fa-plus text-xs"></i> Request Item
+            <div class="flex items-center gap-2">
+                <button id="open-add-modal" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] transition">
+                    <i class="fas fa-plus text-[10px]"></i> Request item
                 </button>
                 <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden">@csrf</form>
-                <button type="button" id="logout-btn" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-red-500/20 bg-red-500/10 text-red-300 hover:bg-red-500/15 transition flex items-center gap-2">
-                    <i class="fas fa-sign-out-alt text-xs"></i> Logout
+                <button type="button" id="logout-btn" class="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 bg-white/5 text-[#cbd5e1] hover:bg-white/10 transition flex items-center gap-1.5">
+                    <i class="fas fa-sign-out-alt text-[11px]"></i> Logout
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Main -->
-    <main class="flex-1 p-4 md:p-8 space-y-8 max-w-[1400px] w-full mx-auto">
+    <!-- Main — denser, max-w 1440 -->
+    <main class="flex-1 p-4 space-y-4 max-w-[1440px] w-full mx-auto">
         {{-- Alerts handled by global components.alerts --}}
 
         <section>
@@ -35,33 +35,33 @@
                 <span class="w-7 h-7 rounded-lg bg-blue-500/15 border border-blue-500/20 grid place-items-center"><i class="fas fa-list text-blue-400 text-xs"></i></span>
                 My Equipment Requests
             </h2>
-            <div class="dash-table-wrap p-4 overflow-x-auto">
+            <div class="dash-table-wrap p-3 overflow-x-auto">
                 <table id="requestTable" class="w-full text-sm">
-                    <thead class="text-[#8b93a8] text-xs tracking-widest uppercase">
+                    <thead class="text-[#94a3b8] text-xs tracking-widest uppercase">
                         <tr>
-                            <th class="px-4 py-3 text-left font-semibold">Equipment Name</th>
-                            <th class="px-4 py-3 text-left font-semibold">Quantity</th>
-                            <th class="px-4 py-3 text-left font-semibold">Status</th>
-                            <th class="px-4 py-3 text-left font-semibold">Remarks</th>
-                            <th class="px-4 py-3 text-left font-semibold">Actions</th>
+                            <th class="px-3 py-2 text-left font-medium">Equipment</th>
+                            <th class="px-3 py-2 text-left font-medium">Qty</th>
+                            <th class="px-3 py-2 text-left font-medium">Status</th>
+                            <th class="px-3 py-2 text-left font-medium">Remarks</th>
+                            <th class="px-3 py-2 text-left font-medium">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="text-slate-200">
+                    <tbody class="text-slate-200 text-[13px]">
                         @foreach ($requests as $request)
                             <tr class="border-t border-white/5 hover:bg-white/[0.02] transition">
-                                <td class="px-4 py-3">{{ $request->equipment->equipment_name }}</td>
-                                <td class="px-4 py-3">{{ $request->quantity }}</td>
-                                <td class="px-4 py-3">
+                                <td class="px-3 py-2 tabular-nums">{{ $request->equipment->equipment_name }}</td>
+                                <td class="px-3 py-2 tabular-nums">{{ $request->quantity }}</td>
+                                <td class="px-3 py-2">
                                     @php
                                         $statusColors = ['Approved' => 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20','Declined' => 'bg-red-500/15 text-red-300 border-red-500/20','Pending' => 'bg-amber-500/15 text-amber-300 border-amber-500/20'];
                                         $statusColor = $statusColors[$request->status] ?? 'bg-white/5 text-slate-300 border-white/10';
                                     @endphp
-                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full border {{ $statusColor }}">{{ $request->status }}</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full border {{ $statusColor }}">{{ $request->status }}</span>
                                 </td>
-                                <td class="px-4 py-3 text-[#8b93a8]">{{ $request->remarks ?? '—' }}</td>
-                                <td class="px-4 py-3">
-                                    <button class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition edit-btn" data-id="{{ $request->id }}" data-equipment-name="{{ $request->equipment->equipment_name }}" data-quantity="{{ $request->quantity }}" data-status="{{ $request->status }}" data-remarks="{{ $request->remarks }}">
-                                        <i class="fas fa-edit mr-1"></i>Edit
+                                <td class="px-3 py-2 text-[#94a3b8]">{{ $request->remarks ?? '—' }}</td>
+                                <td class="px-3 py-2">
+                                    <button class="px-2.5 py-1 text-xs font-medium bg-[rgba(148,163,184,0.08)] text-[#cbd5e1] border border-[rgba(255,255,255,0.06)] rounded-md hover:bg-[rgba(148,163,184,0.12)] transition edit-btn" data-id="{{ $request->id }}" data-equipment-name="{{ $request->equipment->equipment_name }}" data-quantity="{{ $request->quantity }}" data-status="{{ $request->status }}" data-remarks="{{ $request->remarks }}">
+                                        <i class="fas fa-edit text-[11px] mr-1"></i>Edit
                                     </button>
                                 </td>
                             </tr>
@@ -72,36 +72,36 @@
         </section>
 
         <section>
-            <h2 class="flex items-center gap-2 mb-3 text-sm font-bold tracking-tight text-white">
-                <span class="w-7 h-7 rounded-lg bg-violet-500/15 border border-violet-500/20 grid place-items-center"><i class="fas fa-history text-violet-400 text-xs"></i></span>
-                My Borrow Transactions
+            <h2 class="flex items-center gap-2 mb-3 text-xs font-medium tracking-widest uppercase text-[#94a3b8]">
+                <span class="w-6 h-6 rounded-md bg-[rgba(91,141,224,0.10)] border border-[rgba(91,141,224,0.14)] grid place-items-center"><i class="fas fa-history text-[#8aa8e8] text-xs"></i></span>
+                My borrow transactions
             </h2>
-            <div class="dash-table-wrap p-4 overflow-x-auto">
+            <div class="dash-table-wrap p-3 overflow-x-auto">
                 <table id="transactionTable" class="w-full text-sm">
-                    <thead class="text-[#8b93a8] text-xs tracking-widest uppercase">
+                    <thead class="text-[#94a3b8] text-xs tracking-widest uppercase">
                         <tr>
-                            <th class="px-4 py-3 text-left font-semibold">Equipment</th>
-                            <th class="px-4 py-3 text-left font-semibold">Quantity</th>
-                            <th class="px-4 py-3 text-left font-semibold">Borrow Date</th>
-                            <th class="px-4 py-3 text-left font-semibold">Return Date</th>
-                            <th class="px-4 py-3 text-left font-semibold">Purpose</th>
-                            <th class="px-4 py-3 text-left font-semibold">Status</th>
-                            <th class="px-4 py-3 text-left font-semibold">Remarks</th>
+                            <th class="px-3 py-2 text-left font-medium">Equipment</th>
+                            <th class="px-3 py-2 text-left font-medium">Qty</th>
+                            <th class="px-3 py-2 text-left font-medium">Borrow</th>
+                            <th class="px-3 py-2 text-left font-medium">Return</th>
+                            <th class="px-3 py-2 text-left font-medium">Purpose</th>
+                            <th class="px-3 py-2 text-left font-medium">Status</th>
+                            <th class="px-3 py-2 text-left font-medium">Remarks</th>
                         </tr>
                     </thead>
-                    <tbody class="text-slate-200">
+                    <tbody class="text-slate-200 text-[13px]">
                         @foreach ($transactions as $tx)
                             <tr class="border-t border-white/5 hover:bg-white/[0.02] transition">
-                                <td class="px-4 py-3">{{ $tx->equipment->equipment_name ?? '—' }}</td>
-                                <td class="px-4 py-3">{{ $tx->quantity }}</td>
-                                <td class="px-4 py-3">{{ $tx->borrow_date }}</td>
-                                <td class="px-4 py-3">{{ $tx->return_date ?? '—' }}</td>
-                                <td class="px-4 py-3">{{ $tx->purpose }}</td>
-                                <td class="px-4 py-3">
+                                <td class="px-3 py-2">{{ $tx->equipment->equipment_name ?? '—' }}</td>
+                                <td class="px-3 py-2 tabular-nums">{{ $tx->quantity }}</td>
+                                <td class="px-3 py-2 tabular-nums">{{ $tx->borrow_date }}</td>
+                                <td class="px-3 py-2 tabular-nums">{{ $tx->return_date ?? '—' }}</td>
+                                <td class="px-3 py-2">{{ $tx->purpose }}</td>
+                                <td class="px-3 py-2">
                                     @php $txColors = ['Borrowed'=>'bg-amber-500/15 text-amber-300 border-amber-500/20','Returned'=>'bg-emerald-500/15 text-emerald-300 border-emerald-500/20','Overdue'=>'bg-red-500/15 text-red-300 border-red-500/20']; $txColor = $txColors[$tx->status] ?? 'bg-white/5 text-slate-300'; @endphp
-                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full border {{ $txColor }}">{{ $tx->status }}</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full border {{ $txColor }}">{{ $tx->status }}</span>
                                 </td>
-                                <td class="px-4 py-3 text-[#8b93a8]">{{ $tx->remarks ?? '—' }}</td>
+                                <td class="px-3 py-2 text-[#94a3b8]">{{ $tx->remarks ?? '—' }}</td>
                             </tr>
                         @endforeach
                     </tbody>
