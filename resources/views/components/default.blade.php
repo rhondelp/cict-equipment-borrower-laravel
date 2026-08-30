@@ -14,7 +14,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="shortcut icon" href="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" type="image/x-icon">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     {{-- DataTables (keep for admin/borrower tables) --}}
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.3.4/css/dataTables.tailwindcss.css">
@@ -102,6 +101,8 @@
             @keyframes fadeInUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
             .animate-fade-in{animation:fadeInUp .7s ease both}
         </style>
+        {{-- Fallback SweetAlert2 when Vite build not present (npm build not run) --}}
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     @endif
 </head>
 <body class="antialiased">
