@@ -3,79 +3,78 @@
 @section("title", "Login - CICT Equipment Borrower System")
 
 @section("content")
-<section class="relative flex items-center justify-center min-h-screen overflow-hidden text-white bg-gradient-to-br from-black via-gray-900 to-gray-800">
+<div class="theme-shell">
+    <div class="auth-card animate-fade-in">
 
-  <div class="flex flex-col items-center justify-center w-full px-6 py-8 mx-auto md:h-screen lg:py-0">
+        {{-- Header --}}
+        <div class="flex items-start gap-3.5 mb-7">
+            <div class="auth-logo shrink-0">
+                <img src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" alt="CICT">
+            </div>
+            <div class="pt-1">
+                <h1 class="auth-title">Welcome back</h1>
+                <p class="auth-subtitle">Sign in to your account to continue</p>
+            </div>
+        </div>
 
-      <!-- Logo + Title -->
-      <a href="#" class="flex items-center mb-6 text-2xl font-semibold text-yellow-400 transition-all duration-300 hover:text-yellow-500 animate-fade-in">
-          <img class="w-10 h-10 mr-3 drop-shadow-lg"
-               src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png"
-               alt="logo">
-          CICT Borrower System
-      </a>
+        <p class="text-[13px] text-[#8b93a8] mb-5 leading-relaxed">Please enter your credentials to access the CICT Equipment Borrower System.</p>
 
-      <!-- Login Card -->
-      <div class="w-full delay-150 border shadow-2xl bg-gray-900/70 backdrop-blur-lg rounded-xl border-yellow-500/60 md:mt-0 sm:max-w-md xl:p-0 animate-fade-in">
-          <div class="p-6 space-y-6 sm:p-8">
+        @if ($errors->any())
+            <div class="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                @foreach ($errors->all() as $error)
+                    <div class="flex items-center gap-2"><i class="fa-solid fa-circle-exclamation text-xs"></i> {{ $error }}</div>
+                @endforeach
+            </div>
+        @endif
+        @if (session('success'))
+            <div class="mb-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 flex items-center gap-2">
+                <i class="fa-solid fa-circle-check text-xs"></i> {{ session('success') }}
+            </div>
+        @endif
 
-              <!-- Title -->
-              <h1 class="text-2xl font-bold tracking-tight text-yellow-400">
-                  Sign in to your account
-              </h1>
+        <form class="space-y-5" action="{{ route('login.store') }}" method="POST">
+            @csrf
 
-              <!-- Validation Errors -->
-              @if ($errors->any())
-                  <div class="mb-4 text-sm text-red-400">
-                      @foreach ($errors->all() as $error)
-                          <div>{{ $error }}</div>
-                      @endforeach
-                  </div>
-              @endif
+            {{-- Email --}}
+            <div>
+                <div class="field-label-row">
+                    <label for="email" class="field-label">Email Address</label>
+                </div>
+                <div class="input-wrap">
+                    <i class="fa-regular fa-envelope input-icon"></i>
+                    <input type="email" name="email" id="email" placeholder="name@company.com" value="{{ old('email') }}"
+                           class="ds-input" required>
+                </div>
+            </div>
 
-              <!-- Login Form -->
-              <form class="space-y-5" action="{{ route('login.store') }}" method="POST">
-                  @csrf
-                  <div>
-                      <label for="email" class="block mb-2 text-sm font-medium text-gray-200">Email Address</label>
-                      <input type="email" name="email" id="email" placeholder="name@company.com"
-                             class="bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-yellow-400 focus:border-yellow-400 block w-full p-2.5 placeholder-gray-400 transition-all duration-300" required>
-                  </div>
+            {{-- Password --}}
+            <div>
+                <div class="field-label-row">
+                    <label for="password" class="field-label">Password</label>
+                    <a href="#" class="field-hint hover:text-[#aab4cc] transition">Forgot password?</a>
+                </div>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-lock input-icon" style="font-size:13px"></i>
+                    <input type="password" name="password" id="password" placeholder="••••••••"
+                           class="ds-input has-trailing" required>
+                    <button type="button" class="eye-btn" aria-label="Show password"><i class="fa-solid fa-eye"></i></button>
+                </div>
+            </div>
 
-                  <div>
-                      <label for="password" class="block mb-2 text-sm font-medium text-gray-200">Password</label>
-                      <input type="password" name="password" id="password" placeholder="••••••••"
-                             class="bg-gray-800 border border-gray-600 text-white rounded-lg focus:ring-yellow-400 focus:border-yellow-400 block w-full p-2.5 placeholder-gray-400 transition-all duration-300" required>
-                  </div>
+            {{-- Remember --}}
+            <label class="flex items-center gap-2.5 cursor-pointer select-none pt-1">
+                <input type="checkbox" name="remember" class="ds-checkbox">
+                <span class="text-[13px] font-medium text-slate-200">Remember me</span>
+            </label>
 
-                  <!-- Button -->
-                  <button type="submit"
-                          class="w-full text-black font-semibold rounded-lg text-sm px-5 py-2.5 text-center
-                                 bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700
-                                 shadow-md hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                      Sign in
-                  </button>
+            <button type="submit" class="btn-primary mt-2">
+                Sign in
+            </button>
 
-                  <!-- Register Link -->
-                  <p class="text-sm font-light text-gray-400">
-                      Don’t have an account yet?
-                      <a href="{{ route('register') }}" class="font-medium text-yellow-400 hover:underline">
-                          Sign up
-                      </a>
-                  </p>
-              </form>
-          </div>
-      </div>
-  </div>
-</section>
-
-<!-- Animations -->
-<style>
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in { animation: fadeIn 0.9s ease forwards; opacity: 0; }
-.delay-150 { animation-delay: 0.15s; }
-</style>
+            <p class="auth-footer">
+                Don't have an account? <a href="{{ route('register') }}">Sign up</a>
+            </p>
+        </form>
+    </div>
+</div>
 @endsection

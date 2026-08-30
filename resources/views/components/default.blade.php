@@ -1,129 +1,150 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@yield("title", "CICT Equipment Borrower System")</title>
 
-    <title>@yield("title", "Welcome")</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.js"
-        integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-
-    <!-- Google Font: Poppins -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    {{-- Typography: Inter (primary) + Poppins fallback --}}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="shortcut icon" href="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png"
-        type="image/x-icon">
+    <link rel="shortcut icon" href="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Include DataTables -->
+    {{-- DataTables (keep for admin/borrower tables) --}}
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.3.4/css/dataTables.tailwindcss.css">
-    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js">
-    </script>
     <script src="https://cdn.datatables.net/2.3.4/js/dataTables.js"></script>
-    <script type="text/javascript" charset="utf8"
-        src="https://cdn.datatables.net/1.13.4/js/dataTables.tailwindcss.min.js"></script>
-    <!-- DataTables CSS -->
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.13.4/js/dataTables.tailwindcss.min.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
 
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
+        :root{
+            --bg-deep:#0a0e1a; --bg-deep-2:#0f1420; --bg-card:#131a2b;
+            --bg-input:#0d1220; --border-subtle:rgba(255,255,255,0.07);
+            --text-muted:#8b93a8;
         }
-    </style>
-    <style>
-        .sidebar {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        *{font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+        html{scroll-behavior:smooth}
+        body{
+            background: var(--bg-deep);
+            color:#f8fafc;
+            min-height:100vh;
+            -webkit-font-smoothing:antialiased;
         }
-
-        .nav-item {
-            position: relative;
-            transition: all 0.3s ease;
-        }
-
-        .nav-item.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 24px;
-            background: #3b82f6;
-            border-radius: 0 2px 2px 0;
-        }
-
-        .stats-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            transition: all 0.3s ease;
-        }
-
-        .stats-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.active {
-                transform: translateX(0);
-            }
+        ::-webkit-scrollbar{width:6px;height:6px}
+        ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:999px}
+        /* Sidebar */
+        .sidebar{transition:all .3s cubic-bezier(.4,0,.2,1); background: #0c1222; border-right:1px solid rgba(255,255,255,0.06)}
+        .nav-item{position:relative;transition:all .2s ease}
+        .nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:22px;background:#3b82f6;border-radius:0 3px 3px 0}
+        .nav-item.active{background:rgba(59,130,246,.12)!important;color:#fff!important}
+        .nav-item.active i{color:#60a5fa!important}
+        @media(max-width:768px){
+            .sidebar{transform:translateX(-100%)}
+            .sidebar.active{transform:translateX(0)}
         }
     </style>
 
     @stack('styles')
-    <!-- Tailwind (via Vite) -->
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @else
+        {{-- Fallback: load app.css directly so theme works even without vite build --}}
+        <link rel="stylesheet" href="{{ asset('resources/css/app.css') }}">
+        <style>
+            /* Inline fallback for theme when vite not built — mirrors app.css core */
+            .theme-shell{min-height:100vh;background:
+                radial-gradient(ellipse 900px 600px at 70% 15%, rgba(59,130,246,.14) 0%, rgba(59,130,246,.06) 28%, transparent 62%),
+                radial-gradient(ellipse 700px 500px at -5% 85%, rgba(59,130,246,.07) 0%, transparent 65%),
+                linear-gradient(180deg, #0a0e1a 0%, #0f1420 100%);
+                display:flex;align-items:center;justify-content:center;padding:32px 16px;position:relative;overflow:hidden}
+            .theme-shell::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 1200px 400px at 50% -8%, rgba(96,165,250,.08), transparent 70%);pointer-events:none}
+            .auth-card{width:100%;max-width:460px;position:relative;background:#131a2b;border:1px solid rgba(255,255,255,.07);border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.03) inset;padding:36px 36px 28px}
+            .auth-logo{width:48px;height:48px;border-radius:999px;background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+            .auth-logo img{width:100%;height:100%;object-fit:cover}
+            .auth-title{font-size:26px;line-height:1.2;font-weight:700;letter-spacing:-.02em;color:#fff}
+            .auth-subtitle{font-size:14px;line-height:1.5;color:#8b93a8;margin-top:6px}
+            .field-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+            .field-label{font-size:13px;font-weight:600;color:#f1f5f9;letter-spacing:-.01em}
+            .field-hint{font-size:12px;color:#8b93a8}
+            .input-wrap{position:relative;display:flex;align-items:center}
+            .input-wrap .input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#6b7a99;font-size:14px;pointer-events:none}
+            .input-wrap .eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#6b7a99;background:transparent;border:0;cursor:pointer;padding:4px;display:flex}
+            .ds-input{width:100%;background:#0d1220;border:1px solid rgba(255,255,255,.09);border-radius:10px;color:#e2e8f0;font-size:14px;padding:13px 14px 13px 40px;outline:none;transition:border-color .18s,box-shadow .18s,background .18s}
+            .ds-input::placeholder{color:#5a6584}
+            .ds-input:focus{background:#111a33;border-color:rgba(96,165,250,.45);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+            .ds-input.has-trailing{padding-right:40px}
+            select.ds-input{padding-right:36px;cursor:pointer}
+            .ds-checkbox{appearance:none;width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(255,255,255,.18);background:rgba(255,255,255,.92);display:inline-grid;place-content:center;cursor:pointer;flex-shrink:0}
+            .ds-checkbox:checked{background:#3b82f6;border-color:#3b82f6}
+            .ds-checkbox:checked::after{content:'✓';color:#fff;font-size:11px;font-weight:800}
+            .btn-primary{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 20px;border-radius:12px;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);color:#fff;font-weight:600;font-size:14.5px;letter-spacing:-.01em;border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 24px rgba(37,99,235,.35),0 1px 0 rgba(255,255,255,.12) inset;cursor:pointer;transition:filter .15s,transform .15s}
+            .btn-primary:hover{filter:brightness(1.07);transform:translateY(-1px)}
+            .auth-footer{text-align:center;font-size:13.5px;color:#8b93a8;margin-top:18px}
+            .auth-footer a{color:#60a5fa;font-weight:600;text-decoration:none}
+            .auth-footer a:hover{color:#93c5fd;text-decoration:underline}
+            .inline-link{color:#60a5fa;font-weight:600;text-decoration:underline;text-underline-offset:2px}
+            .dash-bg{background:radial-gradient(ellipse 900px 600px at 72% 12%, rgba(59,130,246,.10) 0%, transparent 62%), linear-gradient(180deg,#0a0e1a 0%,#0c1222 100%);min-height:100vh}
+            .dash-card{background:#131a2b;border:1px solid rgba(255,255,255,.06);border-radius:16px;box-shadow:0 10px 32px rgba(0,0,0,.35)}
+            .dash-header{background:rgba(19,26,43,.85);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)}
+            .dash-table-wrap{background:#131a2b;border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.32)}
+            .stat-card{background:linear-gradient(135deg,#131a2b 0%,#162040 100%);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:18px 20px;box-shadow:0 8px 24px rgba(0,0,0,.30)}
+            .dash-bg .bg-white{background:#131a2b!important;color:#e2e8f0!important;border-color:rgba(255,255,255,.06)!important}
+            .dash-bg .bg-gray-50,.dash-bg .bg-gray-100{background:#0d1220!important;color:#94a3b8!important}
+            /* Dark modals fallback */
+            #add-modal>div,#edit-modal>div,#delete-modal>div,#add-sched-modal>div,#emailModal>div,#returnLogModal>div,#logout-modal>div{background:#131a2b!important;border:1px solid rgba(255,255,255,.07)!important;color:#e2e8f0!important}
+            @keyframes fadeInUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+            .animate-fade-in{animation:fadeInUp .7s ease both}
+        </style>
     @endif
 </head>
-
-<body>
-    <div class="my-4"></div>
+<body class="antialiased">
     @yield("content")
     @stack('scripts')
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-                const menuToggle = document.getElementById('menu-toggle');
-                const sidebar = document.querySelector('.sidebar');
-                const overlay = document.querySelector('.sidebar-overlay');
-
-                if (!menuToggle || !sidebar || !overlay) return;
-
-                // Mobile menu toggle
-                menuToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('active');
-                    overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
-                    document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
-                });
-
-                // Close sidebar when clicking overlay
-                overlay.addEventListener('click', function() {
+            const menuToggle = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            if (!menuToggle || !sidebar || !overlay) return;
+            menuToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+                overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            });
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('active');
+                overlay.style.display = 'none';
+                document.body.style.overflow = '';
+            });
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 768) {
                     sidebar.classList.remove('active');
                     overlay.style.display = 'none';
                     document.body.style.overflow = '';
-                });
-
-                // Handle window resize
-                window.addEventListener('resize', function() {
-                    if (window.innerWidth >= 768) {
-                        sidebar.classList.remove('active');
-                        overlay.style.display = 'none';
-                        document.body.style.overflow = '';
-                    }
+                }
+            });
+            // eye toggle for any .eye-btn
+            document.querySelectorAll('.eye-btn').forEach(function(btn){
+                btn.addEventListener('click', function(){
+                    const wrap = btn.closest('.input-wrap');
+                    const input = wrap ? wrap.querySelector('input') : null;
+                    if(!input) return;
+                    const isPwd = input.type === 'password';
+                    input.type = isPwd ? 'text' : 'password';
+                    const icon = btn.querySelector('i');
+                    if(icon){ icon.className = isPwd ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'; }
                 });
             });
+        });
     </script>
 </body>
-
 </html>

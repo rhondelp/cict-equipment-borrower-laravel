@@ -5,10 +5,10 @@
 @section('content')
 @include('components.admin.navbar')
 
-<div class="min-h-screen bg-gray-50 md:ml-80">
+<div class="dash-bg min-h-screen md:ml-80">
 
     <!-- Header -->
-    <header class="bg-white border-b border-gray-200 shadow-sm">
+    <header class="dash-header">
         <div class="flex items-center justify-between px-6 py-4">
             <h1 class="text-xl font-bold text-gray-800">ITEM REQUEST</h1>
         </div>

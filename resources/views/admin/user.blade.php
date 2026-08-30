@@ -3,16 +3,16 @@
 @section('content')
 @include('components.admin.navbar')
 
-<div class="min-h-screen bg-gray-50 md:ml-80">
+<div class="dash-bg min-h-screen md:ml-80">
     <!-- Header -->
-    <header class="bg-white border-b border-gray-200 shadow-sm">
+    <header class="dash-header">
         <div class="flex items-center justify-between px-6 py-4">
             <div class="flex items-center space-x-4">
                 <button id="menu-toggle" class="text-gray-500 hover:text-gray-700 md:hidden">
                     <i class="text-xl fas fa-bars"></i>
                 </button>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">USER MANAGEMENT</h1>
+                    <h1 class="text-2xl font-bold text-white">USER MANAGEMENT</h1>
                     <p class="text-sm text-gray-500">Manage all users of the system</p>
                 </div>
             </div>
@@ -123,7 +123,7 @@
 
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 class="text-lg font-semibold text-gray-900">➕ Add Class Schedule</h3>
+            <h3 class="text-lg font-semibold text-white">➕ Add Class Schedule</h3>
             <button type="button" class="text-gray-400 cancel-sched hover:text-gray-600">✕</button>
         </div>
 
@@ -206,7 +206,7 @@
 
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 class="text-lg font-semibold text-gray-900">➕ Add User</h3>
+            <h3 class="text-lg font-semibold text-white">➕ Add User</h3>
             <button type="button" id="cancel-add" class="text-gray-400 transition hover:text-gray-600">
                 ✕
             </button>
@@ -283,7 +283,7 @@
 <div id="edit-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50">
     <div class="w-full max-w-md mx-4 bg-white shadow-2xl rounded-xl">
         <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900">Edit User</h3>
+            <h3 class="text-lg font-semibold text-white">Edit User</h3>
         </div>
         <form id="edit-form" action="{{ route('admin.users.update') }}" method="POST" class="p-6 space-y-4">
             @csrf
@@ -338,7 +338,7 @@
 <div id="delete-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50">
     <div class="w-full max-w-md mx-4 bg-white shadow-2xl rounded-xl">
         <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900">Delete User</h3>
+            <h3 class="text-lg font-semibold text-white">Delete User</h3>
         </div>
         <div class="p-6">
             <p class="text-gray-600">Are you sure you want to delete <span id="delete-item-name"

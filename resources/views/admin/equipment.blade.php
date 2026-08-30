@@ -5,16 +5,16 @@
 @section('content')
     @include('components.admin.navbar')
 
-    <div class="min-h-screen bg-gray-50 md:ml-80">
+    <div class="dash-bg min-h-screen md:ml-80">
         <!-- Header -->
-        <header class="bg-white border-b border-gray-200 shadow-sm">
+        <header class="dash-header">
             <div class="flex items-center justify-between px-6 py-4">
                 <div class="flex items-center space-x-4">
                     <button id="menu-toggle" class="text-gray-500 hover:text-gray-700 md:hidden">
                         <i class="text-xl fas fa-bars"></i>
                     </button>
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900">EQUIPMENT MANAGEMENT</h1>
+                        <h1 class="text-2xl font-bold text-white">EQUIPMENT MANAGEMENT</h1>
                         <p class="text-sm text-gray-500">Manage all equipment</p>
                     </div>
                 </div>
