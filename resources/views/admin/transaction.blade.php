@@ -6,37 +6,33 @@
 @include('components.admin.navbar')
 
 <div class="dash-bg min-h-screen md:ml-80">
-
-    <!-- Header — dense -->
     <header class="dash-header">
         <div class="flex items-center justify-between px-4 py-3">
             <div>
-                <h1 class="text-[11px] font-medium tracking-widest uppercase text-[#94a3b8]">Transactions</h1>
-                <p class="text-[13px] font-semibold tracking-tight text-white -mt-0.5">Borrow & returns</p>
+                <h1 class="text-xs font-medium tracking-widest uppercase text-neutral-400">Transactions</h1>
+                <p class="text-sm font-semibold tracking-tight text-white -mt-0.5">Borrow & returns</p>
             </div>
-            <button id="open-add-modal" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] transition">
+            <button id="open-add-modal" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 transition">
                 <i class="fas fa-plus text-[10px]"></i> Add transaction
             </button>
         </div>
     </header>
 
-    <main class="p-4">
-        {{-- Alerts handled by global components.alerts --}}
-        <!-- DataTable -->
-        <div class="p-4 overflow-x-auto bg-white rounded-lg shadow">
-            <table id="transactions-table" class="w-full border-collapse display nowrap stripe hover responsive">
-                <thead class="bg-gray-50">
+    <main class="p-4 space-y-4 max-w-content mx-auto">
+        <x-ui.table-card>
+            <table id="transactions-table" class="w-full display nowrap">
+                <thead>
                     <tr>
-                        <th>USER</th>
-                        <th>EQUIPMENT</th>
-                        <th>BORROW DATE</th>
-                        <th>RETURN DATE</th>
-                        <th>QUANTITY</th>
-                        <th>PURPOSE</th>
-                        <th>STATUS</th>
-                        <th>REMARKS</th>
-                        <th>CLASS SCHED</th>
-                        <th>ACTIONS</th>
+                        <th>User</th>
+                        <th>Equipment</th>
+                        <th>Borrow date</th>
+                        <th>Return date</th>
+                        <th>Qty</th>
+                        <th>Purpose</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                        <th>Class sched</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -44,65 +40,38 @@
                     @php
                     $returnDate = $tx->return_date ? \Carbon\Carbon::parse($tx->return_date)->format('Y-m-d') : null;
                     $isDueToday = $returnDate === now()->format('Y-m-d');
+                    $statusVariant = ['Borrowed' => 'warning', 'Returned' => 'success', 'Overdue' => 'danger'][$tx->status] ?? 'neutral';
                     @endphp
-
-                    <tr class="transition-colors duration-150 hover:bg-blue-50">
-
-                        <td>{{ $tx->user->name ?? 'Deleted User' }}</td>
-
+                    <tr>
+                        <td class="font-medium text-white">{{ $tx->user->name ?? 'Deleted User' }}</td>
                         <td>{{ $tx->equipment->equipment_name ?? 'Deleted Equipment' }}</td>
-
-                        <td>{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}</td>
-
-                        <!-- Return Date Column -->
-                        <td @if($isDueToday) style="background-color:#ffcccc; color:#a30000; font-weight:bold;" @endif>
-                            {{ $returnDate ?? 'N/A' }}
-                        </td>
-
-                        <td>{{ $tx->quantity }}</td>
-
-                        <td>{{ $tx->purpose }}</td>
-
+                        <td class="tabular-nums">{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}</td>
+                        <td class="tabular-nums @if($isDueToday) text-danger-300 font-semibold @endif">{{ $returnDate ?? '—' }}</td>
+                        <td class="tabular-nums">{{ $tx->quantity }}</td>
+                        <td class="max-w-[14rem] truncate" title="{{ $tx->purpose }}">{{ $tx->purpose }}</td>
                         <td>
-                            <select class="px-3 py-2 text-sm font-medium transition border rounded-full status-dropdown
-                        focus:outline-none focus:ring-2 focus:ring-blue-500
-                        {{ $tx->status === 'Borrowed' ? 'border-yellow-400 text-yellow-600 bg-yellow-100' : '' }}
-                        {{ $tx->status === 'Returned' ? 'border-green-500 text-green-600 bg-green-100' : '' }}
-                        {{ $tx->status === 'Overdue' ? 'border-red-500 text-red-600 bg-red-100' : '' }}"
+                            <select class="status-dropdown px-2.5 py-1 text-xs font-semibold rounded-full border focus:outline-none focus:ring-2 focus:ring-primary-500/30 bg-neutral-800 text-neutral-100 border-white/10
+                        @if($tx->status === 'Borrowed') bg-warning-500/15 text-warning-300 border-warning-500/20 @endif
+                        @if($tx->status === 'Returned') bg-success-500/15 text-success-300 border-success-500/20 @endif
+                        @if($tx->status === 'Overdue') bg-danger-500/15 text-danger-300 border-danger-500/20 @endif"
                                 data-id="{{ $tx->id }}">
-                                <option value="Borrowed" class="text-yellow-600" {{ $tx->status === 'Borrowed' ?
-                                    'selected' : '' }}>
-                                    Borrowed
-                                </option>
-
-                                <option value="Returned" class="text-green-600" {{ $tx->status === 'Returned' ?
-                                    'selected' : '' }}>
-                                    Returned
-                                </option>
-
-                                <option value="Overdue" class="text-red-600" {{ $tx->status === 'Overdue' ? 'selected' :
-                                    '' }}>
-                                    Overdue
-                                </option>
+                                <option value="Borrowed" {{ $tx->status === 'Borrowed' ? 'selected' : '' }}>Borrowed</option>
+                                <option value="Returned" {{ $tx->status === 'Returned' ? 'selected' : '' }}>Returned</option>
+                                <option value="Overdue" {{ $tx->status === 'Overdue' ? 'selected' : '' }}>Overdue</option>
                             </select>
                         </td>
-
-                        <td>{{ $tx->remarks ?? '—' }}</td>
-
-                        <td>
+                        <td class="text-neutral-400">{{ $tx->remarks ?? '—' }}</td>
+                        <td class="text-sm">
                             @if ($tx->classSchedule)
-                            {{ $tx->classSchedule->schedule_time }}
-                            - {{ $tx->classSchedule->instructor?->name ?? 'No Instructor' }}
-                            - {{ $tx->classSchedule->room }}
+                            {{ $tx->classSchedule->schedule_time }} - {{ $tx->classSchedule->instructor?->name ?? 'No Instructor' }} - {{ $tx->classSchedule->room }}
                             @else
-                            No Schedule
+                            <span class="text-neutral-400">No Schedule</span>
                             @endif
                         </td>
-
                         <td>
                             <div class="flex items-center gap-1.5">
                                 <button
-                                    class="px-2.5 py-1 text-xs font-medium bg-[rgba(148,163,184,0.08)] text-[#cbd5e1] border border-[rgba(255,255,255,0.06)] rounded-md hover:bg-[rgba(148,163,184,0.12)] transition edit-btn"
+                                    class="px-2.5 py-1 text-xs font-medium bg-neutral-700/40 text-neutral-200 border border-white/10 rounded-md hover:bg-neutral-700/60 transition edit-btn"
                                     data-id="{{ $tx->id }}" data-user="{{ $tx->user->id ?? '' }}"
                                     data-equipment="{{ $tx->equipment->id ?? '' }}"
                                     data-borrow="{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}"
@@ -113,31 +82,25 @@
                                     <i class="fas fa-edit text-[11px]"></i> Edit
                                 </button>
                                 <button
-                                    class="px-2.5 py-1 text-xs font-medium border border-white/10 bg-white/5 text-[#cbd5e1] rounded-md hover:bg-white/10 transition send-email-btn"
+                                    class="px-2.5 py-1 text-xs font-medium border border-white/10 bg-white/5 text-neutral-300 rounded-md hover:bg-white/10 transition send-email-btn"
                                     data-id="{{ $tx->id }}" data-user-email="{{ $tx->user->email ?? '' }}">
                                     <i class="fas fa-envelope text-[11px]"></i> Email
                                 </button>
                             </div>
                         </td>
-
                     </tr>
                     @endforeach
                 </tbody>
-
             </table>
-        </div>
+        </x-ui.table-card>
     </main>
 </div>
-
-<!-- Modals -->
-
 
 @include('components.admin.transaction.email-modal')
 @include('components.admin.transaction.add-modal')
 @include('components.admin.transaction.edit-modal')
 @include('components.admin.transaction.delete-modal')
 @include('components.admin.transaction.returnlog-modal')
-
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -148,54 +111,38 @@
     const equipmentIds = rawIds.filter(v => v !== '' && v !== null);
     const quantitiesDiv = document.getElementById('equipment-quantities');
     if (!quantitiesDiv) return;
-
-
     quantitiesDiv.innerHTML = '';
-
-
     equipmentIds.forEach((equipmentId) => {
         const quantityField = document.createElement('div');
         quantityField.classList.add('space-y-2');
         quantityField.innerHTML = `
             <label class="block text-sm font-medium text-gray-700">Quantity for Equipment #${equipmentId}</label>
             <input type="number" name="quantities[${equipmentId}]" min="1" required
-                class="w-full px-3 py-2 mt-1 transition border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                class="w-full px-3 py-2 mt-1 transition border-gray-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200">
         `;
         quantitiesDiv.appendChild(quantityField);
     });
         });
     });
-
-
-
 </script>
 
 <script>
     $(document).ready(function () {
     try {
-        let table = $('#transactions-table').DataTable({
-            responsive: true,
-            autoWidth: false,
-            pageLength: 10,
-            scrollX: true,
+        let table = (window.initAppTable ? window.initAppTable('#transactions-table', {
+            responsive: true, autoWidth: false, pageLength: 10,
             lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
-            columnDefs: [
-                    { responsivePriority: 1, targets: 0 },
-                    { responsivePriority: 2, targets: -1 },
-                ],
-            language: {
-                search: "🔍 ",
-                searchPlaceholder: "Search transactions..."
-            }
-        });
+            language: { search: "", searchPlaceholder: "Search transactions..." },
+            columnDefs: [{ responsivePriority: 1, targets: 0 }, { responsivePriority: 2, targets: -1 }],
+        }) : $('#transactions-table').DataTable({
+            responsive: true, autoWidth: false, pageLength: 10, scrollX: false,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            columnDefs: [{ responsivePriority: 1, targets: 0 }, { responsivePriority: 2, targets: -1 }],
+            language: { search: "", searchPlaceholder: "Search transactions..." }
+        }));
     } catch(e) { console.error('DataTable init failed (transactions-table)', e); }
 
-    // Add modal — delegated
-    $(document).on('click', '#open-add-modal', function() {
-        $('#add-modal').removeClass('hidden');
-    });
-
-    // Edit modal — delegated (already correct but ensure)
+    $(document).on('click', '#open-add-modal', function() { $('#add-modal').removeClass('hidden'); });
     $('#transactions-table').on('click', '.edit-btn', function() {
         $('#edit-id').val($(this).data('id'));
         $('#edit-user').val($(this).data('user'));
@@ -209,8 +156,6 @@
         $('#edit-class').val($(this).data('class'));
         $('#edit-modal').removeClass('hidden');
     });
-
-
     $('#transactions-table').on('click', '.delete-btn', function() {
         let id = $(this).data('id');
         let name = $(this).data('name');
@@ -218,13 +163,9 @@
         $('#delete-form').attr('action', '/admin/transaction/' + id);
         $('#delete-modal').removeClass('hidden');
     });
-
-    // Cancel buttons — delegated + handles .cancel-add duplicate class, overlay click
     $(document).on('click', '#cancel-add, #cancel-edit, #cancel-delete, .cancel-add', function() {
         $('#add-modal, #edit-modal, #delete-modal').addClass('hidden');
     });
-
-    // Close when clicking outside — delegated (include email/return modals)
     $(document).on('click', '#add-modal, #edit-modal, #delete-modal, #emailModal, #returnLogModal', function(e) {
         if (e.target === this) $(this).addClass('hidden');
     });
@@ -233,11 +174,9 @@
 
 <script>
     $(document).ready(function () {
-    // Delegated — rows are re-rendered by DataTables, direct binding breaks after pagination/search
     $('#transactions-table').on('change', '.status-dropdown', function () {
         let status = $(this).val();
         let id = $(this).data('id');
-
         if (status === "Returned") {
             $('#return-transaction-id').val(id);
             $('#returnLogModal').removeClass('hidden');
@@ -245,91 +184,56 @@
             updateStatus(id, status);
         }
     });
-
-    // Cancel modal
-    $('#cancelReturn').click(function () {
-        $('#returnLogModal').addClass('hidden');
-    });
-
-    // Submit modal
+    $('#cancelReturn').click(function () { $('#returnLogModal').addClass('hidden'); });
     $('#returnLogForm').submit(function (e) {
         e.preventDefault();
-
         let id = $('#return-transaction-id').val();
         let condition = $('#return-condition').val();
         let remarks = $('#return-remarks').val();
-
         updateStatus(id, "Returned", condition, remarks);
         $('#returnLogModal').addClass('hidden');
     });
-
     function updateStatus(id, status, condition = null, remarks = null) {
         $.ajax({
             url: "{{ route('transactions.inlineUpdate') }}",
             method: "POST",
-            data: {
-                _token: "{{ csrf_token() }}",
-                id: id,
-                status: status,
-                condition: condition,
-                remarks: remarks
-            },
+            data: { _token: "{{ csrf_token() }}", id: id, status: status, condition: condition, remarks: remarks },
             success: function (res) {
                 showAlert('success', res.message || 'Status updated successfully!');
                 setTimeout(function(){ location.reload(); }, 900);
             },
             error: function (xhr) {
                 let msg = "Something went wrong. Please try again.";
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    msg = xhr.responseJSON.message;
-                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    msg = Object.values(xhr.responseJSON.errors).flat().join("\n");
-                }
+                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                else if (xhr.responseJSON && xhr.responseJSON.errors) msg = Object.values(xhr.responseJSON.errors).flat().join("\n");
                 showAlert('error', msg);
             }
         });
     }
 });
-
 </script>
 <script>
     let selectedTransactionId = null;
-
-    // Delegated — table rows are re-rendered by DataTables
     $(document).on('click', '.send-email-btn', function () {
         selectedTransactionId = this.getAttribute('data-id');
         const userEmail = this.getAttribute('data-user-email');
-
         document.getElementById('modalEmail').value = userEmail || '';
         document.getElementById('modalMessage').value = "";
-
         document.getElementById('emailModal').classList.remove('hidden');
     });
-
-    // Show/hide custom message box
     document.getElementById('emailType').addEventListener('change', function () {
         document.getElementById('customMessageBox').classList.toggle('hidden', this.value !== 'custom');
     });
-
-    // Close modal
     document.getElementById('closeEmailModal').addEventListener('click', () => {
         document.getElementById('emailModal').classList.add('hidden');
     });
-
     document.getElementById('sendEmailConfirm').addEventListener('click', () => {
         const type = document.getElementById('emailType').value;
         const message = document.getElementById('modalMessage').value;
-
         fetch(`/send-email/${selectedTransactionId}`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-            },
-            body: JSON.stringify({
-                type: type,
-                message: message
-            })
+            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
+            body: JSON.stringify({ type: type, message: message })
         })
         .then(async res => {
             const data = await res.json().catch(() => ({}));
@@ -340,83 +244,7 @@
             showAlert('success', data.message || 'Email sent successfully!');
             document.getElementById('emailModal').classList.add('hidden');
         })
-        .catch(err => {
-            showAlert('error', err.message || 'Failed to send email');
-        });
+        .catch(err => { showAlert('error', err.message || 'Failed to send email'); });
     });
 </script>
-
-{{-- Enhanced Styles for DataTables --}}
-<style>
-    .dataTables_filter input {
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        padding: 0.5rem;
-        margin-left: 0.5rem;
-    }
-
-    .dataTables_length select {
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        padding: 0.5rem;
-        margin-left: 0.5rem;
-    }
-
-    .dataTables_wrapper .dataTables_paginate {
-        padding: 0;
-        margin: 0;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button {
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
-        padding: 0.5rem 0.75rem;
-        margin-left: 0.25rem;
-        font-size: 0.875rem;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-        background: #3b82f6;
-        color: white;
-        border-color: #3b82f6;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-        background: #e5e7eb;
-        border-color: #d1d5db;
-        color: #374151;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-        background: #2563eb;
-        border-color: #2563eb;
-        color: white;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
-    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
-        background: #f9fafb;
-        color: #9ca3af;
-        border-color: #d1d5db;
-        cursor: not-allowed;
-    }
-
-    /* Custom spacing for table footer */
-    #pagination-container {
-        min-height: 2.5rem;
-        display: flex;
-        align-items: center;
-    }
-
-    /* Ensure proper spacing in table footer */
-    .dataTables_wrapper .dataTables_info {
-        padding: 0;
-        margin: 0;
-    }
-
-    /* Modal content styling */
-    .modal-content {
-        pointer-events: auto;
-    }
-</style>
 @endsection
