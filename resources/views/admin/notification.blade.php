@@ -5,33 +5,34 @@
 @section('content')
     @include('components.admin.navbar')
 
-    <div class="min-h-screen bg-gray-50 md:ml-80">
-        <!-- Header -->
-        <header class="bg-white border-b border-gray-200 shadow-sm">
-            <div class="flex px-6 py-4 justffy-between notids-center">
-                <div class="flex spacf-x-4 notids-center">
-                    <button id="menu-toggle" class="text-gray-500 hover:text-gray-700 md:hidden">
-                        <i class="text-xl fas fa-bars"></i>
+    <div class="dash-bg min-h-screen md:ml-80">
+        <!-- Header — dense, consistent -->
+        <header class="dash-header">
+            <div class="flex items-center justify-between px-4 py-3">
+                <div class="flex items-center gap-3">
+                    <button id="menu-toggle" class="text-[#94a3b8] hover:text-white md:hidden">
+                        <i class="text-lg fas fa-bars"></i>
                     </button>
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900">NOTIFICATION HISTORY</h1>
+                        <h1 class="text-[11px] font-medium tracking-widest uppercase text-[#94a3b8]">Notifications</h1>
+                        <p class="text-[13px] font-semibold tracking-tight text-white -mt-0.5">History</p>
                     </div>
                 </div>
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="p-6">
+        <!-- Main Content — denser -->
+        <main class="p-4">
             {{-- Alerts handled by global components.alerts --}}
 
-            <!-- Equipment Table -->
+            <div class="dash-table-wrap p-3">
             <table id="notificationTable" class="w-full display nowrap">
-                <thead class="bg-gray-50">
+                <thead class="text-[#94a3b8] text-xs tracking-widest uppercase">
                     <tr>
-                        <th>BORROWER</th>
-                        <th>MESSAGE</th>
-                        <th>NOTIF TYPE</th>
-                        <th>SEND DATE</th>
+                        <th class="px-3 py-2 text-left font-medium">Borrower</th>
+                        <th class="px-3 py-2 text-left font-medium">Message</th>
+                        <th class="px-3 py-2 text-left font-medium">Type</th>
+                        <th class="px-3 py-2 text-left font-medium">Sent</th>
                     </tr>
                 </thead>
                 <tbody>
