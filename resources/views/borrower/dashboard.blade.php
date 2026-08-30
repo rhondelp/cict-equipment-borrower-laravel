@@ -129,11 +129,13 @@
 
 <script>
     $(document).ready(function () {
-        $('#requestTable, #transactionTable').DataTable({
-            responsive: true, pageLength: 10,
-            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
-            language: { search: "🔍 ", searchPlaceholder: "Search..." }
-        });
+        try {
+            $('#requestTable, #transactionTable').DataTable({
+                responsive: true, pageLength: 10,
+                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                language: { search: "🔍 ", searchPlaceholder: "Search..." }
+            });
+        } catch(e) { console.error('DataTable init failed (borrower)', e); }
         // Delegated — rows are re-rendered by DataTables, so direct binding breaks after pagination/search
         $('#requestTable').on('click', '.edit-btn', function() {
             $('#edit-id').val($(this).data('id'));
