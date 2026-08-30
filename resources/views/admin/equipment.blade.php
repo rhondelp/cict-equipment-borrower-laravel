@@ -97,7 +97,7 @@
     @include('components.admin.equipment.edit-modal')
     @include('components.admin.equipment.delete-modal')
 
-    {{-- DataTables & Script --}}
+    {{-- DataTables & Script — uses delegation so buttons survive DataTables redraw/pagination --}}
     <script>
         $(document).ready(function() {
             let table = $('#equipmentTable').DataTable({
@@ -113,8 +113,8 @@
                 }
             });
 
-            // Edit modal
-            $('.edit-btn').on('click', function() {
+            // Edit modal — delegated (rows are re-rendered by DataTables)
+            $('#equipmentTable').on('click', '.edit-btn', function() {
                 $('#edit-id').val($(this).data('id'));
                 $('#edit-name').val($(this).data('name'));
                 $('#edit-description').val($(this).data('description'));
@@ -124,8 +124,8 @@
                 $('#edit-modal').removeClass('hidden');
             });
 
-            // Delete modal
-            $('.delete-btn').on('click', function() {
+            // Delete modal — delegated
+            $('#equipmentTable').on('click', '.delete-btn', function() {
                 let id = $(this).data('id');
                 let name = $(this).data('name');
                 $('#delete-item-name').text(name);
@@ -139,17 +139,17 @@
 
 
             // Add modal
-            $('#open-add-modal').on('click', function() {
+            $(document).on('click', '#open-add-modal', function() {
                 $('#add-modal').removeClass('hidden');
             });
 
-            // Cancel buttons
-            $('#cancel-add, #cancel-edit, #cancel-delete').on('click', function() {
+            // Cancel buttons — use class + id to survive duplicate IDs and handle all modals
+            $(document).on('click', '#cancel-add, #cancel-edit, #cancel-delete, .cancel-add, .cancel-edit', function() {
                 $('#add-modal, #edit-modal, #delete-modal').addClass('hidden');
             });
 
-            // Close when clicking outside
-            $('#add-modal, #edit-modal, #delete-modal').on('click', function(e) {
+            // Close when clicking outside — use higher z-index safe check
+            $(document).on('click', '#add-modal, #edit-modal, #delete-modal', function(e) {
                 if (e.target === this) $(this).addClass('hidden');
             });
         });
