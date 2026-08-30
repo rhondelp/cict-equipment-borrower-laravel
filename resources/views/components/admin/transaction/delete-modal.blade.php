@@ -1,5 +1,5 @@
-<!-- Delete Transaction Modal -->
-<div id="delete-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50">
+<!-- Delete Transaction Modal — z-[60] -->
+<div id="delete-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
     <div class="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
         <h2 class="mb-4 text-lg font-semibold text-gray-800">Delete Transaction</h2>
         <p class="text-gray-600">Are you sure you want to delete <span id="delete-item-name" class="font-semibold"></span>?</p>
