@@ -96,7 +96,7 @@
 </div>
 
 <!-- Add Schedule Modal -->
-<div id="add-sched-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50">
+<div id="add-sched-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
     <div class="w-full max-w-lg mx-4 overflow-hidden bg-white shadow-2xl rounded-xl">
 
         <!-- Header -->
@@ -178,14 +178,14 @@
 
 
 
-<!-- Add User Modal -->
-<div id="add-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50">
+<!-- Add User Modal — z-[60] so it sits above sidebar (which is z-50) -->
+<div id="add-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
     <div class="w-full max-w-lg mx-4 overflow-hidden bg-white shadow-2xl rounded-xl">
 
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
             <h3 class="text-lg font-semibold text-white">➕ Add User</h3>
-            <button type="button" id="cancel-add" class="text-gray-400 transition hover:text-gray-600">
+            <button type="button" class="cancel-add text-gray-400 transition hover:text-gray-600" aria-label="Close">
                 ✕
             </button>
         </div>
@@ -258,7 +258,7 @@
 
 
 <!-- Edit User Modal -->
-<div id="edit-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50">
+<div id="edit-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
     <div class="w-full max-w-md mx-4 bg-white shadow-2xl rounded-xl">
         <div class="px-6 py-4 border-b border-gray-200">
             <h3 class="text-lg font-semibold text-white">Edit User</h3>
@@ -313,7 +313,7 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div id="delete-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50">
+<div id="delete-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
     <div class="w-full max-w-md mx-4 bg-white shadow-2xl rounded-xl">
         <div class="px-6 py-4 border-b border-gray-200">
             <h3 class="text-lg font-semibold text-white">Delete User</h3>
@@ -334,7 +334,7 @@
     </div>
 </div>
 
-{{-- Scripts --}}
+{{-- Scripts — delegated so buttons survive DataTables redraw; z-[60] modals sit above sidebar --}}
 <script>
     $(document).ready(function() {
     let table = $('#users-table').DataTable({
@@ -347,28 +347,28 @@
         }
     });
 
-    // Open Add Modal
-    $('#open-add-modal').on('click', function() {
+    // Open Add Modal — delegated (button outside table)
+    $(document).on('click', '#open-add-modal', function() {
         $('#add-modal').removeClass('hidden');
     });
 
-    // Open modal
-    $('#open-add-sched-modal').on('click', function () {
+    // Open Schedule modal
+    $(document).on('click', '#open-add-sched-modal', function () {
         $('#add-sched-modal').removeClass('hidden');
     });
 
-    // Close modal
-    $('.cancel-sched').on('click', function () {
+    // Close Schedule modal
+    $(document).on('click', '.cancel-sched', function () {
         $('#add-sched-modal').addClass('hidden');
     });
 
 
-    $('#cancel-add, #cancel-edit, #cancel-delete').on('click', function() {
+    $(document).on('click', '#cancel-add, #cancel-edit, #cancel-delete, .cancel-add', function() {
         $('#add-modal, #edit-modal, #delete-modal').addClass('hidden');
     });
 
-    // Edit User
-    $('.edit-btn').on('click', function() {
+    // Edit User — delegated from table (rows are re-rendered by DataTables)
+    $('#users-table').on('click', '.edit-btn', function() {
         $('#edit-id').val($(this).data('id'));
         $('#edit-name').val($(this).data('name'));
         $('#edit-email').val($(this).data('email'));
@@ -377,8 +377,8 @@
         $('#edit-modal').removeClass('hidden');
     });
 
-    // Delete User
-    $('.delete-btn').on('click', function(e) {
+    // Delete User — delegated
+    $('#users-table').on('click', '.delete-btn', function(e) {
         e.preventDefault();
         let id = $(this).data('id');
         let name = $(this).data('name');
@@ -387,12 +387,12 @@
         $('#delete-modal').removeClass('hidden');
     });
 
-    $('#confirm-delete').on('click', function() {
+    $(document).on('click', '#confirm-delete', function() {
         $('#delete-form').submit();
     });
 
     // Close modal when clicking outside
-    $('#add-modal, #edit-modal, #delete-modal').on('click', function(e) {
+    $(document).on('click', '#add-modal, #edit-modal, #delete-modal, #add-sched-modal', function(e) {
         if (e.target === this) $(this).addClass('hidden');
     });
 });
