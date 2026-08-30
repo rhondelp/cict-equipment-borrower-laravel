@@ -1,5 +1,5 @@
-<!-- Return Log Modal -->
-<div id="returnLogModal" class="fixed inset-0 flex items-center justify-center hidden bg-black bg-opacity-50">
+<!-- Return Log Modal — z-[60] -->
+<div id="returnLogModal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
     <div class="p-6 bg-white rounded-lg shadow-lg w-96">
         <h2 class="mb-4 text-lg font-bold">Return Equipment</h2>
 
