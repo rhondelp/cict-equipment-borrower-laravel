@@ -174,21 +174,23 @@
 
 <script>
     $(document).ready(function () {
-    let table = $('#transactions-table').DataTable({
-        responsive: true,
-        autoWidth: false,
-        pageLength: 10,
-        scrollX: true,
-        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
-        columnDefs: [
-                { responsivePriority: 1, targets: 0 },
-                { responsivePriority: 2, targets: -1 },
-            ],
-        language: {
-            search: "🔍 ",
-            searchPlaceholder: "Search transactions..."
-        }
-    });
+    try {
+        let table = $('#transactions-table').DataTable({
+            responsive: true,
+            autoWidth: false,
+            pageLength: 10,
+            scrollX: true,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            columnDefs: [
+                    { responsivePriority: 1, targets: 0 },
+                    { responsivePriority: 2, targets: -1 },
+                ],
+            language: {
+                search: "🔍 ",
+                searchPlaceholder: "Search transactions..."
+            }
+        });
+    } catch(e) { console.error('DataTable init failed (transactions-table)', e); }
 
     // Add modal — delegated
     $(document).on('click', '#open-add-modal', function() {
