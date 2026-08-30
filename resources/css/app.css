@@ -36,19 +36,42 @@
   /* Tabular numbers for data-heavy dashboard */
   .tabular { font-variant-numeric: tabular-nums; }
 
-  /* Light theme — when html has no .dark, invert surfaces for readability */
+  /* Light theme — when html has no .dark, invert surfaces for readability — comprehensive */
   html:not(.dark) body { background: #f1f5f9; color: #0f172a; }
   html:not(.dark) .dash-bg { background: #f1f5f9; }
   html:not(.dark) .dash-card, html:not(.dark) .dash-table-wrap, html:not(.dark) .stat-card { background: #ffffff; border-color: rgba(15,23,42,0.08); box-shadow: 0 1px 3px rgba(15,23,42,0.08), 0 4px 12px rgba(15,23,42,0.04); }
   html:not(.dark) .dash-header { background: rgba(255,255,255,0.92); border-color: rgba(15,23,42,0.08); backdrop-filter: blur(12px); }
-  html:not(.dark) .sidebar { background: #ffffff; border-color: rgba(15,23,42,0.08); }
-  html:not(.dark) .sidebar .nav-item.active { background: rgba(91,141,224,0.10) !important; }
-  html:not(.dark) #add-modal > div, html:not(.dark) #edit-modal > div, html:not(.dark) #delete-modal > div, html:not(.dark) #add-sched-modal > div, html:not(.dark) #emailModal > div, html:not(.dark) #returnLogModal > div { background: #ffffff !important; border-color: rgba(15,23,42,0.08) !important; color: #0f172a !important; }
+  html:not(.dark) .sidebar { background: #ffffff; border-color: rgba(15,23,42,0.08); color: #334155; }
+  html:not(.dark) .sidebar .nav-item { color: #64748b !important; }
+  html:not(.dark) .sidebar .nav-item.active { background: rgba(91,141,224,0.10) !important; color: #0f172a !important; }
+  html:not(.dark) .sidebar h1 { color: #0f172a !important; }
+  html:not(.dark) .theme-shell { background: #f1f5f9; }
+  html:not(.dark) .theme-shell::before { background: radial-gradient(ellipse 1200px 400px at 50% -8%, rgba(91,141,224,0.08), transparent 70%); }
+  html:not(.dark) .auth-card { background: #ffffff; border-color: rgba(15,23,42,0.08); box-shadow: 0 4px 12px rgba(15,23,42,0.08); color: #0f172a; }
+  html:not(.dark) .auth-title { color: #0f172a !important; }
+  html:not(.dark) .auth-subtitle, html:not(.dark) .field-hint, html:not(.dark) .auth-footer { color: #64748b !important; }
+  html:not(.dark) .field-label { color: #334155 !important; }
+  html:not(.dark) .ds-input { background: #ffffff !important; border-color: rgba(15,23,42,0.12) !important; color: #0f172a !important; }
+  html:not(.dark) .ds-input::placeholder { color: #94a3b8 !important; }
+  html:not(.dark) #add-modal > div, html:not(.dark) #edit-modal > div, html:not(.dark) #delete-modal > div, html:not(.dark) #add-sched-modal > div, html:not(.dark) #emailModal > div, html:not(.dark) #returnLogModal > div, html:not(.dark) #logout-modal > div { background: #ffffff !important; border-color: rgba(15,23,42,0.08) !important; color: #0f172a !important; }
+  html:not(.dark) #add-modal label, html:not(.dark) #edit-modal label, html:not(.dark) #delete-modal label, html:not(.dark) #add-sched-modal label, html:not(.dark) #emailModal label { color: #334155 !important; }
+  html:not(.dark) #add-modal input, html:not(.dark) #edit-modal input, html:not(.dark) #delete-modal input, html:not(.dark) #add-sched-modal input, html:not(.dark) #add-modal select, html:not(.dark) #edit-modal select, html:not(.dark) #add-modal textarea, html:not(.dark) #edit-modal textarea, html:not(.dark) #emailModal input, html:not(.dark) #emailModal select, html:not(.dark) #emailModal textarea, html:not(.dark) #returnLogModal select, html:not(.dark) #returnLogModal textarea, html:not(.dark) #logout-modal > div { background: #ffffff !important; border-color: rgba(15,23,42,0.12) !important; color: #0f172a !important; }
+  html:not(.dark) .dash-bg .text-white, html:not(.dark) .dash-bg h1, html:not(.dark) .dash-bg h2, html:not(.dark) .dash-bg h3 { color: #0f172a !important; }
+  html:not(.dark) .dash-bg .text-slate-200, html:not(.dark) .dash-bg .text-slate-100, html:not(.dark) .dash-bg .text-slate-300 { color: #334155 !important; }
+  html:not(.dark) .dash-bg .text-\[\#8b93a8\], html:not(.dark) .dash-bg .text-\[\#94a3b8\], html:not(.dark) .text-\[\#8b93a8\], html:not(.dark) .text-\[\#94a3b8\] { color: #64748b !important; }
+  html:not(.dark) .dash-bg .text-\[\#6b7a99\] { color: #64748b !important; }
   html:not(.dark) .dataTables_wrapper { color: #334155; }
   html:not(.dark) .dataTables_wrapper .dataTables_filter input, html:not(.dark) .dataTables_wrapper .dataTables_length select { background: #ffffff !important; border-color: rgba(15,23,42,0.12) !important; color: #0f172a !important; }
   html:not(.dark) table.dataTable thead th { color: #64748b !important; }
   html:not(.dark) .dash-bg table td { color: #334155 !important; }
-  html:not(.dark) .dash-bg table th { color: #0f172a !important; }
+  html:not(.dark) .dash-bg table th { color: #0f172a !important; background: #ffffff !important; }
+  html:not(.dark) .dash-bg table th { background: #ffffff !important; }
+  html:not(.dark) .dash-bg .bg-white { background: #ffffff !important; color: #0f172a !important; }
+  html:not(.dark) .stat-card { background: #ffffff; }
+  html:not(.dark) .stat-card p { color: #0f172a; }
+  html:not(.dark) .badge { border-color: rgba(15,23,42,0.08) !important; }
+  html:not(.dark) .btn-primary { color: #ffffff !important; } /* keep white on accent */
+  html:not(.dark) .btn-secondary { background: rgba(15,23,42,0.06); border-color: rgba(15,23,42,0.08); color: #334155; }
 
   html { scroll-behavior: smooth; }
 
