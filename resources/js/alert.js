@@ -13,14 +13,15 @@ export function showAlert(type, message, options = {}) {
     const t = (type || 'info').toLowerCase();
     const isHtml = options.html === true;
 
+    const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
     const base = {
-        background: '#131a2b',
-        color: '#f1f5f9',
+        background: isDark ? '#131a2b' : '#ffffff',
+        color: isDark ? '#f1f5f9' : '#0f172a',
         confirmButtonColor: '#5b8de0',
         customClass: {
-            popup: 'rounded-xl border border-white/10 shadow-2xl',
-            title: 'text-white tracking-tight',
-            htmlContainer: 'text-slate-300 text-[13px] leading-relaxed',
+            popup: isDark ? 'rounded-xl border border-white/10 shadow-2xl' : 'rounded-xl border border-slate-200 shadow-2xl',
+            title: isDark ? 'text-white tracking-tight' : 'text-slate-900 tracking-tight',
+            htmlContainer: isDark ? 'text-slate-300 text-[13px] leading-relaxed' : 'text-slate-600 text-[13px] leading-relaxed',
         },
     };
 
@@ -83,18 +84,19 @@ export function showSuccess(msg, opts) { return showAlert('success', msg, opts);
 export function showError(msg, opts) { return showAlert('error', msg, opts); }
 export function showWarning(msg, opts) { return showAlert('warning', msg, opts); }
 
-// Confirm dialog — same language, desaturated accent
+// Confirm dialog — theme-aware
 export function showConfirm({ title = 'Are you sure?', text = '', icon = 'warning', confirmText = 'Confirm', cancelText = 'Cancel' } = {}) {
+    const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
     return Swal.fire({
-        background: '#131a2b',
-        color: '#f1f5f9',
-        customClass: { popup: 'rounded-xl border border-white/10 shadow-2xl', title: 'text-white tracking-tight', htmlContainer: 'text-slate-300 text-[13px]' },
+        background: isDark ? '#131a2b' : '#ffffff',
+        color: isDark ? '#f1f5f9' : '#0f172a',
+        customClass: { popup: isDark ? 'rounded-xl border border-white/10 shadow-2xl' : 'rounded-xl border border-slate-200 shadow-xl', title: isDark ? 'text-white tracking-tight' : 'text-slate-900 tracking-tight', htmlContainer: isDark ? 'text-slate-300 text-[13px]' : 'text-slate-600 text-[13px]' },
         title,
         text,
         icon,
         showCancelButton: true,
         confirmButtonColor: '#5b8de0',
-        cancelButtonColor: '#1e293b',
+        cancelButtonColor: isDark ? '#1e293b' : '#e2e8f0',
         confirmButtonText: confirmText,
         cancelButtonText: cancelText,
         iconColor: icon === 'warning' ? '#f59e0b' : '#5b8de0',
