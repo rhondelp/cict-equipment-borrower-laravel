@@ -142,9 +142,14 @@
 
 
 <script>
-    document.getElementById('equipment-select').addEventListener('change', function() {
-    const equipmentIds = Array.from(this.selectedOptions).map(option => option.value);
+    document.addEventListener('DOMContentLoaded', function() {
+        const sel = document.getElementById('equipment-select');
+        if (!sel) return;
+        sel.addEventListener('change', function() {
+    const rawIds = Array.from(this.selectedOptions).map(option => option.value);
+    const equipmentIds = rawIds.filter(v => v !== '' && v !== null);
     const quantitiesDiv = document.getElementById('equipment-quantities');
+    if (!quantitiesDiv) return;
 
 
     quantitiesDiv.innerHTML = '';
@@ -160,7 +165,9 @@
         `;
         quantitiesDiv.appendChild(quantityField);
     });
-});
+        });
+    });
+
 
 
 </script>
@@ -183,12 +190,12 @@
         }
     });
 
-    // Add modal
-    $('#open-add-modal').on('click', function() {
+    // Add modal — delegated
+    $(document).on('click', '#open-add-modal', function() {
         $('#add-modal').removeClass('hidden');
     });
 
-    // Edit modal
+    // Edit modal — delegated (already correct but ensure)
     $('#transactions-table').on('click', '.edit-btn', function() {
         $('#edit-id').val($(this).data('id'));
         $('#edit-user').val($(this).data('user'));
@@ -208,17 +215,17 @@
         let id = $(this).data('id');
         let name = $(this).data('name');
         $('#delete-item-name').text(name);
-        $('#delete-form').attr('action', '/admin/transactions/' + id);
+        $('#delete-form').attr('action', '/admin/transaction/' + id);
         $('#delete-modal').removeClass('hidden');
     });
 
-    // Cancel buttons
-    $('#cancel-add, #cancel-edit, #cancel-delete').on('click', function() {
+    // Cancel buttons — delegated + handles .cancel-add duplicate class, overlay click
+    $(document).on('click', '#cancel-add, #cancel-edit, #cancel-delete, .cancel-add', function() {
         $('#add-modal, #edit-modal, #delete-modal').addClass('hidden');
     });
 
-    // Close when clicking outside
-    $('#add-modal, #edit-modal, #delete-modal').on('click', function(e) {
+    // Close when clicking outside — delegated (include email/return modals)
+    $(document).on('click', '#add-modal, #edit-modal, #delete-modal, #emailModal, #returnLogModal', function(e) {
         if (e.target === this) $(this).addClass('hidden');
     });
 });
@@ -226,7 +233,8 @@
 
 <script>
     $(document).ready(function () {
-    $('.status-dropdown').change(function () {
+    // Delegated — rows are re-rendered by DataTables, direct binding breaks after pagination/search
+    $('#transactions-table').on('change', '.status-dropdown', function () {
         let status = $(this).val();
         let id = $(this).data('id');
 
@@ -287,17 +295,15 @@
 <script>
     let selectedTransactionId = null;
 
-    // Open modal
-    document.querySelectorAll('.send-email-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            selectedTransactionId = this.getAttribute('data-id');
-            const userEmail = this.getAttribute('data-user-email');
+    // Delegated — table rows are re-rendered by DataTables
+    $(document).on('click', '.send-email-btn', function () {
+        selectedTransactionId = this.getAttribute('data-id');
+        const userEmail = this.getAttribute('data-user-email');
 
-            document.getElementById('modalEmail').value = userEmail;
-            document.getElementById('modalMessage').value = "";
+        document.getElementById('modalEmail').value = userEmail || '';
+        document.getElementById('modalMessage').value = "";
 
-            document.getElementById('emailModal').classList.remove('hidden');
-        });
+        document.getElementById('emailModal').classList.remove('hidden');
     });
 
     // Show/hide custom message box
