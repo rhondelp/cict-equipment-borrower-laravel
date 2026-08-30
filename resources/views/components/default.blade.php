@@ -26,7 +26,8 @@
         :root{
             --bg-deep:#0a0e1a; --bg-deep-2:#0f1420; --bg-card:#131a2b;
             --bg-input:#0d1220; --border-subtle:rgba(255,255,255,0.07);
-            --text-muted:#8b93a8;
+            --text-muted:#94a3b8;
+            --text-placeholder:#7a8aaa;
         }
         *{font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
         html{scroll-behavior:smooth}
@@ -68,15 +69,15 @@
             .auth-logo{width:48px;height:48px;border-radius:999px;background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.35)}
             .auth-logo img{width:100%;height:100%;object-fit:cover}
             .auth-title{font-size:26px;line-height:1.2;font-weight:700;letter-spacing:-.02em;color:#fff}
-            .auth-subtitle{font-size:14px;line-height:1.5;color:#8b93a8;margin-top:6px}
+            .auth-subtitle{font-size:14px;line-height:1.5;color:#94a3b8;margin-top:6px}
             .field-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
             .field-label{font-size:13px;font-weight:600;color:#f1f5f9;letter-spacing:-.01em}
-            .field-hint{font-size:12px;color:#8b93a8}
+            .field-hint{font-size:12px;color:#94a3b8}
             .input-wrap{position:relative;display:flex;align-items:center}
             .input-wrap .input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#6b7a99;font-size:14px;pointer-events:none}
             .input-wrap .eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#6b7a99;background:transparent;border:0;cursor:pointer;padding:4px;display:flex}
-            .ds-input{width:100%;background:#0d1220;border:1px solid rgba(255,255,255,.09);border-radius:10px;color:#e2e8f0;font-size:14px;padding:13px 14px 13px 40px;outline:none;transition:border-color .18s,box-shadow .18s,background .18s}
-            .ds-input::placeholder{color:#5a6584}
+            .ds-input{width:100%;background:#0d1220;border:1px solid rgba(255,255,255,.09);border-radius:10px;color:#f1f5f9;font-size:14px;padding:13px 14px 13px 40px;outline:none;transition:border-color .18s,box-shadow .18s,background .18s}
+            .ds-input::placeholder{color:#7a8aaa;opacity:1}
             .ds-input:focus{background:#111a33;border-color:rgba(96,165,250,.45);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
             .ds-input.has-trailing{padding-right:40px}
             select.ds-input{padding-right:36px;cursor:pointer}
@@ -85,7 +86,7 @@
             .ds-checkbox:checked::after{content:'✓';color:#fff;font-size:11px;font-weight:800}
             .btn-primary{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 20px;border-radius:12px;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);color:#fff;font-weight:600;font-size:14.5px;letter-spacing:-.01em;border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 24px rgba(37,99,235,.35),0 1px 0 rgba(255,255,255,.12) inset;cursor:pointer;transition:filter .15s,transform .15s}
             .btn-primary:hover{filter:brightness(1.07);transform:translateY(-1px)}
-            .auth-footer{text-align:center;font-size:13.5px;color:#8b93a8;margin-top:18px}
+            .auth-footer{text-align:center;font-size:13.5px;color:#cbd5e1;margin-top:18px}
             .auth-footer a{color:#60a5fa;font-weight:600;text-decoration:none}
             .auth-footer a:hover{color:#93c5fd;text-decoration:underline}
             .inline-link{color:#60a5fa;font-weight:600;text-decoration:underline;text-underline-offset:2px}
@@ -94,10 +95,19 @@
             .dash-header{background:rgba(19,26,43,.85);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)}
             .dash-table-wrap{background:#131a2b;border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.32)}
             .stat-card{background:linear-gradient(135deg,#131a2b 0%,#162040 100%);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:18px 20px;box-shadow:0 8px 24px rgba(0,0,0,.30)}
-            .dash-bg .bg-white{background:#131a2b!important;color:#e2e8f0!important;border-color:rgba(255,255,255,.06)!important}
-            .dash-bg .bg-gray-50,.dash-bg .bg-gray-100{background:#0d1220!important;color:#94a3b8!important}
-            /* Dark modals fallback */
-            #add-modal>div,#edit-modal>div,#delete-modal>div,#add-sched-modal>div,#emailModal>div,#returnLogModal>div,#logout-modal>div{background:#131a2b!important;border:1px solid rgba(255,255,255,.07)!important;color:#e2e8f0!important}
+            .dash-bg .bg-white{background:#131a2b!important;color:#f1f5f9!important;border-color:rgba(255,255,255,.06)!important}
+            .dash-bg .bg-gray-50,.dash-bg .bg-gray-100{background:#0d1220!important;color:#e2e8f0!important}
+            .dash-bg .text-gray-900,.dash-bg .text-gray-800,.dash-bg .text-gray-700{color:#f1f5f9!important}
+            .dash-bg .text-gray-600,.dash-bg .text-gray-500,.dash-bg .text-gray-400{color:#cbd5e1!important}
+            /* Dark modals fallback — high contrast */
+            #add-modal>div,#edit-modal>div,#delete-modal>div,#add-sched-modal>div,#emailModal>div,#returnLogModal>div,#logout-modal>div{background:#131a2b!important;border:1px solid rgba(255,255,255,.07)!important;color:#f1f5f9!important}
+            #add-modal label,#edit-modal label,#delete-modal label,#add-sched-modal label,#emailModal label{color:#e2e8f0!important}
+            #add-modal input,#edit-modal input,#add-sched-modal input,#emailModal input,#returnLogModal select{color:#f1f5f9!important}
+            /* Low-contrast arbitrary colors — make readable */
+            .text-\[\#8b93a8\]{color:#94a3b8!important}
+            .text-\[\#6b7a99\]{color:#94a3b8!important}
+            .dash-bg .text-\[\#8b93a8\]{color:#cbd5e1!important}
+            .dash-bg .text-\[\#6b7a99\]{color:#94a3b8!important}
             @keyframes fadeInUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
             .animate-fade-in{animation:fadeInUp .7s ease both}
         </style>
