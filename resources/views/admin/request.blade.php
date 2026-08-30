@@ -7,27 +7,30 @@
 
 <div class="dash-bg min-h-screen md:ml-80">
 
-    <!-- Header -->
+    <!-- Header — dense -->
     <header class="dash-header">
-        <div class="flex items-center justify-between px-6 py-4">
-            <h1 class="text-xl font-bold text-gray-800">ITEM REQUEST</h1>
+        <div class="flex items-center justify-between px-4 py-3">
+            <div>
+                <h1 class="text-[11px] font-medium tracking-widest uppercase text-[#94a3b8]">Requests</h1>
+                <p class="text-[13px] font-semibold tracking-tight text-white -mt-0.5">Item requests</p>
+            </div>
         </div>
     </header>
 
-    <main class="p-6">
+    <main class="p-4">
         {{-- Alerts handled by global components.alerts --}}
-        <!-- DataTable -->
-        <div class="p-4 bg-white rounded-lg shadow">
+        <!-- DataTable — dense -->
+        <div class="overflow-x-auto bg-white rounded-lg shadow">
             <table id="requestTable" class="w-full display nowrap">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th>USER</th>
-                        <th>UQUIPMENT</th>
-                        <th>QUANTITY</th>
-                        <th>REQUESTED DATE</th>
-                        <th>REMARKS</th>
-                        <th>STATUS</th>
-                        <th>ACTIONS</th>
+                        <th>User</th>
+                        <th>Equipment</th>
+                        <th>Qty</th>
+                        <th>Requested</th>
+                        <th>Remarks</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -51,25 +54,19 @@
                                 </span>
                             </td>
                             <td>
-                                <div class="flex items-center space-x-2">
-                                    {{-- @if ($request->status === 'pending') --}}
-                                        <!-- Approve Button -->
+                                <div class="flex items-center gap-1.5">
                                         <form action="{{ route('admin.request.approve') }}" method="POST" class="inline">
                                             @csrf
                                             <input type="hidden" name="id" value="{{ $request->id }}">
-                                            <button type="submit"
-                                                class="px-4 py-1 text-xs text-white bg-green-600 rounded md:text-sm hover:bg-green-700">
-                                                <i class="fas fa-check"></i> Approve
+                                            <button type="submit" class="px-2.5 py-1 text-xs font-medium bg-[rgba(16,185,129,0.12)] text-emerald-300 border border-emerald-500/20 rounded-md hover:bg-[rgba(16,185,129,0.18)] transition">
+                                                <i class="fas fa-check text-[11px]"></i> Approve
                                             </button>
                                         </form>
-
-                                        <!-- Decline Button -->
                                         <form action="{{ route('admin.request.decline') }}" method="POST" class="inline">
                                             @csrf
                                             <input type="hidden" name="id" value="{{ $request->id }}">
-                                            <button type="submit"
-                                                class="px-4 py-1 text-xs text-white bg-red-600 rounded md:text-sm hover:bg-red-700">
-                                                <i class="fas fa-times"></i> Decline
+                                            <button type="submit" class="px-2.5 py-1 text-xs font-medium bg-[rgba(239,68,68,0.10)] text-red-300 border border-red-500/20 rounded-md hover:bg-[rgba(239,68,68,0.16)] transition">
+                                                <i class="fas fa-times text-[11px]"></i> Decline
                                             </button>
                                         </form>
                                     {{-- @else
