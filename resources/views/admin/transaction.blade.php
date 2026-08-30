@@ -7,17 +7,20 @@
 
 <div class="dash-bg min-h-screen md:ml-80">
 
-    <!-- Header -->
+    <!-- Header — dense -->
     <header class="dash-header">
-        <div class="flex items-center justify-between px-6 py-4">
-            <h1 class="text-xl font-bold text-gray-800">BORROW TRANSACTIONS</h1>
-            <button id="open-add-modal" class="px-4 py-2 text-white bg-blue-600 rounded-lg shadow hover:bg-blue-700">
-                + Add Transaction
+        <div class="flex items-center justify-between px-4 py-3">
+            <div>
+                <h1 class="text-[11px] font-medium tracking-widest uppercase text-[#94a3b8]">Transactions</h1>
+                <p class="text-[13px] font-semibold tracking-tight text-white -mt-0.5">Borrow & returns</p>
+            </div>
+            <button id="open-add-modal" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] transition">
+                <i class="fas fa-plus text-[10px]"></i> Add transaction
             </button>
         </div>
     </header>
 
-    <main class="p-6">
+    <main class="p-4">
         {{-- Alerts handled by global components.alerts --}}
         <!-- DataTable -->
         <div class="p-4 overflow-x-auto bg-white rounded-lg shadow">
@@ -97,11 +100,9 @@
                         </td>
 
                         <td>
-                            <div class="flex items-center space-x-2">
-
-                                <!-- EDIT BUTTON -->
+                            <div class="flex items-center gap-1.5">
                                 <button
-                                    class="px-4 py-1 text-xs text-white bg-blue-600 md:text-sm hover:bg-blue-700 edit-btn"
+                                    class="px-2.5 py-1 text-xs font-medium bg-[rgba(148,163,184,0.08)] text-[#cbd5e1] border border-[rgba(255,255,255,0.06)] rounded-md hover:bg-[rgba(148,163,184,0.12)] transition edit-btn"
                                     data-id="{{ $tx->id }}" data-user="{{ $tx->user->id ?? '' }}"
                                     data-equipment="{{ $tx->equipment->id ?? '' }}"
                                     data-borrow="{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}"
@@ -109,16 +110,13 @@
                                     data-purpose="{{ $tx->purpose }}" data-status="{{ $tx->status }}"
                                     data-remarks="{{ $tx->remarks ?? '' }}"
                                     data-class="{{ $tx->classSchedule->id ?? '' }}">
-                                    <i class="fas fa-edit"></i> Edit
+                                    <i class="fas fa-edit text-[11px]"></i> Edit
                                 </button>
-
-                                <!-- SEND EMAIL BUTTON -->
                                 <button
-                                    class="px-4 py-1 text-xs text-white bg-green-600 md:text-sm hover:bg-green-700 send-email-btn"
+                                    class="px-2.5 py-1 text-xs font-medium border border-white/10 bg-white/5 text-[#cbd5e1] rounded-md hover:bg-white/10 transition send-email-btn"
                                     data-id="{{ $tx->id }}" data-user-email="{{ $tx->user->email ?? '' }}">
-                                    <i class="fas fa-envelope"></i> Send Email
+                                    <i class="fas fa-envelope text-[11px]"></i> Email
                                 </button>
-
                             </div>
                         </td>
 
