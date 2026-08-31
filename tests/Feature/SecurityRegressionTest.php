@@ -157,5 +157,26 @@ class SecurityRegressionTest extends TestCase
             session('errors')->all()[0] ?? ''
         );
     }
+
+    public function test_public_portal_pages_render_with_shared_stylesheet(): void
+    {
+        // Landing page
+        $this->get('/')
+            ->assertStatus(200)
+            ->assertSee('CICT Equipment Borrower System')
+            ->assertSee('auth.css');
+
+        // Login page
+        $this->get('/login')
+            ->assertStatus(200)
+            ->assertSee('Sign in to')
+            ->assertSee('auth.css');
+
+        // Register page
+        $this->get('/register')
+            ->assertStatus(200)
+            ->assertSee('Create your')
+            ->assertSee('auth.css');
+    }
 }
 
