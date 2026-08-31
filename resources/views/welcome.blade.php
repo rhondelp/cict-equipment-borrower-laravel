@@ -4,8 +4,8 @@
 
 @section("content")
 <div class="landing-simple">
-    <main class="landing-card" id="main-content">
-        {{-- Logo — centered elevated emblem with halo --}}
+    <main class="landing-content" id="main-content">
+        {{-- Logo — prominent centered emblem with ambient halo --}}
         <div class="landing-logo" aria-hidden="true">
             <img src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" alt="CICT logo">
         </div>
@@ -46,7 +46,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 20px 24px;
+    padding: 48px 20px 32px;
     text-align: center;
     position: relative;
     overflow: hidden;
@@ -58,50 +58,45 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse 760px 420px at 50% 28%, rgba(91,141,224,0.06), transparent 68%);
+    background: radial-gradient(ellipse 760px 420px at 50% 32%, rgba(91,141,224,0.06), transparent 68%);
     pointer-events: none;
 }
 
-/* Card Container */
-.landing-card {
+/* Open Content Wrapper — clean & frameless (no card) */
+.landing-content {
     position: relative;
     z-index: 1;
     width: 100%;
-    max-width: 600px;
-    background: rgba(19, 26, 43, 0.72);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-    box-shadow:
-        0 24px 64px rgba(0, 0, 0, 0.50),
-        0 0 0 1px rgba(255, 255, 255, 0.03) inset;
-    padding: 44px 36px 40px;
+    max-width: 680px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin: auto 0;
 }
 
-/* Logo */
+/* Logo Emblem */
 .landing-logo {
-    width: 100px;
-    height: 100px;
+    width: 110px;
+    height: 110px;
     border-radius: 999px;
-    padding: 6px;
+    padding: 7px;
     background: #ffffff;
     border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow:
-        0 12px 32px rgba(0, 0, 0, 0.40),
-        0 0 0 1px rgba(255, 255, 255, 0.06) inset,
-        0 0 32px rgba(91, 141, 224, 0.20);
+        0 14px 36px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+        0 0 36px rgba(91, 141, 224, 0.22);
     display: grid;
     place-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
     flex-shrink: 0;
-    transition: transform 0.25s ease;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 .landing-logo:hover {
     transform: scale(1.03);
+    box-shadow:
+        0 16px 40px rgba(0, 0, 0, 0.50),
+        0 0 44px rgba(91, 141, 224, 0.30);
 }
 .landing-logo img {
     width: 100%;
@@ -112,77 +107,76 @@
 
 /* Kicker Badge */
 .landing-kicker-wrap {
-    margin-bottom: 14px;
+    margin-bottom: 16px;
 }
 .landing-kicker {
     margin: 0;
-    font-size: 12.5px;
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     color: #94a3b8;
     background: rgba(91, 141, 224, 0.08);
-    border: 1px solid rgba(91, 141, 224, 0.16);
-    padding: 5px 14px;
+    border: 1px solid rgba(91, 141, 224, 0.18);
+    padding: 6px 16px;
     border-radius: 999px;
     display: inline-block;
 }
 
 /* Title */
 .landing-title {
-    margin: 0 0 12px;
-    font-size: clamp(32px, 5vw, 44px);
+    margin: 0 0 16px;
+    font-size: clamp(36px, 5.5vw, 54px);
     font-weight: 800;
-    line-height: 1.15;
-    letter-spacing: -0.035em;
+    line-height: 1.12;
+    letter-spacing: -0.038em;
     color: #ffffff;
     text-wrap: balance;
 }
 
 /* Description */
 .landing-desc {
-    margin: 0 0 28px;
-    font-size: 16.5px;
-    line-height: 1.55;
+    margin: 0 0 34px;
+    font-size: clamp(16px, 2vw, 18.5px);
+    line-height: 1.6;
     color: #94a3b8;
-    max-width: 480px;
+    max-width: 520px;
     text-wrap: pretty;
 }
 
-/* Actions */
+/* Actions Row */
 .landing-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 14px;
     justify-content: center;
+    align-items: center;
     width: 100%;
-    max-width: 440px;
+    max-width: 480px;
 }
 .landing-primary {
-    flex: 1 1 180px;
-    min-width: 160px;
-    width: auto !important;
-    padding: 13px 24px !important;
-    border-radius: 10px !important;
-    font-size: 15px !important;
-    font-weight: 600 !important;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    padding: 14px 32px !important;
+    border-radius: 999px !important;
+    font-size: 15.5px !important;
+    font-weight: 600 !important;
+    min-width: 180px;
+    width: auto !important;
 }
 .landing-secondary {
-    flex: 1 1 180px;
-    min-width: 160px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 13px 24px;
-    border-radius: 10px;
-    font-size: 15px;
+    padding: 14px 32px;
+    border-radius: 999px;
+    font-size: 15.5px;
     font-weight: 600;
     letter-spacing: -0.01em;
     text-decoration: none;
+    min-width: 180px;
     color: #e2e8f0;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.10);
@@ -190,19 +184,21 @@
 }
 .landing-secondary:hover {
     background: rgba(255, 255, 255, 0.10);
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.16);
     transform: translateY(-1px);
 }
-/* Footer note */
+
+/* Footer Access Note */
 .landing-foot-wrap {
     position: relative;
     z-index: 1;
-    margin-top: 28px;
+    margin-top: auto;
+    padding-top: 36px;
 }
 .landing-foot {
     margin: 0;
     font-size: 12px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: rgba(148, 163, 184, 0.70);
     text-align: center;
@@ -210,15 +206,14 @@
 
 /* Responsive */
 @media (max-width: 640px) {
-    .landing-simple { padding: 24px 16px 20px; }
-    .landing-card { padding: 32px 20px 28px; border-radius: 16px; }
-    .landing-logo { width: 84px; height: 84px; margin-bottom: 16px; }
-    .landing-kicker { font-size: 11px; padding: 4px 12px; }
-    .landing-title { font-size: clamp(26px, 7.5vw, 34px); margin-bottom: 10px; }
-    .landing-desc { font-size: 14.5px; margin-bottom: 24px; }
+    .landing-simple { padding: 32px 16px 24px; }
+    .landing-logo { width: 92px; height: 92px; margin-bottom: 20px; }
+    .landing-kicker { font-size: 11.5px; padding: 5px 12px; }
+    .landing-title { font-size: clamp(30px, 8vw, 40px); margin-bottom: 12px; }
+    .landing-desc { font-size: 15.5px; margin-bottom: 28px; }
     .landing-actions { flex-direction: column; width: 100%; }
-    .landing-actions a { width: 100% !important; flex: none; justify-content: center; }
-    .landing-foot-wrap { margin-top: 20px; }
+    .landing-actions a { width: 100% !important; justify-content: center; min-width: unset; }
+    .landing-foot-wrap { padding-top: 24px; }
     .landing-foot { font-size: 11px; }
 }
 
@@ -229,14 +224,7 @@ html:not(.dark) .landing-simple {
         linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 html:not(.dark) .landing-simple::before {
-    background: radial-gradient(ellipse 760px 420px at 50% 28%, rgba(91,141,224,0.04), transparent 68%);
-}
-html:not(.dark) .landing-card {
-    background: rgba(255, 255, 255, 0.88);
-    border-color: rgba(15, 23, 42, 0.08);
-    box-shadow:
-        0 20px 48px rgba(15, 23, 42, 0.08),
-        0 1px 2px rgba(15, 23, 42, 0.04);
+    background: radial-gradient(ellipse 760px 420px at 50% 32%, rgba(91,141,224,0.04), transparent 68%);
 }
 html:not(.dark) .landing-kicker {
     color: #475569;
@@ -253,7 +241,7 @@ html:not(.dark) .landing-secondary {
     background: #ffffff;
     border-color: rgba(15, 23, 42, 0.12);
     color: #0f172a;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
 }
 html:not(.dark) .landing-secondary:hover {
     background: #f8fafc;
@@ -266,7 +254,7 @@ html:not(.dark) .landing-logo {
     background: #ffffff;
     border-color: rgba(15, 23, 42, 0.08);
     box-shadow:
-        0 10px 28px rgba(15, 23, 42, 0.08),
+        0 12px 32px rgba(15, 23, 42, 0.08),
         0 0 0 1px rgba(15, 23, 42, 0.06) inset;
 }
 </style>
