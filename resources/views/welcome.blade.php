@@ -27,10 +27,10 @@
 
         {{-- RIGHT â€” Portal action panel --}}
         <section class="lp-right">
-            <div class="lp-eyebrow">
+            {{-- <div class="lp-eyebrow">
                 <span class="lp-dot" aria-hidden="true"></span>
                 System Portal
-            </div>
+            </div> --}}
             <h1 class="lp-title">CICT Equipment<br>Borrower System</h1>
             <p class="lp-sub">Sign in or create an account to get started.</p>
             <div class="lp-actions">
