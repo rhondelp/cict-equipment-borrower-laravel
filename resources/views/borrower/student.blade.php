@@ -14,6 +14,9 @@
                 </div>
             </div>
             <div class="flex items-center gap-3">
+                <button id="themeToggle" class="w-9 h-9 grid place-items-center rounded-xl border border-white/10 bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10 transition" aria-label="Toggle theme">
+                    <i class="fas fa-moon text-xs"></i>
+                </button>
                 <button id="open-add-modal" class="btn-primary !w-auto px-5 py-2.5 text-sm rounded-xl"><i class="fas fa-plus text-xs"></i> Request Item</button>
                 <form method="POST" action="{{ route('logout') }}">@csrf
                     <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-danger-500/20 bg-danger-500/10 text-danger-300 hover:bg-danger-500/15 transition flex items-center gap-2"><i class="fas fa-sign-out-alt text-xs"></i> Logout</button>
