@@ -41,21 +41,9 @@
   html:not(.dark) .dash-bg { background: #f1f5f9; }
   html:not(.dark) .dash-card, html:not(.dark) .dash-table-wrap, html:not(.dark) .stat-card { background: #ffffff; border-color: rgba(15,23,42,0.08); box-shadow: 0 1px 3px rgba(15,23,42,0.08), 0 4px 12px rgba(15,23,42,0.04); }
   html:not(.dark) .dash-header { background: rgba(255,255,255,0.92); border-color: rgba(15,23,42,0.08); backdrop-filter: blur(12px); }
-  html:not(.dark) .sidebar { background: #ffffff !important; border-color: rgba(15,23,42,0.08) !important; color: #334155 !important; }
-  html:not(.dark) .sidebar .bg-neutral-900, html:not(.dark) .sidebar .bg-neutral-950 { background: #f8fafc !important; border-color: rgba(15,23,42,0.08) !important; }
-  html:not(.dark) .sidebar .border-white\/5, html:not(.dark) .sidebar .border-white\/10 { border-color: rgba(15,23,42,0.08) !important; }
-  html:not(.dark) .sidebar .text-white { color: #0f172a !important; }
-  html:not(.dark) .sidebar .text-neutral-400 { color: #64748b !important; }
-  html:not(.dark) .sidebar .text-neutral-300 { color: #475569 !important; }
-  html:not(.dark) .sidebar .bg-white\/5, html:not(.dark) .sidebar .bg-white\/10 { background: rgba(15,23,42,0.05) !important; }
-  html:not(.dark) .sidebar #themeKnob { background: #0f172a !important; }
-  html:not(.dark) .sidebar #logoutDropdown { background: #ffffff !important; border-color: rgba(15,23,42,0.12) !important; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1) !important; }
-  html:not(.dark) .sidebar #logoutDropdown button { color: #0f172a !important; }
-  html:not(.dark) .sidebar #logoutDropdown button:hover { background: #f1f5f9 !important; }
+  html:not(.dark) .sidebar { background: #ffffff; border-color: rgba(15,23,42,0.08); color: #334155; }
   html:not(.dark) .sidebar .nav-item { color: #64748b !important; }
-  html:not(.dark) .sidebar .nav-item:hover { background: rgba(15,23,42,0.04) !important; color: #0f172a !important; }
-  html:not(.dark) .sidebar .nav-item.active { background: rgba(91,141,224,0.12) !important; color: #1e40af !important; font-weight: 600 !important; }
-  html:not(.dark) .sidebar .nav-item.active i { color: #2563eb !important; }
+  html:not(.dark) .sidebar .nav-item.active { background: rgba(91,141,224,0.10) !important; color: #0f172a !important; }
   html:not(.dark) .sidebar h1 { color: #0f172a !important; }
   html:not(.dark) .theme-shell { background: #f1f5f9; }
   html:not(.dark) .theme-shell::before { background: radial-gradient(ellipse 1200px 400px at 50% -8%, rgba(91,141,224,0.08), transparent 70%); }

@@ -308,13 +308,15 @@
             function updateThemeUI(isDark) {
                 const knob = document.getElementById('themeKnob');
                 const label = document.getElementById('themeLabel');
+                const icon = document.querySelector('#themeToggle i');
                 if (knob) knob.style.transform = isDark ? 'translateX(0)' : 'translateX(16px)';
                 if (label) label.textContent = isDark ? 'Dark mode' : 'Light mode';
-                
-                // Update all theme toggle button icons across the DOM
-                document.querySelectorAll('#themeToggle i, #borrowerThemeToggle i, .theme-toggle-btn i').forEach(function(icon) {
-                    icon.className = isDark ? 'fas fa-moon text-xs' : 'fas fa-sun text-xs text-amber-500';
-                });
+                if (icon) icon.className = isDark ? 'fas fa-moon text-xs' : 'fas fa-sun text-xs';
+                // Borrower toggle variant
+                const bKnob = document.getElementById('borrowerThemeKnob');
+                const bLabel = document.getElementById('borrowerThemeLabel');
+                if (bKnob) bKnob.style.transform = isDark ? 'translateX(0)' : 'translateX(16px)';
+                if (bLabel) bLabel.textContent = isDark ? 'Dark' : 'Light';
             }
             function setTheme(isDark) {
                 document.documentElement.classList.toggle('dark', isDark);
@@ -323,13 +325,13 @@
             }
             // Init UI from current class
             updateThemeUI(document.documentElement.classList.contains('dark'));
-            document.addEventListener('click', function(e) {
-                const btn = e.target.closest('#themeToggle, #borrowerThemeToggle, .theme-toggle-btn');
-                if (btn) {
-                    e.preventDefault();
-                    const isDark = document.documentElement.classList.contains('dark');
-                    setTheme(!isDark);
-                }
+            document.getElementById('themeToggle')?.addEventListener('click', function() {
+                const isDark = document.documentElement.classList.contains('dark');
+                setTheme(!isDark);
+            });
+            document.getElementById('borrowerThemeToggle')?.addEventListener('click', function() {
+                const isDark = document.documentElement.classList.contains('dark');
+                setTheme(!isDark);
             });
 
             // Global error guard so one failing DataTable init doesn't kill other listeners
