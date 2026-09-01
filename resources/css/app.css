@@ -32,7 +32,7 @@
     --shadow-tinted: 0 8px 24px rgba(10,14,26,0.45), 0 1px 0 rgba(148,163,184,0.04) inset;
   }
 
-  * { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  * { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
   /* Tabular numbers for data-heavy dashboard */
   .tabular { font-variant-numeric: tabular-nums; }
 
