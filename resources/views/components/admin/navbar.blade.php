@@ -49,7 +49,7 @@
     </nav>
 
     <!-- User Profile -->
-    <div class="p-4 border-t border-white/5 space-y-3">
+    <div class="p-4 border-t border-white/5">
         <div class="flex items-center gap-3 p-3 rounded-xl bg-neutral-900 border border-white/5">
             <img class="object-cover w-9 h-9 rounded-xl border border-white/10" src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" alt="Admin">
             <div class="flex-1 min-w-0">
@@ -70,11 +70,6 @@
                 </div>
             </div>
         </div>
-        <!-- Theme toggle — persists via localStorage -->
-        <button id="themeToggle" class="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-xs font-medium text-neutral-300 hover:bg-white/10 transition" aria-label="Toggle theme">
-            <span class="flex items-center gap-2"><i class="fas fa-moon text-xs"></i> <span id="themeLabel">Dark mode</span></span>
-            <span class="w-8 h-4 rounded-full bg-white/10 relative"><span id="themeKnob" class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-all"></span></span>
-        </button>
     </div>
 </div>
 @push('scripts')

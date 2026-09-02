@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,25 +13,48 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="shortcut icon" href="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" type="image/x-icon">
-    <script>
-        // Early theme set — prevents flash, persists via localStorage
-        (function() {
-            try {
-                const stored = localStorage.getItem('cict-theme');
-                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const theme = stored || (prefersDark ? 'dark' : 'dark'); // default dark (existing)
-                if (theme === 'dark') document.documentElement.classList.add('dark');
-                else document.documentElement.classList.remove('dark');
-            } catch(e) {}
-        })();
-    </script>
 
-    {{-- DataTables (keep for admin/borrower tables) --}}
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.3.4/css/dataTables.tailwindcss.css">
-    <script src="https://cdn.datatables.net/2.3.4/js/dataTables.js"></script>
-    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.13.4/js/dataTables.tailwindcss.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+    {{-- DataTables CSS & JS (standardized, responsive) --}}
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script>
+        window.STANDARD_DT_OPTIONS = {
+            responsive: true,
+            autoWidth: false,
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            language: {
+                search: "",
+                searchPlaceholder: "Search...",
+                lengthMenu: "Show _MENU_ entries",
+                info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                infoEmpty: "Showing 0 to 0 of 0 entries",
+                infoFiltered: "(filtered from _MAX_ total entries)",
+                zeroRecords: "No matching records found",
+                paginate: {
+                    first: '<i class="fas fa-angles-left text-xs"></i>',
+                    previous: '<i class="fas fa-chevron-left text-xs"></i>',
+                    next: '<i class="fas fa-chevron-right text-xs"></i>',
+                    last: '<i class="fas fa-angles-right text-xs"></i>'
+                }
+            }
+        };
+        window.initAppTable = function(selector, extra = {}) {
+            const $el = typeof selector === 'string' ? $(selector) : selector;
+            if (!$el || !$el.length) return null;
+            if ($.fn.DataTable && $.fn.DataTable.isDataTable($el)) {
+                return $el.DataTable();
+            }
+            try {
+                return $el.DataTable(Object.assign({}, window.STANDARD_DT_OPTIONS, extra));
+            } catch(e) {
+                console.error('DataTable init failed (' + selector + ')', e);
+                return null;
+            }
+        };
+    </script>
 
     <style>
         :root{
@@ -267,36 +290,6 @@
                 if (e.target.id === 'add-modal' || e.target.id === 'edit-modal' || e.target.id === 'delete-modal' || e.target.id === 'add-sched-modal' || e.target.id === 'emailModal' || e.target.id === 'returnLogModal') {
                     e.target.classList.add('hidden');
                 }
-            });
-
-            // Theme toggle — class-based darkMode, persists via localStorage, works on every page
-            function updateThemeUI(isDark) {
-                const knob = document.getElementById('themeKnob');
-                const label = document.getElementById('themeLabel');
-                const icon = document.querySelector('#themeToggle i');
-                if (knob) knob.style.transform = isDark ? 'translateX(0)' : 'translateX(16px)';
-                if (label) label.textContent = isDark ? 'Dark mode' : 'Light mode';
-                if (icon) icon.className = isDark ? 'fas fa-moon text-xs' : 'fas fa-sun text-xs';
-                // Borrower toggle variant
-                const bKnob = document.getElementById('borrowerThemeKnob');
-                const bLabel = document.getElementById('borrowerThemeLabel');
-                if (bKnob) bKnob.style.transform = isDark ? 'translateX(0)' : 'translateX(16px)';
-                if (bLabel) bLabel.textContent = isDark ? 'Dark' : 'Light';
-            }
-            function setTheme(isDark) {
-                document.documentElement.classList.toggle('dark', isDark);
-                try { localStorage.setItem('cict-theme', isDark ? 'dark' : 'light'); } catch(e){}
-                updateThemeUI(isDark);
-            }
-            // Init UI from current class
-            updateThemeUI(document.documentElement.classList.contains('dark'));
-            document.getElementById('themeToggle')?.addEventListener('click', function() {
-                const isDark = document.documentElement.classList.contains('dark');
-                setTheme(!isDark);
-            });
-            document.getElementById('borrowerThemeToggle')?.addEventListener('click', function() {
-                const isDark = document.documentElement.classList.contains('dark');
-                setTheme(!isDark);
             });
 
             // Global error guard so one failing DataTable init doesn't kill other listeners

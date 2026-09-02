@@ -88,7 +88,7 @@
                     <label for="password" class="field-label">Password</label>
                     <div class="input-wrap">
                         <i class="fa-solid fa-lock input-icon" style="font-size:13px"></i>
-                        <input type="password" name="password" id="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" class="ds-input has-trailing" required>
+                        <input type="password" name="password" id="password" placeholder="**********" class="ds-input has-trailing" required>
                         <button type="button" class="eye-btn" aria-label="Show password"><i class="fa-solid fa-eye"></i></button>
                     </div>
                 </div>
@@ -98,7 +98,7 @@
                     <label for="password_confirmation" class="field-label">Confirm Password</label>
                     <div class="input-wrap">
                         <i class="fa-solid fa-lock input-icon" style="font-size:13px"></i>
-                        <input type="password" name="password_confirmation" id="password_confirmation" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" class="ds-input has-trailing" required>
+                        <input type="password" name="password_confirmation" id="password_confirmation" placeholder="**********" class="ds-input has-trailing" required>
                         <button type="button" class="eye-btn" aria-label="Show password"><i class="fa-solid fa-eye"></i></button>
                     </div>
                 </div>
