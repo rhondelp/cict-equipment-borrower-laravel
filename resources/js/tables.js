@@ -1,7 +1,6 @@
 // Standardized DataTables config — single source for every table in the app.
 // All tables must use this so responsive behavior is uniform (DataTables Responsive extension).
 // Responsive strategy: DataTables Responsive (collapses columns into child rows on narrow viewports)
-// Alternative approach (stacked card per row) is intentionally NOT used — one approach everywhere.
 
 const STANDARD_DT_OPTIONS = {
   responsive: true,
@@ -11,10 +10,17 @@ const STANDARD_DT_OPTIONS = {
   language: {
     search: "",
     searchPlaceholder: "Search...",
-    lengthMenu: "_MENU_ per page",
-    info: "Showing _START_ to _END_ of _TOTAL_",
-    infoEmpty: "No records",
-    paginate: { previous: "‹", next: "›" },
+    lengthMenu: "Show _MENU_ entries",
+    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+    infoEmpty: "Showing 0 to 0 of 0 entries",
+    infoFiltered: "(filtered from _MAX_ total entries)",
+    zeroRecords: "No matching records found",
+    paginate: {
+      first: '<i class="fas fa-angles-left text-xs"></i>',
+      previous: '<i class="fas fa-chevron-left text-xs"></i>',
+      next: '<i class="fas fa-chevron-right text-xs"></i>',
+      last: '<i class="fas fa-angles-right text-xs"></i>'
+    },
   },
 };
 
@@ -39,3 +45,4 @@ if (typeof window !== "undefined") {
 }
 
 export default initAppTable;
+
