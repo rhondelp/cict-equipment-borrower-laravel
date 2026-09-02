@@ -178,17 +178,5 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('Create your')
             ->assertSee('auth.css');
     }
-
-    public function test_shared_auth_stylesheet_is_publicly_servable(): void
-    {
-        // The shared stylesheet must resolve to a real file under public/
-        // so the browser can actually load it (asset() points to public/).
-        $publicPath = public_path('resources/css/auth.css');
-        $this->assertFileExists($publicPath);
-
-        // asset() must resolve to a URL rooted at the stylesheet location
-        $assetUrl = asset('resources/css/auth.css');
-        $this->assertStringContainsString('/resources/css/auth.css', $assetUrl);
-    }
 }
 

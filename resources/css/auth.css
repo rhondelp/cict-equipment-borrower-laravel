@@ -95,88 +95,9 @@
 .lp-alert-error { background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.25); color: #fca5a5; }
 .lp-alert-success { background: rgba(34,197,94,0.10); border: 1px solid rgba(34,197,94,0.25); color: #86efac; }
 
-/* Form & Input Fields */
-.lp-form {
-    display: flex; flex-direction: column; gap: 18px;
-    width: 100%; max-width: 380px; text-align: left;
-}
-.lp-field {
-    display: flex; flex-direction: column; gap: 6px;
-    width: 100%; text-align: left;
-}
-.field-label-row {
-    display: flex; align-items: center; justify-content: space-between;
-    width: 100%; text-align: left; margin-bottom: 2px;
-}
-.field-label {
-    display: block; font-size: 13px; font-weight: 600;
-    color: #f1f5f9; letter-spacing: -0.01em; text-align: left; margin: 0;
-}
-.field-hint {
-    font-size: 12px; font-weight: 400; color: #64748b;
-    text-align: right; text-decoration: none;
-}
-.field-hint:hover { color: #94a3b8; text-decoration: underline; }
-
-.input-wrap {
-    position: relative; display: flex; align-items: center; width: 100%; text-align: left;
-}
-.input-wrap .input-icon {
-    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-    color: #6b7a99; font-size: 14px; pointer-events: none;
-}
-.input-wrap .eye-btn {
-    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-    color: #6b7a99; background: transparent; border: 0; cursor: pointer; padding: 4px;
-    display: flex; align-items: center; justify-content: center;
-}
-.input-wrap .eye-btn:hover { color: #94a3b8; }
-
-.ds-input {
-    width: 100%; background: #0d1220;
-    border: 1px solid rgba(255,255,255,0.10); border-radius: 8px;
-    color: #e2e8f0; font-size: 14px; padding: 13px 14px 13px 40px;
-    outline: none; transition: border-color .18s, box-shadow .18s, background .18s;
-    -webkit-appearance: none; appearance: none; box-sizing: border-box;
-}
-.ds-input::placeholder { color: #7a8aaa; opacity: 1; }
-.ds-input:focus {
-    background: #111827; border-color: #5b8de0;
-    box-shadow: 0 0 0 3px rgba(91,141,224,0.15);
-}
-.ds-input.has-trailing { padding-right: 40px; }
-.ds-input.no-leading { padding-left: 14px; }
-select.ds-input {
-    padding-right: 36px; cursor: pointer;
-}
-
-/* Checkbox & Links */
-.ds-checkbox {
-    appearance: none; -webkit-appearance: none;
-    width: 17px; height: 17px; border-radius: 4px;
-    border: 1px solid rgba(255,255,255,0.20); background: rgba(255,255,255,0.05);
-    display: inline-grid; place-content: center; cursor: pointer; flex-shrink: 0;
-    transition: background 150ms, border-color 150ms;
-}
-.ds-checkbox:checked {
-    background: #3b82f6; border-color: #3b82f6;
-}
-.ds-checkbox:checked::before {
-    content: ""; width: 9px; height: 5px;
-    border-left: 2px solid #fff; border-bottom: 2px solid #fff;
-    transform: rotate(-45deg) translate(1px, -1px);
-}
-.inline-link {
-    color: #5b8de0; text-decoration: none; font-weight: 600;
-}
-.inline-link:hover { text-decoration: underline; }
-.auth-footer {
-    font-size: 13.5px; color: #64748b; text-align: center; margin-top: 6px;
-}
-.auth-footer a {
-    color: #5b8de0; text-decoration: none; font-weight: 600;
-}
-.auth-footer a:hover { text-decoration: underline; }
+/* Form */
+.lp-form { display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 380px; }
+.lp-field { display: flex; flex-direction: column; gap: 6px; }
 
 /* Buttons & actions (landing) */
 .lp-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; margin-bottom: 24px; }
@@ -234,19 +155,14 @@ select.ds-input {
     .lp-tagline { max-width: 360px; }
     .lp-divider { margin: 20px auto; }
 
-    .lp-right { padding: 0; align-items: center; text-align: center; width: 100%; }
+    .lp-right { padding: 0; align-items: center; text-align: center; }
     .lp-title { text-align: center; }
-    .lp-form { max-width: 100%; text-align: left; }
-    .lp-field { text-align: left; width: 100%; }
-    .field-label { text-align: left !important; width: 100%; display: block; }
-    .field-label-row { text-align: left !important; width: 100%; display: flex; align-items: center; justify-content: space-between; }
-    .field-hint { text-align: right; }
+    .lp-form { max-width: 100%; }
     .lp-alert { max-width: 100%; text-align: left; }
     .lp-actions { max-width: 100%; }
     .lp-note { text-align: center; }
-    .lp-remember { justify-content: flex-start; text-align: left; width: 100%; }
+    .lp-remember { justify-content: center; text-align: left; }
     .lp-remember span { text-align: left; }
-    .auth-footer { text-align: center; width: 100%; }
 }
 
 /* Small phones: reduce type, tighten spacing, honor safe-area insets */
@@ -267,8 +183,7 @@ select.ds-input {
     .lp-form { gap: 16px; }
     .lp-alert { font-size: 12.5px; padding: 10px 12px; }
     .lp-sub { margin-bottom: 22px; }
-    .field-label { font-size: 12.5px; text-align: left !important; }
-    .field-label-row { text-align: left !important; }
+    .field-label { font-size: 12.5px; }
 }
 
 /* Landscape short-screens: let content scroll freely */
@@ -292,16 +207,10 @@ html:not(.dark) .lp-college { color: #0f172a; }
 html:not(.dark) .lp-tagline { color: #64748b; }
 html:not(.dark) .lp-title { color: #0f172a; }
 html:not(.dark) .lp-sub { color: #64748b; }
-html:not(.dark) .field-label { color: #334155 !important; }
-html:not(.dark) .field-hint { color: #64748b !important; }
-html:not(.dark) .ds-input { background: #ffffff !important; border-color: rgba(15,23,42,0.12) !important; color: #0f172a !important; }
-html:not(.dark) .ds-input::placeholder { color: #94a3b8 !important; }
-html:not(.dark) .ds-checkbox { background: #ffffff; border-color: rgba(15,23,42,0.20); }
 html:not(.dark) .lp-btn-register { background: #fff; border-color: rgba(15,23,42,0.12); color: #334155; box-shadow: 0 1px 3px rgba(15,23,42,0.06); }
 html:not(.dark) .lp-btn-register:hover { background: #f8fafc; border-color: rgba(15,23,42,0.18); }
 html:not(.dark) .lp-note { color: #94a3b8; }
 html:not(.dark) .lp-remember span { color: #334155; }
-html:not(.dark) .auth-footer { color: #64748b; }
 html:not(.dark) .lp-alert-error { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.18); color: #dc2626; }
 html:not(.dark) .lp-alert-success { background: rgba(34,197,94,0.06); border-color: rgba(34,197,94,0.18); color: #16a34a; }
 
