@@ -5,24 +5,27 @@
 @section('content')
 <div class="dash-bg min-h-screen flex flex-col">
     <header class="sticky top-0 z-40 dash-header">
-        <div class="flex flex-wrap items-center justify-between px-4 py-4 md:px-8 gap-3">
+        <div class="flex flex-wrap items-center justify-between px-6 py-4 gap-3">
             <div class="flex items-center gap-3">
-                <button id="menu-toggle" class="text-neutral-400 hover:text-white md:hidden"><i class="text-xl fas fa-bars"></i></button>
                 <div>
-                    <h1 class="text-sm font-bold tracking-tight text-white">Equipment Management</h1>
-                    <p class="text-xs text-neutral-400">Manage all equipment and inventory</p>
+                    <p class="text-xs font-medium tracking-widest uppercase" style="color:var(--text-muted)">Instructor</p>
+                    <p class="text-sm font-semibold tracking-tight text-white">Equipment Management</p>
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <button id="open-add-modal" class="btn-primary !w-auto px-5 py-2.5 text-sm rounded-xl"><i class="fas fa-plus text-xs"></i> Request Item</button>
+                <button id="open-add-modal" class="btn-primary inline-flex items-center gap-2 !py-2 !px-4 !text-sm !rounded-xl">
+                    <i class="fas fa-plus text-xs"></i> Request Item
+                </button>
                 <form method="POST" action="{{ route('logout') }}">@csrf
-                    <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-danger-500/20 bg-danger-500/10 text-danger-300 hover:bg-danger-500/15 transition flex items-center gap-2"><i class="fas fa-sign-out-alt text-xs"></i> Logout</button>
+                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border border-red-500/20 bg-red-500/10 text-red-300 hover:bg-red-500/20 transition">
+                        <i class="fas fa-sign-out-alt text-xs"></i> Logout
+                    </button>
                 </form>
             </div>
         </div>
     </header>
 
-    <main class="flex-1 p-4 md:p-8 space-y-6 max-w-content w-full mx-auto">
+    <main class="flex-1 p-6 md:p-8 space-y-6 max-w-content w-full mx-auto">
         <section>
             <h2 class="flex items-center gap-2 mb-3 text-sm font-bold tracking-tight text-white">
                 <span class="w-7 h-7 rounded-lg bg-primary-500/15 border border-primary-500/20 grid place-items-center"><i class="fas fa-list text-primary-300 text-xs"></i></span> My Equipment Requests

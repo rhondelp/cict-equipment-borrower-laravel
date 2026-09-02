@@ -6,26 +6,26 @@
     @include('components.admin.navbar')
 
     <div class="dash-bg min-h-screen md:ml-80">
-        <header class="dash-header">
-            <div class="flex items-center justify-between px-4 py-3">
+        <header class="sticky top-0 z-30 dash-header">
+            <div class="flex items-center justify-between px-6 py-4">
                 <div class="flex items-center gap-3">
                     <button id="menu-toggle" class="text-neutral-400 hover:text-white md:hidden">
                         <i class="text-lg fas fa-bars"></i>
                     </button>
                     <div>
-                        <h1 class="text-xs font-medium tracking-widest uppercase text-neutral-400">Equipment</h1>
+                        <p class="text-xs font-medium tracking-widest uppercase" style="color:var(--text-muted)">Equipment</p>
                         <p class="text-sm font-semibold tracking-tight text-white -mt-0.5">Manage inventory</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button id="open-add-modal" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 transition">
-                        <i class="fas fa-plus text-[10px]"></i> Add equipment
+                    <button id="open-add-modal" class="btn-primary inline-flex items-center gap-2 !py-2 !px-4 !text-sm !rounded-xl">
+                        <i class="fas fa-plus text-xs"></i> Add Equipment
                     </button>
                 </div>
             </div>
         </header>
 
-        <main class="p-4 space-y-4 max-w-content mx-auto">
+        <main class="p-6 space-y-5 max-w-content mx-auto">
             {{-- Alerts handled by global components.alerts --}}
 
             <x-ui.table-card>
@@ -52,8 +52,8 @@
                                     <x-ui.badge :status="ucfirst(str_replace('_', ' ', $item->status))" :variant="$variant" />
                                 </td>
                                 <td>
-                                    <div class="flex items-center gap-1.5">
-                                        <button class="px-2.5 py-1 text-xs font-medium bg-neutral-700/40 text-neutral-200 border border-white/10 rounded-md hover:bg-neutral-700/60 transition edit-btn" data-id="{{ $item->id }}"
+                                    <div class="flex items-center gap-2">
+                                        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary-500/10 text-primary-300 border border-primary-500/20 hover:bg-primary-500/20 transition edit-btn" data-id="{{ $item->id }}"
                                             data-name="{{ $item->equipment_name }}" data-description="{{ $item->description }}"
                                             data-quantity="{{ $item->quantity }}"
                                             data-available="{{ $item->available_quantity }}"

@@ -63,7 +63,9 @@
             --text-muted:#94a3b8;
             --text-placeholder:#7a8aaa;
         }
-        *{font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+        *{font-family:'Poppins','Inter',system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+        h1,h2,h3,h4,h5,h6,.field-label,.btn-primary,.nav-item,label,th,button{font-family:'Poppins','Inter',sans-serif}
+        td,p,.tabular-nums,tbody,input,select,textarea{font-family:'Inter','Poppins',system-ui,sans-serif}
         html{scroll-behavior:smooth}
         body{
             background: var(--bg-deep);
@@ -74,7 +76,7 @@
         ::-webkit-scrollbar{width:6px;height:6px}
         ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:999px}
         /* Sidebar */
-        .sidebar{transition:all .3s cubic-bezier(.4,0,.2,1); background: #0c1222; border-right:1px solid rgba(255,255,255,0.06)}
+        .sidebar{transition:all .3s cubic-bezier(.4,0,.2,1); background:var(--bg-deep-2); border-right:1px solid var(--border-subtle)}
         .nav-item{position:relative;transition:all .2s ease}
         .nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:22px;background:#3b82f6;border-radius:0 3px 3px 0}
         .nav-item.active{background:rgba(59,130,246,.12)!important;color:#fff!important}
@@ -83,6 +85,65 @@
             .sidebar{transform:translateX(-100%)}
             .sidebar.active{transform:translateX(0)}
         }
+
+        /* ── Dark Modal System ── */
+        .modal-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.03) inset;color:#f1f5f9;overflow:hidden}
+        .modal-header{padding:20px 24px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between}
+        .modal-header h2,.modal-header h3{font-size:16px;font-weight:700;color:#fff;margin:0;letter-spacing:-.01em}
+        .modal-body{padding:24px}
+        .modal-footer{padding:16px 24px;border-top:1px solid var(--border-subtle);display:flex;justify-content:flex-end;gap:12px}
+        .modal-close{width:32px;height:32px;display:grid;place-items:center;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#94a3b8;cursor:pointer;transition:all .2s}
+        .modal-close:hover{background:rgba(255,255,255,.10);color:#fff}
+
+        /* ── Dark Form Controls ── */
+        .ds-field{margin-bottom:16px}
+        .ds-field label,.ds-field .field-label{display:block;font-size:13px;font-weight:600;color:#e2e8f0;margin-bottom:6px;letter-spacing:-.01em}
+        .ds-field input,.ds-field select,.ds-field textarea,
+        .modal-card input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+        .modal-card select,
+        .modal-card textarea{
+            width:100%;padding:10px 14px;
+            background:var(--bg-input)!important;
+            border:1px solid var(--border-subtle)!important;
+            border-radius:10px!important;
+            color:#f1f5f9!important;
+            font-size:14px;line-height:1.5;
+            transition:border-color .2s,box-shadow .2s;
+            outline:none
+        }
+        .modal-card input:focus,.modal-card select:focus,.modal-card textarea:focus,
+        .ds-field input:focus,.ds-field select:focus,.ds-field textarea:focus{
+            border-color:rgba(59,130,246,.45)!important;
+            box-shadow:0 0 0 3px rgba(59,130,246,.12)!important
+        }
+        .modal-card input::placeholder,.modal-card textarea::placeholder{color:var(--text-placeholder)!important}
+        .modal-card label{color:#e2e8f0!important;font-size:13px;font-weight:600}
+        .modal-card small{color:var(--text-muted);font-size:12px}
+        .modal-card p{color:#cbd5e1}
+        .modal-card .border-gray-200,.modal-card .border-gray-300{border-color:var(--border-subtle)!important}
+        .modal-card .bg-gray-50,.modal-card .bg-gray-100{background:rgba(255,255,255,.03)!important}
+        .modal-card .text-gray-900,.modal-card .text-gray-800,.modal-card .text-gray-700{color:#f1f5f9!important}
+        .modal-card .text-gray-600,.modal-card .text-gray-500{color:#cbd5e1!important}
+
+        /* ── Btn system ── */
+        .btn-ds-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;font-size:14px;font-weight:600;color:#fff;background:#3b82f6;border:none;border-radius:12px;cursor:pointer;transition:all .2s;min-height:42px}
+        .btn-ds-primary:hover{background:#2563eb;transform:translateY(-1px);box-shadow:0 4px 12px rgba(59,130,246,.35)}
+        .btn-ds-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;font-size:14px;font-weight:500;color:#cbd5e1;background:rgba(255,255,255,.05);border:1px solid var(--border-subtle);border-radius:12px;cursor:pointer;transition:all .2s;min-height:42px}
+        .btn-ds-secondary:hover{background:rgba(255,255,255,.10);color:#fff}
+        .btn-ds-danger{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;font-size:14px;font-weight:600;color:#fca5a5;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.2);border-radius:12px;cursor:pointer;transition:all .2s;min-height:42px}
+        .btn-ds-danger:hover{background:rgba(239,68,68,.2);color:#fff}
+        .btn-ds-success{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;font-size:14px;font-weight:600;color:#6ee7b7;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.2);border-radius:12px;cursor:pointer;transition:all .2s;min-height:42px}
+        .btn-ds-success:hover{background:rgba(16,185,129,.2);color:#fff}
+
+        /* Empty state */
+        .empty-state{text-align:center;padding:48px 24px}
+        .empty-state i{font-size:32px;color:#334155;margin-bottom:12px}
+        .empty-state p{font-size:14px;color:var(--text-muted);font-weight:500}
+
+        /* Form submit loading state */
+        .btn-loading{pointer-events:none;opacity:.7}
+        .btn-loading::after{content:'';width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:btn-spin .6s linear infinite;margin-left:8px}
+        @keyframes btn-spin{to{transform:rotate(360deg)}}
     </style>
 
     @stack('styles')
@@ -134,9 +195,24 @@
             .dash-bg .text-gray-900,.dash-bg .text-gray-800,.dash-bg .text-gray-700{color:#f1f5f9!important}
             .dash-bg .text-gray-600,.dash-bg .text-gray-500,.dash-bg .text-gray-400{color:#cbd5e1!important}
             /* Dark modals fallback — high contrast */
-            #add-modal>div,#edit-modal>div,#delete-modal>div,#add-sched-modal>div,#emailModal>div,#returnLogModal>div,#logout-modal>div{background:#131a2b!important;border:1px solid rgba(255,255,255,.07)!important;color:#f1f5f9!important}
-            #add-modal label,#edit-modal label,#delete-modal label,#add-sched-modal label,#emailModal label{color:#e2e8f0!important}
-            #add-modal input,#edit-modal input,#add-sched-modal input,#emailModal input,#returnLogModal select{color:#f1f5f9!important}
+            #add-modal>div,#edit-modal>div,#delete-modal>div,#add-sched-modal>div,#emailModal>div,#returnLogModal>div,#logout-modal>div{background:var(--bg-card,#131a2b)!important;border:1px solid var(--border-subtle,rgba(255,255,255,.07))!important;color:#f1f5f9!important;border-radius:20px!important;box-shadow:0 24px 64px rgba(0,0,0,.55)!important}
+            #add-modal label,#edit-modal label,#delete-modal label,#add-sched-modal label,#emailModal label,#returnLogModal label{color:#e2e8f0!important;font-size:13px;font-weight:600}
+            #add-modal input,#edit-modal input,#add-sched-modal input,#emailModal input,#returnLogModal select,
+            #add-modal select,#edit-modal select,#add-sched-modal select,#emailModal select,
+            #add-modal textarea,#edit-modal textarea,#returnLogModal textarea{
+                background:var(--bg-input,#0d1220)!important;border:1px solid var(--border-subtle,rgba(255,255,255,.07))!important;color:#f1f5f9!important;border-radius:10px!important;padding:10px 14px!important
+            }
+            #add-modal input:focus,#edit-modal input:focus,#add-sched-modal input:focus,#emailModal input:focus,
+            #add-modal select:focus,#edit-modal select:focus,#add-sched-modal select:focus,#emailModal select:focus,
+            #add-modal textarea:focus,#edit-modal textarea:focus,#returnLogModal textarea:focus{
+                border-color:rgba(59,130,246,.45)!important;box-shadow:0 0 0 3px rgba(59,130,246,.12)!important
+            }
+            #add-modal .border-gray-200,#edit-modal .border-gray-200,#delete-modal .border-gray-200,
+            #add-sched-modal .border-gray-200,#add-modal .border-t,#edit-modal .border-t{border-color:var(--border-subtle,rgba(255,255,255,.07))!important}
+            #add-modal .bg-gray-50,#add-sched-modal .bg-gray-50{background:rgba(255,255,255,.03)!important}
+            /* Modal button overrides */
+            #delete-modal .bg-red-500,#delete-modal .bg-red-600,#delete-modal .bg-danger-500{background:rgba(239,68,68,.15)!important;color:#fca5a5!important;border:1px solid rgba(239,68,68,.2)!important;border-radius:12px!important}
+            #delete-modal .bg-red-500:hover,#delete-modal .bg-red-600:hover,#delete-modal .bg-danger-500:hover{background:rgba(239,68,68,.25)!important;color:#fff!important}
             /* Low-contrast arbitrary colors — make readable */
             .text-\[\#8b93a8\]{color:#94a3b8!important}
             .text-\[\#6b7a99\]{color:#94a3b8!important}
@@ -295,6 +371,18 @@
             // Global error guard so one failing DataTable init doesn't kill other listeners
             window.addEventListener('error', function(ev) {
                 console.error('Global JS error (non-blocking):', ev.message, ev.filename, ev.lineno);
+            });
+
+            // Form submit loading state — prevent double-submit, add spinner
+            document.querySelectorAll('form').forEach(function(form) {
+                form.addEventListener('submit', function() {
+                    var btn = form.querySelector('button[type="submit"]');
+                    if (btn && !btn.classList.contains('btn-loading')) {
+                        btn.classList.add('btn-loading');
+                        // Remove after 8s in case of slow response
+                        setTimeout(function(){ btn.classList.remove('btn-loading'); }, 8000);
+                    }
+                });
             });
         });
     </script>

@@ -2,16 +2,16 @@
 <div class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm sidebar-overlay md:hidden" style="display: none;"></div>
 
 <!-- Sidebar — dark navy -->
-<div class="fixed inset-y-0 left-0 z-50 flex flex-col text-white sidebar w-80 bg-neutral-950 border-r border-white/5">
+<div class="fixed inset-y-0 left-0 z-50 flex flex-col text-white sidebar w-80">
     <!-- Header -->
     <div class="p-6 border-b border-white/5">
         <div class="flex items-center space-x-3">
-            <div class="flex items-center justify-center w-10 h-10 rounded-xl overflow-hidden bg-white/5 border border-white/10">
-                <img src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" alt="" class="w-full h-full object-cover">
+            <div class="flex items-center justify-center w-10 h-10 rounded-xl overflow-hidden bg-white p-0.5 border border-white/10 shadow-lg shadow-black/20">
+                <img src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" alt="" class="w-full h-full object-cover rounded-lg">
             </div>
             <div>
                 <h1 class="text-sm font-bold tracking-tight text-white">CICT Equipment</h1>
-                <p class="text-xs text-neutral-400">Management System</p>
+                <p class="text-xs" style="color:var(--text-muted)">Management System</p>
             </div>
         </div>
     </div>
@@ -50,17 +50,17 @@
 
     <!-- User Profile -->
     <div class="p-4 border-t border-white/5">
-        <div class="flex items-center gap-3 p-3 rounded-xl bg-neutral-900 border border-white/5">
+        <div class="flex items-center gap-3 p-3 rounded-xl" style="background:var(--bg-card);border:1px solid var(--border-subtle)">
             <img class="object-cover w-9 h-9 rounded-xl border border-white/10" src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" alt="Admin">
             <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-white truncate">{{ Auth::user()->name }}</p>
-                <p class="text-xs text-neutral-400 truncate">{{ Auth::user()->email }}</p>
+                <p class="text-xs truncate" style="color:var(--text-muted)">{{ Auth::user()->email }}</p>
             </div>
             <div class="relative">
                 <button id="settingsBtn" class="w-8 h-8 grid place-items-center rounded-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 transition">
                     <i class="fas fa-cog text-xs"></i>
                 </button>
-                <div id="logoutDropdown" class="absolute right-0 bottom-full mb-2 hidden w-44 bg-neutral-900 border border-white/10 shadow-xl rounded-xl overflow-hidden">
+                <div id="logoutDropdown" class="absolute right-0 bottom-full mb-2 hidden w-44 border border-white/10 shadow-xl rounded-xl overflow-hidden" style="background:var(--bg-card)">
                     <form id="logoutForm" method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="button" id="logoutBtn" class="w-full px-4 py-2.5 text-sm text-left text-neutral-200 hover:bg-white/5 flex items-center gap-2">

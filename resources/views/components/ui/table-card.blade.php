@@ -2,6 +2,6 @@
      Usage: <x-ui.table-card><table id="...">...</table></x-ui.table-card>
      Applies: outer card border, overflow handling, DataTables spacing
 --}}
-<div {{ $attributes->merge(['class' => 'table-card']) }}>
+<div {{ $attributes->merge(['class' => 'dash-card table-card overflow-hidden']) }}>
     {{ $slot }}
 </div>

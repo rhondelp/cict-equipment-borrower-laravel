@@ -5,27 +5,27 @@
 @section('content')
 <div class="dash-bg min-h-screen flex flex-col">
     <header class="sticky top-0 z-40 dash-header">
-        <div class="flex flex-wrap items-center justify-between px-4 py-3 gap-3">
+        <div class="flex flex-wrap items-center justify-between px-6 py-4 gap-3">
             <div class="flex items-center gap-2.5">
-                <img class="h-9 w-9 rounded-lg object-cover border border-white/10 bg-white/5" src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" alt="CICT">
+                <img class="h-9 w-9 rounded-xl object-cover border border-white/10 bg-white/5" src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" alt="CICT">
                 <div class="leading-none">
-                    <h1 class="text-xs font-medium tracking-widest uppercase text-neutral-400">Borrower</h1>
+                    <p class="text-xs font-medium tracking-widest uppercase" style="color:var(--text-muted)">Borrower</p>
                     <p class="text-sm font-semibold tracking-tight text-white">Dashboard</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <button id="open-add-modal" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 transition">
-                    <i class="fas fa-plus text-[10px]"></i> Request item
+                <button id="open-add-modal" class="btn-primary inline-flex items-center gap-2 !py-2 !px-4 !text-sm !rounded-xl">
+                    <i class="fas fa-plus text-xs"></i> Request Item
                 </button>
                 <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden">@csrf</form>
-                <button type="button" id="logout-btn" class="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10 transition flex items-center gap-1.5">
-                    <i class="fas fa-sign-out-alt text-[11px]"></i> Logout
+                <button type="button" id="logout-btn" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10 transition">
+                    <i class="fas fa-sign-out-alt text-xs"></i> Logout
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="flex-1 p-4 space-y-6 max-w-content w-full mx-auto">
+    <main class="flex-1 p-6 space-y-6 max-w-content w-full mx-auto">
         <section>
             <h2 class="flex items-center gap-2 mb-3 text-sm font-bold tracking-tight text-white">
                 <span class="w-7 h-7 rounded-lg bg-primary-500/15 border border-primary-500/20 grid place-items-center"><i class="fas fa-list text-primary-300 text-xs"></i></span>

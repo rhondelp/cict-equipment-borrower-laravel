@@ -6,19 +6,24 @@
 @include('components.admin.navbar')
 
 <div class="dash-bg min-h-screen md:ml-80">
-    <header class="dash-header">
-        <div class="flex items-center justify-between px-4 py-3">
-            <div>
-                <h1 class="text-xs font-medium tracking-widest uppercase text-neutral-400">Transactions</h1>
-                <p class="text-sm font-semibold tracking-tight text-white -mt-0.5">Borrow & returns</p>
+    <header class="sticky top-0 z-30 dash-header">
+        <div class="flex items-center justify-between px-6 py-4">
+            <div class="flex items-center gap-3">
+                <button id="menu-toggle" class="text-neutral-400 hover:text-white md:hidden">
+                    <i class="text-lg fas fa-bars"></i>
+                </button>
+                <div>
+                    <p class="text-xs font-medium tracking-widest uppercase" style="color:var(--text-muted)">Transactions</p>
+                    <p class="text-sm font-semibold tracking-tight text-white -mt-0.5">Borrow &amp; returns</p>
+                </div>
             </div>
-            <button id="open-add-modal" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 transition">
-                <i class="fas fa-plus text-[10px]"></i> Add transaction
+            <button id="open-add-modal" class="btn-primary inline-flex items-center gap-2 !py-2 !px-4 !text-sm !rounded-xl">
+                <i class="fas fa-plus text-xs"></i> Add Transaction
             </button>
         </div>
     </header>
 
-    <main class="p-4 space-y-4 max-w-content mx-auto">
+    <main class="p-6 space-y-5 max-w-content mx-auto">
         <x-ui.table-card>
             <table id="transactions-table" class="w-full display nowrap">
                 <thead>

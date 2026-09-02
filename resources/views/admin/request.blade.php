@@ -6,16 +6,21 @@
 @include('components.admin.navbar')
 
 <div class="dash-bg min-h-screen md:ml-80">
-    <header class="dash-header">
-        <div class="flex items-center justify-between px-4 py-3">
-            <div>
-                <h1 class="text-xs font-medium tracking-widest uppercase text-neutral-400">Requests</h1>
-                <p class="text-sm font-semibold tracking-tight text-white -mt-0.5">Item requests</p>
+    <header class="sticky top-0 z-30 dash-header">
+        <div class="flex items-center justify-between px-6 py-4">
+            <div class="flex items-center gap-3">
+                <button id="menu-toggle" class="text-neutral-400 hover:text-white md:hidden">
+                    <i class="text-lg fas fa-bars"></i>
+                </button>
+                <div>
+                    <p class="text-xs font-medium tracking-widest uppercase" style="color:var(--text-muted)">Requests</p>
+                    <p class="text-sm font-semibold tracking-tight text-white -mt-0.5">Item requests</p>
+                </div>
             </div>
         </div>
     </header>
 
-    <main class="p-4 space-y-4 max-w-content mx-auto">
+    <main class="p-6 space-y-5 max-w-content mx-auto">
         <x-ui.table-card>
             <table id="requestTable" class="w-full display nowrap">
                 <thead>
