@@ -14,6 +14,9 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
+                <button id="borrowerThemeToggle" class="w-8 h-8 grid place-items-center rounded-lg border border-white/10 bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10 transition" aria-label="Toggle theme">
+                    <i class="fas fa-moon text-xs"></i>
+                </button>
                 <button id="open-add-modal" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 transition">
                     <i class="fas fa-plus text-[10px]"></i> Request item
                 </button>
