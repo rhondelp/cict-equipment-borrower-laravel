@@ -1,8 +1,8 @@
 <!-- Add Equipment Modal — z-[60] above sidebar -->
 <div id="add-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] hidden">
-    <div class="w-full max-w-md mx-4 modal-card animate-fade-in">
+    <div class="w-full max-w-md mx-4 modal-card animate-fade-in" style="color: #f1f5f9;">
         <div class="modal-header">
-            <h3 class="flex items-center gap-2 text-white">
+            <h3 class="flex items-center gap-2" style="color: white;">
                 <i class="text-sm text-primary-700 fas fa-tools"></i> Add Equipment
             </h3>
             <button type="button" class="modal-close cancel-add" aria-label="Close">

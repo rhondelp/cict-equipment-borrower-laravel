@@ -1,9 +1,9 @@
 <!-- Add Transaction Modal -->
 <div id="add-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
-    <div class="modal-card max-w-2xl w-full mx-4 animate-fade-in">
+    <div class="modal-card max-w-2xl w-full mx-4 animate-fade-in" style="color: #f1f5f9;">
         <!-- Header -->
         <div class="modal-header">
-            <h3 class="flex items-center gap-2 text-white">
+            <h3 class="flex items-center gap-2" style="color: white;">
                 <i class="text-primary-300 fas fa-exchange-alt text-sm"></i> Add Transaction
             </h3>
             <button type="button" class="modal-close cancel-add" aria-label="Close">
