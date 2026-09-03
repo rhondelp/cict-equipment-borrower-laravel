@@ -1,23 +1,34 @@
-    <!-- Delete Confirmation Modal — z-[60] -->
-    <div id="delete-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
-        <div class="w-full max-w-md mx-4 bg-white shadow-2xl rounded-xl">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Delete Equipment</h3>
+<!-- Delete Confirmation Modal — z-[60] -->
+<div id="delete-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
+    <div class="modal-card max-w-md w-full mx-4 animate-fade-in">
+        <div class="modal-header">
+            <h3 class="flex items-center gap-2 text-red-400">
+                <i class="text-red-400 fas fa-exclamation-triangle text-sm"></i> Delete Equipment
+            </h3>
+            <button type="button" class="modal-close" id="cancel-delete" aria-label="Close">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
+
+        <form id="delete-form" method="POST" action="">
+            @csrf
+            @method('DELETE')
+            
+            <div class="modal-body space-y-3">
+                <p class="text-neutral-300">
+                    Are you sure you want to delete <span id="delete-item-name" class="font-semibold text-white"></span>?
+                </p>
+                <p class="text-xs text-red-400/80 leading-relaxed">
+                    <i class="fas fa-info-circle mr-1"></i> This action is irreversible and will permanently remove this item from the inventory.
+                </p>
             </div>
 
-            <div class="p-6">
-                <p class="text-gray-600">Are you sure you want to delete <span id="delete-item-name"
-                        class="font-semibold"></span>? This action cannot be undone.</p>
+            <div class="modal-footer">
+                <button type="button" id="cancel-delete-btn" class="btn-ds-secondary cancel-delete" onclick="document.getElementById('delete-modal').classList.add('hidden')">Cancel</button>
+                <button type="button" id="confirm-delete" class="btn-ds-danger">
+                    <i class="fas fa-trash-alt text-xs mr-1"></i> Delete
+                </button>
             </div>
-            <form id="delete-form" method="POST" action="">
-                @csrf
-                @method('DELETE')
-                <div class="flex justify-end px-6 py-4 space-x-3 border-t border-gray-200">
-                    <button type="button" id="cancel-delete"
-                        class="px-4 py-2 font-medium text-gray-600 hover:text-gray-800">Cancel</button>
-                    <button type="button" id="confirm-delete"
-                        class="px-4 py-2 font-medium text-white transition-colors duration-200 bg-red-500 rounded-lg hover:bg-red-600">Delete</button>
-                </div>
-            </form>
-        </div>
+        </form>
     </div>
+</div>

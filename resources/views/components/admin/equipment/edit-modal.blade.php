@@ -1,60 +1,57 @@
+<!-- Edit Equipment Modal — z-[60] -->
+<div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] hidden">
+    <div class="modal-card max-w-md w-full mx-4 animate-fade-in">
+        <div class="modal-header">
+            <h3 class="flex items-center gap-2">
+                <i class="text-primary-300 fas fa-edit text-sm"></i> Edit Equipment
+            </h3>
+            <button type="button" class="modal-close cancel-edit" id="cancel-edit-x" aria-label="Close">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
 
-    <!-- Edit Equipment Modal — z-[60] -->
-    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] hidden">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Edit Equipment</h3>
-            </div>
+        <form id="edit-form" action="{{ route('admin.equipment.update') }}" method="POST">
+            @csrf
+            <input type="hidden" id="edit-id" name="id">
 
-            <form id="edit-form" action="{{ route('admin.equipment.update') }}" method="POST" class="p-6 space-y-4">
-                @csrf
-                <input type="hidden" id="edit-id" name="id">
-
-                <div>
-                    <label for="edit-name" class="block text-sm font-medium text-gray-700 mb-1">Equipment Name</label>
-                    <input type="text" id="edit-name" name="equipment_name"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <div class="modal-body space-y-4">
+                <div class="ds-field">
+                    <label for="edit-name">Equipment Name</label>
+                    <input type="text" id="edit-name" name="equipment_name" required placeholder="Enter equipment name">
                 </div>
 
-                <div>
-                    <label for="edit-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea id="edit-description" name="description" rows="3"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                <div class="ds-field">
+                    <label for="edit-description">Description</label>
+                    <textarea id="edit-description" name="description" rows="3" placeholder="Describe the equipment..."></textarea>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="edit-quantity" class="block text-sm font-medium text-gray-700 mb-1">Total
-                            Quantity</label>
-                        <input type="number" id="edit-quantity" name="quantity"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <div class="ds-field">
+                        <label for="edit-quantity">Total Quantity</label>
+                        <input type="number" id="edit-quantity" name="quantity" required min="1" placeholder="0" class="tabular-nums">
                     </div>
 
-                    <div>
-                        <label for="edit-available" class="block text-sm font-medium text-gray-700 mb-1">Available
-                            Quantity</label>
-                        <input type="number" id="edit-available" name="available_quantity"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <div class="ds-field">
+                        <label for="edit-available">Available Quantity</label>
+                        <input type="number" id="edit-available" name="available_quantity" required min="0" placeholder="0" class="tabular-nums">
                     </div>
                 </div>
 
-                <div>
-                    <label for="edit-status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select id="edit-status" name="status"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <div class="ds-field">
+                    <label for="edit-status">Status</label>
+                    <select id="edit-status" name="status">
                         <option value="Available">Available</option>
                         <option value="Unavailable">Unavailable</option>
                     </select>
                 </div>
-                <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
-                    <button type="button" id="cancel-edit"
-                        class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">Cancel</button>
-                    <button type="submit" id="save-edit"
-                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium transition-colors duration-200">Save
-                        Changes</button>
-                </div>
-            </form>
+            </div>
 
-
-        </div>
+            <div class="modal-footer">
+                <button type="button" id="cancel-edit" class="btn-ds-secondary cancel-edit">Cancel</button>
+                <button type="submit" id="save-edit" class="btn-ds-primary">
+                    <i class="fas fa-save text-xs mr-1"></i> Save Changes
+                </button>
+            </div>
+        </form>
     </div>
+</div>
