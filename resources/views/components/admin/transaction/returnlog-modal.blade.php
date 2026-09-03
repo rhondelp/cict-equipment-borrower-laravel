@@ -3,7 +3,7 @@
     <div class="modal-card max-w-sm w-full mx-4 animate-fade-in">
         <!-- Header -->
         <div class="modal-header">
-            <h3 class="flex items-center gap-2">
+            <h3 class="flex items-center gap-2 text-white">
                 <i class="text-primary-300 fas fa-undo text-sm"></i> Return Equipment
             </h3>
             <button type="button" class="modal-close" id="cancelReturn-x" aria-label="Close" onclick="document.getElementById('returnLogModal').classList.add('hidden')">

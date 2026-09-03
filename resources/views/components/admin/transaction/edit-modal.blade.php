@@ -1,13 +1,13 @@
 <!-- Edit Transaction Modal — z-[60] above sidebar -->
 <div id="edit-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50 backdrop-blur-sm">
-    <div class="w-full max-w-2xl mx-4 modal-card animate-fade-in">
+    <div class="modal-card max-w-2xl w-full mx-4 animate-fade-in">
         <!-- Header -->
         <div class="modal-header">
-            <h3 class="flex items-center gap-2">
-                <i class="text-sm text-primary-700 fas fa-edit"></i> Edit Transaction
+            <h3 class="flex items-center gap-2 text-white">
+                <i class="text-primary-300 fas fa-edit text-sm"></i> Edit Transaction
             </h3>
             <button type="button" class="modal-close cancel-edit" id="cancel-edit-x" aria-label="Close">
-                <i class="text-xs fas fa-times"></i>
+                <i class="fas fa-times text-xs"></i>
             </button>
         </div>
 
@@ -96,7 +96,7 @@
             <div class="modal-footer">
                 <button type="button" id="cancel-edit" class="btn-ds-secondary cancel-edit">Cancel</button>
                 <button type="submit" class="btn-ds-primary">
-                    <i class="mr-1 text-xs fas fa-save"></i> Update Transaction
+                    <i class="fas fa-save text-xs mr-1"></i> Update Transaction
                 </button>
             </div>
         </form>

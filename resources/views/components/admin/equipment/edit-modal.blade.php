@@ -2,11 +2,11 @@
 <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] hidden">
     <div class="w-full max-w-md mx-4 modal-card animate-fade-in">
         <div class="modal-header">
-            <h3 class="flex items-center gap-2">
-                <i class="text-sm text-primary-700 fas fa-edit"></i> Edit Equipment
+            <h3 class="flex items-center gap-2 text-white">
+                <i class="text-primary-300 fas fa-edit text-sm"></i> Edit Equipment
             </h3>
             <button type="button" class="modal-close cancel-edit" id="cancel-edit-x" aria-label="Close">
-                <i class="text-xs fas fa-times"></i>
+                <i class="fas fa-times text-xs"></i>
             </button>
         </div>
 
@@ -14,7 +14,7 @@
             @csrf
             <input type="hidden" id="edit-id" name="id">
 
-            <div class="space-y-4 modal-body">
+            <div class="modal-body space-y-4">
                 <div class="ds-field">
                     <label for="edit-name">Equipment Name</label>
                     <input type="text" id="edit-name" name="equipment_name" required placeholder="Enter equipment name">
@@ -49,7 +49,7 @@
             <div class="modal-footer">
                 <button type="button" id="cancel-edit" class="btn-ds-secondary cancel-edit">Cancel</button>
                 <button type="submit" id="save-edit" class="btn-ds-primary">
-                    <i class="mr-1 text-xs fas fa-save"></i> Save Changes
+                    <i class="fas fa-save text-xs mr-1"></i> Save Changes
                 </button>
             </div>
         </form>

@@ -3,7 +3,7 @@
     <div class="modal-card max-w-md w-full mx-4 animate-fade-in">
         <!-- Header -->
         <div class="modal-header">
-            <h3 class="flex items-center gap-2">
+            <h3 class="flex items-center gap-2 text-white">
                 <i class="text-primary-300 fas fa-paper-plane text-sm"></i> Send Email Notification
             </h3>
             <button type="button" class="modal-close" id="closeEmailModal-x" aria-label="Close" onclick="document.getElementById('emailModal').classList.add('hidden')">

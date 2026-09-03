@@ -3,7 +3,7 @@
     <div class="modal-card max-w-xl w-full mx-4 animate-fade-in">
         <!-- Modal Header -->
         <div class="modal-header">
-            <h3 class="flex items-center gap-2">
+            <h3 class="flex items-center gap-2 text-white">
                 <i class="text-primary-300 fas fa-plus text-sm"></i> New Item Request
             </h3>
             <button type="button" class="modal-close cancel-add" aria-label="Close">
