@@ -345,14 +345,14 @@
 .dash-bg .bg-white { background: #131a2b !important; color: #f1f5f9 !important; border-color: rgba(255,255,255,0.06) !important; }
 .dash-bg .bg-gray-50, .dash-bg .bg-gray-100 { background: #0d1220 !important; color: #e2e8f0 !important; }
 /* All gray text on dark must be light enough — override every shade */
-.dash-bg .text-gray-900, .dash-bg .text-gray-800, .dash-bg .text-gray-700 { color: #f1f5f9 !important; }
+.dash-bg .text-gray-900, .dash-bg .text-gray-800, .dash-bg .text-gray-700 { color: #fff !important; }
 .dash-bg .text-gray-600, .dash-bg .text-gray-500, .dash-bg .text-gray-400, .dash-bg .text-gray-300 { color: #cbd5e1 !important; }
 .dash-bg .text-slate-800, .dash-bg .text-slate-700, .dash-bg .text-slate-600 { color: #e2e8f0 !important; }
 .dash-bg .border-gray-200, .dash-bg .border-gray-300 { border-color: rgba(255,255,255,0.07) !important; }
 .dash-bg table tbody tr { border-color: rgba(255,255,255,0.05) !important; }
 .dash-bg table tbody tr:hover { background: rgba(255,255,255,0.03) !important; }
 .dash-bg table td { color: #e2e8f0 !important; }
-.dash-bg table th { color: #f1f5f9 !important; font-weight: 600 !important; }
+.dash-bg table th { color: #fff !important; font-weight: 600 !important; }
 .dash-bg p, .dash-bg span, .dash-bg li, .dash-bg td { line-height: 1.5; }
 .dash-bg h1, .dash-bg h2, .dash-bg h3 { color: #fff !important; letter-spacing: -0.01em; }
 
@@ -362,7 +362,7 @@
 #logout-modal > div, #add-modal .bg-white, #edit-modal .bg-white, #delete-modal .bg-white {
   background: #131a2b !important;
   border: 1px solid rgba(255,255,255,0.07) !important;
-  color: #f1f5f9 !important;
+  color: #fff !important;
 }
 #add-modal label, #edit-modal label, #delete-modal label,
 #add-sched-modal label, #emailModal label { color: #e2e8f0 !important; font-weight: 500; }
@@ -371,7 +371,7 @@
 #emailModal input, #emailModal select, #emailModal textarea, #returnLogModal select, #returnLogModal textarea {
   background: #0d1220 !important;
   border: 1px solid rgba(255,255,255,0.09) !important;
-  color: #f1f5f9 !important;
+  color: #fff !important;
 }
 #add-modal input::placeholder, #edit-modal input::placeholder, #add-sched-modal input::placeholder { color: var(--text-placeholder) !important; opacity: 1; }
 
