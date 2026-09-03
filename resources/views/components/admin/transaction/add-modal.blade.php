@@ -1,13 +1,13 @@
 <!-- Add Transaction Modal -->
 <div id="add-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
-    <div class="modal-card max-w-2xl w-full mx-4 animate-fade-in">
+    <div class="w-full max-w-2xl mx-4 modal-card animate-fade-in">
         <!-- Header -->
         <div class="modal-header">
             <h3 class="flex items-center gap-2">
-                <i class="text-primary-300 fas fa-exchange-alt text-sm"></i> Add Transaction
+                <i class="text-sm text-primary-700 fas fa-exchange-alt"></i> Add Transaction
             </h3>
             <button type="button" class="modal-close cancel-add" aria-label="Close">
-                <i class="fas fa-times text-xs"></i>
+                <i class="text-xs fas fa-times"></i>
             </button>
         </div>
 
@@ -34,8 +34,8 @@
                         <option value="{{ $eq->id }}">{{ $eq->id }} | {{ $eq->equipment_name }} (Available: {{ $eq->available_quantity }})</option>
                         @endforeach
                     </select>
-                    <small class="text-xs mt-1 block" style="color:var(--text-muted)">
-                        <i class="fas fa-info-circle mr-1"></i> Hold Ctrl (Windows) or Command (Mac) to select multiple items.
+                    <small class="block mt-1 text-xs" style="color:var(--text-muted)">
+                        <i class="mr-1 fas fa-info-circle"></i> Hold Ctrl (Windows) or Command (Mac) to select multiple items.
                     </small>
                 </div>
 
@@ -98,7 +98,7 @@
             <div class="modal-footer">
                 <button type="button" id="cancel-add" class="btn-ds-secondary cancel-add">Cancel</button>
                 <button type="submit" class="btn-ds-primary">
-                    <i class="fas fa-save text-xs mr-1"></i> Create Transaction
+                    <i class="mr-1 text-xs fas fa-save"></i> Create Transaction
                 </button>
             </div>
         </form>
