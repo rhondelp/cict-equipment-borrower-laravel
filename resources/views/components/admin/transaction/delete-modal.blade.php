@@ -2,7 +2,7 @@
 <div id="delete-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
     <div class="w-full max-w-md mx-4 modal-card animate-fade-in" style="color: #f1f5f9;">
         <div class="modal-header">
-            <h3 class="flex items-center gap-2" style="color: white;">
+            <h3 class="flex items-center gap-2" style="color: white !important;">
                 <i class="text-red-400 fas fa-exclamation-triangle text-sm"></i> Delete Transaction
             </h3>
             <button type="button" class="modal-close" id="cancel-delete-x" aria-label="Close" onclick="document.getElementById('delete-modal').classList.add('hidden')">

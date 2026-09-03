@@ -3,7 +3,7 @@
     <div class="modal-card max-w-2xl w-full mx-4 animate-fade-in" style="color: #f1f5f9;">
         <!-- Header -->
         <div class="modal-header">
-            <h3 class="flex items-center gap-2" style="color: white;">
+            <h3 class="flex items-center gap-2" style="color: white !important;">
                 <i class="text-primary-300 fas fa-edit text-sm"></i> Edit Transaction
             </h3>
             <button type="button" class="modal-close cancel-edit" id="cancel-edit-x" aria-label="Close">

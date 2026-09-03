@@ -1,9 +1,9 @@
 <!-- Email Modal — z-[60] -->
 <div id="emailModal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
-    <div class="modal-card max-w-md w-full mx-4 animate-fade-in">
+    <div class="modal-card max-w-md w-full mx-4 animate-fade-in" style="color: #f1f5f9;">
         <!-- Header -->
         <div class="modal-header">
-            <h3 class="flex items-center gap-2 text-white">
+            <h3 class="flex items-center gap-2" style="color: white !important;">
                 <i class="text-primary-300 fas fa-paper-plane text-sm"></i> Send Email Notification
             </h3>
             <button type="button" class="modal-close" id="closeEmailModal-x" aria-label="Close" onclick="document.getElementById('emailModal').classList.add('hidden')">
