@@ -20,13 +20,13 @@ class User extends Controller
     public function adminUser()
     {
         $users = UserModel::with('classSchedules')->get();
-        $instructors = UserModel::whereRaw(
-            'LOWER(user_type) = ?',
-            ['instructor']
-        )->get();
+    $instructors = UserModel::where('user_type', 'Instructor')->get();
+
+    dd($instructors);
 
 
-        return view('admin.user', compact('users', 'instructors'));
+
+        // return view('admin.user', compact('users', 'instructors'));
     }
 
 
