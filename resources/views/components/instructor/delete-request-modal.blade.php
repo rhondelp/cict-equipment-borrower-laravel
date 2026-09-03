@@ -1,19 +1,32 @@
 <!-- Delete Modal — z-[60] -->
 <div id="delete-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
-    <div class="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
-        <h2 class="mb-4 text-xl font-semibold">Delete Item Request</h2>
+    <div class="modal-card max-w-md w-full mx-4 animate-fade-in">
+        <div class="modal-header">
+            <h3 class="flex items-center gap-2 text-red-400">
+                <i class="text-red-400 fas fa-exclamation-triangle text-sm"></i> Delete Item Request
+            </h3>
+            <button type="button" class="modal-close" id="cancel-delete-x" aria-label="Close" onclick="document.getElementById('delete-modal').classList.add('hidden')">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
+
         <form id="delete-form" method="POST">
             @csrf
             @method('DELETE')
-            <p class="mb-4">Are you sure you want to delete <strong id="delete-item-name" class="text-red-600"></strong>?</p>
-            <div class="flex justify-end space-x-2">
-                <button type="button" id="cancel-delete"
-                        class="px-4 py-2 text-gray-800 bg-gray-300 rounded hover:bg-gray-400">
-                    Cancel
-                </button>
-                <button type="submit"
-                        class="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700">
-                    Confirm Delete
+            
+            <div class="modal-body space-y-3">
+                <p class="text-neutral-300">
+                    Are you sure you want to delete <strong id="delete-item-name" class="text-white font-semibold"></strong>?
+                </p>
+                <p class="text-xs text-red-400/80 leading-relaxed">
+                    <i class="fas fa-info-circle mr-1"></i> This action is irreversible and will remove this request.
+                </p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" id="cancel-delete" class="btn-ds-secondary">Cancel</button>
+                <button type="submit" class="btn-ds-danger">
+                    <i class="fas fa-trash-alt text-xs mr-1"></i> Confirm Delete
                 </button>
             </div>
         </form>

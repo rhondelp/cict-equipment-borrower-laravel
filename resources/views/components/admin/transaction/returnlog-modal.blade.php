@@ -1,27 +1,42 @@
 <!-- Return Log Modal — z-[60] -->
 <div id="returnLogModal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
-    <div class="p-6 bg-white rounded-lg shadow-lg w-96">
-        <h2 class="mb-4 text-lg font-bold">Return Equipment</h2>
+    <div class="modal-card max-w-sm w-full mx-4 animate-fade-in">
+        <!-- Header -->
+        <div class="modal-header">
+            <h3 class="flex items-center gap-2">
+                <i class="text-primary-300 fas fa-undo text-sm"></i> Return Equipment
+            </h3>
+            <button type="button" class="modal-close" id="cancelReturn-x" aria-label="Close" onclick="document.getElementById('returnLogModal').classList.add('hidden')">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
 
         <form id="returnLogForm">
             <input type="hidden" id="return-transaction-id">
 
-            <!-- Condition -->
-            <label class="block mb-1 text-sm font-medium text-gray-700">Condition</label>
-            <select id="return-condition" class="w-full p-2 mb-4 border rounded">
-                <option value="Good">Good</option>
-                <option value="Damaged">Damaged</option>
-                <option value="Needs Repair">Needs Repair</option>
-            </select>
+            <div class="modal-body space-y-4">
+                <!-- Condition -->
+                <div class="ds-field">
+                    <label for="return-condition">Condition</label>
+                    <select id="return-condition">
+                        <option value="Good">Good</option>
+                        <option value="Damaged">Damaged</option>
+                        <option value="Needs Repair">Needs Repair</option>
+                    </select>
+                </div>
 
-            <!-- Remarks -->
-            <label class="block mb-1 text-sm font-medium text-gray-700">Remarks</label>
-            <textarea id="return-remarks" class="w-full p-2 mb-4 border rounded"
-                placeholder="Optional remarks..."></textarea>
+                <!-- Remarks -->
+                <div class="ds-field">
+                    <label for="return-remarks">Remarks</label>
+                    <textarea id="return-remarks" rows="3" placeholder="Optional remarks..."></textarea>
+                </div>
+            </div>
 
-            <div class="flex justify-end space-x-2">
-                <button type="button" id="cancelReturn" class="px-3 py-1 bg-gray-300 rounded">Cancel</button>
-                <button type="submit" class="px-3 py-1 text-white bg-gray-900 rounded">Confirm</button>
+            <div class="modal-footer">
+                <button type="button" id="cancelReturn" class="btn-ds-secondary">Cancel</button>
+                <button type="submit" class="btn-ds-primary">
+                    <i class="fas fa-check text-xs mr-1"></i> Confirm Return
+                </button>
             </div>
         </form>
     </div>
