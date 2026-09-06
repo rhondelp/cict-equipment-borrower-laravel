@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ItemRequest;
 use App\Models\BorrowTransaction;
 use App\Models\Equipment;
-use App\Models\User;
+use App\Models\ItemRequest;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Carbon\Carbon;
 
 class ItemRequestController extends Controller
 {
@@ -19,15 +18,9 @@ class ItemRequestController extends Controller
      */
     public function index()
     {
-        // $requests = ItemRequest::all();
-        // $users = User::all();
-        // return view('admin.request', compact('requests', 'users'));
-
-        // With eager loading
         $requests = ItemRequest::with(['user', 'equipment'])->get();
-        return view('admin.request', compact('requests'));
 
-        // return $requests;
+        return view('admin.request', compact('requests'));
     }
 
     public function requestActions(Request $request)
@@ -37,7 +30,7 @@ class ItemRequestController extends Controller
 
         // Authorization / idempotency: only pending requests can be processed
         if ($itemRequest->status !== 'Pending') {
-            return back()->with('error', 'Request has already been ' . strtolower($itemRequest->status) . '.');
+            return back()->with('error', 'Request has already been '.strtolower($itemRequest->status).'.');
         }
 
         $isApprove = $request->route()->getName() === 'admin.request.approve';
@@ -50,7 +43,7 @@ class ItemRequestController extends Controller
                     $equipment = Equipment::where('id', $itemRequest->equipment_id)->lockForUpdate()->firstOrFail();
 
                     if ($equipment->available_quantity < $itemRequest->quantity) {
-                        throw ValidationException::withMessages(['quantity' => 'Not enough ' . $equipment->equipment_name . ' available (have ' . $equipment->available_quantity . ', need ' . $itemRequest->quantity . ').']);
+                        throw ValidationException::withMessages(['quantity' => 'Not enough '.$equipment->equipment_name.' available (have '.$equipment->available_quantity.', need '.$itemRequest->quantity.').']);
                     }
 
                     // Deduct stock
@@ -65,14 +58,14 @@ class ItemRequestController extends Controller
                     // Auto-create BorrowTransaction so approved requests don't sit idle.
                     // Dates default to today / +7 days; purpose falls back to remarks.
                     BorrowTransaction::create([
-                        'user_id'           => $itemRequest->user_id,
-                        'equipment_id'      => $itemRequest->equipment_id,
-                        'borrow_date'       => Carbon::today()->toDateString(),
-                        'return_date'       => Carbon::today()->addDays(7)->toDateString(),
-                        'quantity'          => $itemRequest->quantity,
-                        'purpose'           => $itemRequest->remarks ? mb_substr($itemRequest->remarks, 0, 250) : 'Approved item request #' . $itemRequest->id,
-                        'status'            => 'Borrowed',
-                        'remarks'           => $itemRequest->remarks,
+                        'user_id' => $itemRequest->user_id,
+                        'equipment_id' => $itemRequest->equipment_id,
+                        'borrow_date' => Carbon::today()->toDateString(),
+                        'return_date' => Carbon::today()->addDays(7)->toDateString(),
+                        'quantity' => $itemRequest->quantity,
+                        'purpose' => $itemRequest->remarks ? mb_substr($itemRequest->remarks, 0, 250) : 'Approved item request #'.$itemRequest->id,
+                        'status' => 'Borrowed',
+                        'remarks' => $itemRequest->remarks,
                         'class_schedule_id' => null,
                     ]);
                 });
@@ -86,12 +79,12 @@ class ItemRequestController extends Controller
         if ($isDecline) {
             $itemRequest->status = 'Declined';
             $itemRequest->save();
+
             return back()->with('success', 'Request has been declined.');
         }
 
         return back()->with('error', 'Unknown action.');
     }
-
 
     /**
      * Show the form for creating a new resource.

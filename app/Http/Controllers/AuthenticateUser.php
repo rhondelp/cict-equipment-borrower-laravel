@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\BorrowTransaction;
@@ -9,36 +10,27 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Carbon\Carbon;
 
 class AuthenticateUser extends Controller
 {
-    //
     public function adminView()
     {
-        // $equipments   = Equipment::all();
-        // $users        = User::all();
-        // $transactions = BorrowTransaction::all();
-        // $requests     = ItemRequest::all();
-        // $returnLogs   = ReturnLog::with(['borrower', 'receiver', 'equipment'])->orderBy('created_at', 'desc')->get();
-        // return view('admin.dashboard', compact('equipments', 'users', 'transactions', 'requests', 'returnLogs'));
-
-        //with eager loading
-        $equipments   = Equipment::with(['borrowTransactions', 'itemRequests'])->get();
-        $users        = User::with(['borrowTransactions', 'itemRequests'])->get();
+        $equipments = Equipment::with(['borrowTransactions', 'itemRequests'])->get();
+        $users = User::with(['borrowTransactions', 'itemRequests'])->get();
         $transactions = BorrowTransaction::with(['user', 'equipment'])->get();
-        $requests     = ItemRequest::with(['user', 'equipment'])->get();
-        $returnLogs   = ReturnLog::with(['borrower', 'receiver', 'equipment'])->latest()->get();
-        return view('admin.dashboard', compact('equipments', 'users', 'transactions', 'requests', 'returnLogs'));
+        $requests = ItemRequest::with(['user', 'equipment'])->get();
+        $returnLogs = ReturnLog::with(['borrower', 'receiver', 'equipment'])->latest()->get();
 
+        return view('admin.dashboard', compact('equipments', 'users', 'transactions', 'requests', 'returnLogs'));
     }
 
     public function borrowerView()
     {
-        $userId       = Auth::id();
-        $requests     = ItemRequest::where('user_id', $userId)->with('equipment')->get();
+        $userId = Auth::id();
+        $requests = ItemRequest::where('user_id', $userId)->with('equipment')->get();
         $transactions = BorrowTransaction::where('user_id', $userId)->with('equipment')->get();
-        $equipments   = Equipment::all();
+        $equipments = Equipment::all();
+
         return view('borrower.dashboard', compact('requests', 'transactions', 'equipments'));
     }
 
@@ -50,7 +42,7 @@ class AuthenticateUser extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required',
         ]);
 
@@ -59,7 +51,7 @@ class AuthenticateUser extends Controller
                 $request->session()->regenerate();
 
                 $user = Auth::user();
-                $msg = 'Welcome back, ' . $user->name . '!';
+                $msg = 'Welcome back, '.$user->name.'!';
                 // FIX: flash both 'welcome' (legacy) and 'success' so shared alerts + existing checks show it
                 $request->session()->flash('welcome', $msg);
                 $request->session()->flash('success', $msg);
@@ -76,7 +68,7 @@ class AuthenticateUser extends Controller
             ])->onlyInput('email');
 
         } catch (\Exception $e) {
-            \Log::error('Login error: ' . $e->getMessage());
+            \Log::error('Login error: '.$e->getMessage());
 
             return back()->withErrors([
                 'email' => 'Something went wrong. Please try again later.',
@@ -102,10 +94,10 @@ class AuthenticateUser extends Controller
     public function register(Request $request)
     {
         $validatedData = $request->validate([
-            'user_type'      => 'required|in:Admin,Instructor,Student',
-            'name'           => 'required|string|max:255',
-            'email'          => 'required|string|email|max:255|unique:users',
-            'password'       => 'required|string|min:4|confirmed',
+            'user_type' => 'required|in:Admin,Instructor,Student',
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:4|confirmed',
             'contact_number' => 'nullable|string|max:15',
         ]);
 
@@ -115,14 +107,13 @@ class AuthenticateUser extends Controller
             : 'Student';
 
         $user = User::create([
-            'user_type'      => $userType,
-            'name'           => $validatedData['name'],
-            'email'          => $validatedData['email'],
-            'password'       => Hash::make($validatedData['password']),
+            'user_type' => $userType,
+            'name' => $validatedData['name'],
+            'email' => $validatedData['email'],
+            'password' => Hash::make($validatedData['password']),
             'contact_number' => $validatedData['contact_number'] ?? null,
         ]);
 
         return redirect()->back()->with('success', 'User added successfully!');
-
     }
 }
