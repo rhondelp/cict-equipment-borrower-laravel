@@ -1,102 +1,106 @@
 @extends('components.default')
-
 @section('title', 'Borrow Transactions - CICT Equipment Borrower System')
-
 @section('content')
 @include('components.admin.navbar')
 
-<div class="dash-bg min-h-screen md:ml-80">
-    <header class="sticky top-0 z-30 dash-header">
-        <div class="flex items-center justify-between px-6 py-4">
-            <div class="flex items-center gap-3">
-                <button id="menu-toggle" class="text-neutral-400 hover:text-white md:hidden">
-                    <i class="text-lg fas fa-bars"></i>
-                </button>
-                <div>
-                    <p class="text-xs font-medium tracking-widest uppercase" style="color:var(--text-muted)">Transactions</p>
-                    <p class="text-sm font-semibold tracking-tight text-white -mt-0.5">Borrow &amp; returns</p>
-                </div>
-            </div>
-            <button id="open-add-modal" class="btn-primary inline-flex items-center gap-2 !py-2 !px-4 !text-sm !rounded-xl">
+<div class="page-bg min-h-screen md:ml-64">
+    <x-ui.page-header eyebrow="Transactions" title="Borrow & returns">
+        <x-slot:actions>
+            <button id="open-add-modal" type="button"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">
                 <i class="fas fa-plus text-xs"></i> Add Transaction
             </button>
-        </div>
-    </header>
+        </x-slot:actions>
+    </x-ui.page-header>
 
-    <main class="p-6 space-y-5 max-w-content mx-auto">
+    <main class="p-4 sm:p-6 space-y-5 max-w-content mx-auto">
         <x-ui.table-card>
-            <table id="transactions-table" class="w-full display nowrap">
-                <thead>
-                    <tr>
-                        <th>User</th>
-                        <th>Equipment</th>
-                        <th>Borrow date</th>
-                        <th>Return date</th>
-                        <th>Qty</th>
-                        <th>Purpose</th>
-                        <th>Status</th>
-                        <th>Remarks</th>
-                        <th>Class sched</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($transactions as $tx)
-                    @php
-                    $returnDate = $tx->return_date ? \Carbon\Carbon::parse($tx->return_date)->format('Y-m-d') : null;
-                    $isDueToday = $returnDate === now()->format('Y-m-d');
-                    $statusVariant = ['Borrowed' => 'warning', 'Returned' => 'success', 'Overdue' => 'danger'][$tx->status] ?? 'neutral';
-                    @endphp
-                    <tr>
-                        <td class="font-medium text-white">{{ $tx->user->name ?? 'Deleted User' }}</td>
-                        <td>{{ $tx->equipment->equipment_name ?? 'Deleted Equipment' }}</td>
-                        <td class="tabular-nums">{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}</td>
-                        <td class="tabular-nums @if($isDueToday) text-danger-300 font-semibold @endif">{{ $returnDate ?? '—' }}</td>
-                        <td class="tabular-nums">{{ $tx->quantity }}</td>
-                        <td class="max-w-[14rem] truncate" title="{{ $tx->purpose }}">{{ $tx->purpose }}</td>
-                        <td>
-                            <select class="status-dropdown px-2.5 py-1 text-xs font-semibold rounded-full border focus:outline-none focus:ring-2 focus:ring-primary-500/30 bg-neutral-800 text-neutral-100 border-white/10
-                        @if($tx->status === 'Borrowed') bg-warning-500/15 text-warning-300 border-warning-500/20 @endif
-                        @if($tx->status === 'Returned') bg-success-500/15 text-success-300 border-success-500/20 @endif
-                        @if($tx->status === 'Overdue') bg-danger-500/15 text-danger-300 border-danger-500/20 @endif"
-                                data-id="{{ $tx->id }}">
-                                <option value="Borrowed" {{ $tx->status === 'Borrowed' ? 'selected' : '' }}>Borrowed</option>
-                                <option value="Returned" {{ $tx->status === 'Returned' ? 'selected' : '' }}>Returned</option>
-                                <option value="Overdue" {{ $tx->status === 'Overdue' ? 'selected' : '' }}>Overdue</option>
-                            </select>
-                        </td>
-                        <td class="text-neutral-400">{{ $tx->remarks ?? '—' }}</td>
-                        <td class="text-sm">
-                            @if ($tx->classSchedule)
-                            {{ $tx->classSchedule->schedule_time }} - {{ $tx->classSchedule->instructor?->name ?? 'No Instructor' }} - {{ $tx->classSchedule->room }}
-                            @else
-                            <span class="text-neutral-400">No Schedule</span>
-                            @endif
-                        </td>
-                        <td>
-                            <div class="flex items-center gap-1.5">
-                                <button
-                                    class="px-2.5 py-1 text-xs font-medium bg-neutral-700/40 text-neutral-200 border border-white/10 rounded-md hover:bg-neutral-700/60 transition edit-btn"
-                                    data-id="{{ $tx->id }}" data-user="{{ $tx->user->id ?? '' }}"
-                                    data-equipment="{{ $tx->equipment->id ?? '' }}"
-                                    data-borrow="{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}"
-                                    data-return="{{ $returnDate }}" data-quantity="{{ $tx->quantity }}"
-                                    data-purpose="{{ $tx->purpose }}" data-status="{{ $tx->status }}"
-                                    data-remarks="{{ $tx->remarks ?? '' }}"
-                                    data-class="{{ $tx->classSchedule->id ?? '' }}">
-                                    <i class="fas fa-edit text-[11px]"></i> Edit
-                                </button>
-                                <button
-                                    class="px-2.5 py-1 text-xs font-medium border border-white/10 bg-white/5 text-neutral-300 rounded-md hover:bg-white/10 transition send-email-btn"
-                                    data-id="{{ $tx->id }}" data-user-email="{{ $tx->user->email ?? '' }}">
-                                    <i class="fas fa-envelope text-[11px]"></i> Email
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+            @if($transactions->isEmpty())
+                <div class="py-16 text-center">
+                    <i class="fas fa-exchange-alt text-4xl text-neutral-300 mb-3 block"></i>
+                    <p class="text-sm font-medium text-neutral-700">No transactions yet</p>
+                    <p class="text-xs text-neutral-500 mt-1">Click "Add Transaction" to log a new borrow.</p>
+                </div>
+            @else
+                <div class="overflow-x-auto">
+                    <table id="transactions-table" class="w-full display nowrap text-sm">
+                        <thead>
+                            <tr class="text-xs uppercase tracking-wider text-neutral-500 bg-neutral-50">
+                                <th class="text-left px-4 py-3 font-semibold">User</th>
+                                <th class="text-left px-4 py-3 font-semibold">Equipment</th>
+                                <th class="text-left px-4 py-3 font-semibold">Borrow date</th>
+                                <th class="text-left px-4 py-3 font-semibold">Return date</th>
+                                <th class="text-left px-4 py-3 font-semibold">Qty</th>
+                                <th class="text-left px-4 py-3 font-semibold">Purpose</th>
+                                <th class="text-left px-4 py-3 font-semibold">Status</th>
+                                <th class="text-left px-4 py-3 font-semibold">Remarks</th>
+                                <th class="text-left px-4 py-3 font-semibold">Class sched</th>
+                                <th class="text-left px-4 py-3 font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-200">
+                            @foreach ($transactions as $tx)
+                                @php
+                                    $returnDate = $tx->return_date ? \Carbon\Carbon::parse($tx->return_date)->format('Y-m-d') : null;
+                                    $isDueToday = $returnDate === now()->format('Y-m-d');
+                                @endphp
+                                <tr class="hover:bg-neutral-50">
+                                    <td class="px-4 py-3 font-medium text-neutral-900">{{ $tx->user->name ?? 'Deleted User' }}</td>
+                                    <td class="px-4 py-3 text-neutral-700">{{ $tx->equipment->equipment_name ?? 'Deleted Equipment' }}</td>
+                                    <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}</td>
+                                    <td class="px-4 py-3 text-neutral-700 tabular-nums {{ $isDueToday ? 'text-danger-700 font-semibold' : '' }}">{{ $returnDate ?? '—' }}</td>
+                                    <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->quantity }}</td>
+                                    <td class="px-4 py-3 max-w-[14rem] truncate text-neutral-600" title="{{ $tx->purpose }}">{{ $tx->purpose }}</td>
+                                    <td class="px-4 py-3">
+                                        <select class="status-dropdown inline-flex px-2.5 py-1 text-xs font-semibold rounded-md border focus:outline-none focus:ring-2 focus:ring-primary-500/30
+                                            @if($tx->status === 'Borrowed') bg-warning-50 text-warning-700 border-warning-200 @endif
+                                            @if($tx->status === 'Returned') bg-success-50 text-success-700 border-success-200 @endif
+                                            @if($tx->status === 'Overdue') bg-danger-50 text-danger-700 border-danger-200 @endif"
+                                                data-id="{{ $tx->id }}">
+                                            <option value="Borrowed" {{ $tx->status === 'Borrowed' ? 'selected' : '' }}>Borrowed</option>
+                                            <option value="Returned" {{ $tx->status === 'Returned' ? 'selected' : '' }}>Returned</option>
+                                            <option value="Overdue" {{ $tx->status === 'Overdue' ? 'selected' : '' }}>Overdue</option>
+                                        </select>
+                                    </td>
+                                    <td class="px-4 py-3 text-neutral-600 max-w-[14rem] truncate" title="{{ $tx->remarks }}">{{ $tx->remarks ?? '—' }}</td>
+                                    <td class="px-4 py-3 text-sm text-neutral-700">
+                                        @if ($tx->classSchedule)
+                                            {{ $tx->classSchedule->schedule_time }} - {{ $tx->classSchedule->instructor?->name ?? 'No Instructor' }} - {{ $tx->classSchedule->room }}
+                                        @else
+                                            <span class="text-neutral-500">No Schedule</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button"
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 edit-btn"
+                                                    data-id="{{ $tx->id }}" data-user="{{ $tx->user->id ?? '' }}"
+                                                    data-equipment="{{ $tx->equipment->id ?? '' }}"
+                                                    data-borrow="{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}"
+                                                    data-return="{{ $returnDate }}" data-quantity="{{ $tx->quantity }}"
+                                                    data-purpose="{{ $tx->purpose }}" data-status="{{ $tx->status }}"
+                                                    data-remarks="{{ $tx->remarks ?? '' }}"
+                                                    data-class="{{ $tx->classSchedule->id ?? '' }}">
+                                                <i class="fas fa-edit text-[11px]"></i> Edit
+                                            </button>
+                                            <button type="button"
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 send-email-btn"
+                                                    data-id="{{ $tx->id }}" data-user-email="{{ $tx->user->email ?? '' }}">
+                                                <i class="fas fa-envelope text-[11px]"></i> Email
+                                            </button>
+                                            <button type="button"
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
+                                                    data-id="{{ $tx->id }}" data-name="transaction #{{ $tx->id }}">
+                                                <i class="fas fa-trash text-[11px]"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
         </x-ui.table-card>
     </main>
 </div>
@@ -108,148 +112,226 @@
 @include('components.admin.transaction.returnlog-modal')
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const sel = document.getElementById('equipment-select');
-        if (!sel) return;
-        sel.addEventListener('change', function() {
-    const rawIds = Array.from(this.selectedOptions).map(option => option.value);
-    const equipmentIds = rawIds.filter(v => v !== '' && v !== null);
-    const quantitiesDiv = document.getElementById('equipment-quantities');
-    if (!quantitiesDiv) return;
-    quantitiesDiv.innerHTML = '';
-    equipmentIds.forEach((equipmentId) => {
-        const quantityField = document.createElement('div');
-        quantityField.classList.add('space-y-2');
-        quantityField.innerHTML = `
-            <label class="block text-sm font-medium text-gray-700">Quantity for Equipment #${equipmentId}</label>
-            <input type="number" name="quantities[${equipmentId}]" min="1" required
-                class="w-full px-3 py-2 mt-1 transition border-gray-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200">
-        `;
-        quantitiesDiv.appendChild(quantityField);
-    });
-        });
-    });
-</script>
+document.addEventListener('DOMContentLoaded', function () {
+    // DataTable
+    const tableEl = document.getElementById('transactions-table');
+    if (tableEl && window.initAppTable) {
+        try {
+            window.initAppTable('#transactions-table', {
+                responsive: true,
+                columnDefs: [{ responsivePriority: 1, targets: 0 }, { responsivePriority: 2, targets: -1 }],
+                language: { search: '', searchPlaceholder: 'Search transactions...' }
+            });
+        } catch (e) { console.error('DataTable init failed (transactions-table)', e); }
+    }
 
-<script>
-    $(document).ready(function () {
-    try {
-        let table = (window.initAppTable ? window.initAppTable('#transactions-table', {
-            responsive: true, autoWidth: false, pageLength: 10,
-            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
-            language: { search: "", searchPlaceholder: "Search transactions..." },
-            columnDefs: [{ responsivePriority: 1, targets: 0 }, { responsivePriority: 2, targets: -1 }],
-        }) : $('#transactions-table').DataTable({
-            responsive: true, autoWidth: false, pageLength: 10, scrollX: false,
-            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
-            columnDefs: [{ responsivePriority: 1, targets: 0 }, { responsivePriority: 2, targets: -1 }],
-            language: { search: "", searchPlaceholder: "Search transactions..." }
-        }));
-    } catch(e) { console.error('DataTable init failed (transactions-table)', e); }
-
-    $(document).on('click', '#open-add-modal', function() { $('#add-modal').removeClass('hidden'); });
-    $('#transactions-table').on('click', '.edit-btn', function() {
-        $('#edit-id').val($(this).data('id'));
-        $('#edit-user').val($(this).data('user'));
-        $('#edit-equipment').val($(this).data('equipment'));
-        $('#edit-borrow').val($(this).data('borrow'));
-        $('#edit-return').val($(this).data('return'));
-        $('#edit-quantity').val($(this).data('quantity'));
-        $('#edit-purpose').val($(this).data('purpose'));
-        $('#edit-status').val($(this).data('status'));
-        $('#edit-remarks').val($(this).data('remarks'));
-        $('#edit-class').val($(this).data('class'));
-        $('#edit-modal').removeClass('hidden');
-    });
-    $('#transactions-table').on('click', '.delete-btn', function() {
-        let id = $(this).data('id');
-        let name = $(this).data('name');
-        $('#delete-item-name').text(name);
-        $('#delete-form').attr('action', '/admin/transaction/' + id);
-        $('#delete-modal').removeClass('hidden');
-    });
-    $(document).on('click', '#cancel-add, #cancel-edit, #cancel-delete, .cancel-add', function() {
-        $('#add-modal, #edit-modal, #delete-modal').addClass('hidden');
-    });
-    $(document).on('click', '#add-modal, #edit-modal, #delete-modal, #emailModal, #returnLogModal', function(e) {
-        if (e.target === this) $(this).addClass('hidden');
-    });
-});
-</script>
-
-<script>
-    $(document).ready(function () {
-    $('#transactions-table').on('change', '.status-dropdown', function () {
-        let status = $(this).val();
-        let id = $(this).data('id');
-        if (status === "Returned") {
-            $('#return-transaction-id').val(id);
-            $('#returnLogModal').removeClass('hidden');
-        } else {
-            updateStatus(id, status);
-        }
-    });
-    $('#cancelReturn').click(function () { $('#returnLogModal').addClass('hidden'); });
-    $('#returnLogForm').submit(function (e) {
-        e.preventDefault();
-        let id = $('#return-transaction-id').val();
-        let condition = $('#return-condition').val();
-        let remarks = $('#return-remarks').val();
-        updateStatus(id, "Returned", condition, remarks);
-        $('#returnLogModal').addClass('hidden');
-    });
-    function updateStatus(id, status, condition = null, remarks = null) {
-        $.ajax({
-            url: "{{ route('transactions.inlineUpdate') }}",
-            method: "POST",
-            data: { _token: "{{ csrf_token() }}", id: id, status: status, condition: condition, remarks: remarks },
-            success: function (res) {
-                showAlert('success', res.message || 'Status updated successfully!');
-                setTimeout(function(){ location.reload(); }, 900);
-            },
-            error: function (xhr) {
-                let msg = "Something went wrong. Please try again.";
-                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                else if (xhr.responseJSON && xhr.responseJSON.errors) msg = Object.values(xhr.responseJSON.errors).flat().join("\n");
-                showAlert('error', msg);
-            }
+    // Dynamic quantity fields for the add modal
+    const sel = document.getElementById('equipment-select');
+    if (sel) {
+        sel.addEventListener('change', function () {
+            const rawIds = Array.from(this.selectedOptions).map(function (o) { return o.value; });
+            const equipmentIds = rawIds.filter(function (v) { return v !== '' && v !== null; });
+            const quantitiesDiv = document.getElementById('equipment-quantities');
+            if (!quantitiesDiv) return;
+            quantitiesDiv.innerHTML = '';
+            equipmentIds.forEach(function (equipmentId) {
+                const field = document.createElement('div');
+                field.innerHTML =
+                    '<label class="block text-sm font-medium text-neutral-700">Quantity for Equipment #' + equipmentId + '</label>' +
+                    '<input type="number" name="quantities[' + equipmentId + ']" min="1" required ' +
+                    'class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none tabular-nums">';
+                quantitiesDiv.appendChild(field);
+            });
         });
     }
-});
-</script>
-<script>
+
+    // Edit / Delete / Add modal open/close
+    document.addEventListener('click', function (e) {
+        const editBtn = e.target.closest('.edit-btn');
+        if (editBtn) {
+            const d = editBtn.dataset;
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+            set('edit-id', d.id);
+            set('edit-user', d.user);
+            set('edit-equipment', d.equipment);
+            set('edit-borrow', d.borrow);
+            set('edit-return', d.return);
+            set('edit-quantity', d.quantity);
+            set('edit-purpose', d.purpose);
+            set('edit-status', d.status);
+            set('edit-remarks', d.remarks);
+            set('edit-class', d.class);
+            const m = document.getElementById('edit-modal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
+
+        const deleteBtn = e.target.closest('.delete-btn');
+        if (deleteBtn) {
+            const d = deleteBtn.dataset;
+            const nameEl = document.getElementById('delete-item-name');
+            const form = document.getElementById('delete-form');
+            if (nameEl) nameEl.textContent = d.name;
+            if (form) form.action = '/admin/transaction/' + d.id;
+            const m = document.getElementById('delete-modal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
+
+        if (e.target.closest('#open-add-modal')) {
+            const m = document.getElementById('add-modal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
+        if (e.target.closest('.cancel-add') || e.target.closest('#cancel-add')) {
+            const m = document.getElementById('add-modal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+        if (e.target.closest('.cancel-edit') || e.target.closest('#cancel-edit')) {
+            const m = document.getElementById('edit-modal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+        if (e.target.closest('#cancel-delete')) {
+            const m = document.getElementById('delete-modal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+        if (e.target.closest('#cancelReturn') || e.target.closest('#cancelReturn-x')) {
+            const m = document.getElementById('returnLogModal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+        if (e.target.closest('#closeEmailModal') || e.target.closest('#closeEmailModal-x')) {
+            const m = document.getElementById('emailModal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+    });
+
+    // Confirm delete -> showConfirm() then submit
+    const transactionDeleteForm = document.getElementById('delete-form');
+    if (transactionDeleteForm) {
+        transactionDeleteForm.addEventListener('submit', function (e) {
+            // Native submit; SweetAlert2 isn't used here because the user
+            // already clicked Cancel or Delete inside the modal.
+        });
+    }
+
+    // Status dropdown -> return-log modal or AJAX update
+    document.addEventListener('change', function (e) {
+        if (e.target.classList && e.target.classList.contains('status-dropdown')) {
+            const status = e.target.value;
+            const id = e.target.dataset.id;
+            if (status === 'Returned') {
+                const idEl = document.getElementById('return-transaction-id');
+                if (idEl) idEl.value = id;
+                const m = document.getElementById('returnLogModal');
+                if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+            } else {
+                updateStatus(id, status);
+            }
+        }
+    });
+
+    // Return-log form submit
+    const returnLogForm = document.getElementById('returnLogForm');
+    if (returnLogForm) {
+        returnLogForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const id = document.getElementById('return-transaction-id').value;
+            const condition = document.getElementById('return-condition').value;
+            const remarks = document.getElementById('return-remarks').value;
+            updateStatus(id, 'Returned', condition, remarks);
+            const m = document.getElementById('returnLogModal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        });
+    }
+
+    function updateStatus(id, status, condition, remarks) {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            || document.querySelector('input[name="_token"]')?.value;
+        const body = new URLSearchParams();
+        body.set('id', id);
+        body.set('status', status);
+        if (condition) body.set('condition', condition);
+        if (remarks !== undefined && remarks !== null) body.set('remarks', remarks);
+
+        fetch('{{ route('transactions.inlineUpdate') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-TOKEN': csrf || '',
+                'Accept': 'application/json',
+            },
+            body: body.toString(),
+            credentials: 'same-origin',
+        })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+        .then(function (res) {
+            if (!res.ok) throw new Error((res.data && res.data.message) || 'Update failed');
+            if (window.showAlert) {
+                window.showAlert('success', (res.data && res.data.message) || 'Status updated successfully!');
+            }
+            setTimeout(function () { location.reload(); }, 900);
+        })
+        .catch(function (err) {
+            if (window.showAlert) window.showAlert('error', err.message || 'Something went wrong.');
+        });
+    }
+
+    // Email modal
     let selectedTransactionId = null;
-    $(document).on('click', '.send-email-btn', function () {
-        selectedTransactionId = this.getAttribute('data-id');
-        const userEmail = this.getAttribute('data-user-email');
-        document.getElementById('modalEmail').value = userEmail || '';
-        document.getElementById('modalMessage').value = "";
-        document.getElementById('emailModal').classList.remove('hidden');
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.send-email-btn');
+        if (btn) {
+            selectedTransactionId = btn.getAttribute('data-id');
+            const userEmail = btn.getAttribute('data-user-email');
+            const modalEmail = document.getElementById('modalEmail');
+            const modalMessage = document.getElementById('modalMessage');
+            if (modalEmail) modalEmail.value = userEmail || '';
+            if (modalMessage) modalMessage.value = '';
+            const m = document.getElementById('emailModal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
     });
-    document.getElementById('emailType').addEventListener('change', function () {
-        document.getElementById('customMessageBox').classList.toggle('hidden', this.value !== 'custom');
+
+    const emailType = document.getElementById('emailType');
+    if (emailType) {
+        emailType.addEventListener('change', function () {
+            const box = document.getElementById('customMessageBox');
+            if (box) box.classList.toggle('hidden', this.value !== 'custom');
+        });
+    }
+
+    const sendEmailConfirm = document.getElementById('sendEmailConfirm');
+    if (sendEmailConfirm) {
+        sendEmailConfirm.addEventListener('click', function () {
+            const type = document.getElementById('emailType').value;
+            const message = document.getElementById('modalMessage').value;
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                || document.querySelector('input[name="_token"]')?.value;
+            fetch('/send-email/' + selectedTransactionId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf || '',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ type: type, message: message }),
+                credentials: 'same-origin',
+            })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+            .then(function (res) {
+                if (!res.ok) throw new Error((res.data && res.data.message) || 'Failed to send email');
+                if (window.showAlert) window.showAlert('success', (res.data && res.data.message) || 'Email sent successfully!');
+                const m = document.getElementById('emailModal');
+                if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+            })
+            .catch(function (err) {
+                if (window.showAlert) window.showAlert('error', err.message || 'Failed to send email');
+            });
+        });
+    }
+
+    // Backdrop click closes any modal
+    ['add-modal', 'edit-modal', 'delete-modal', 'emailModal', 'returnLogModal'].forEach(function (id) {
+        const m = document.getElementById(id);
+        if (m) m.addEventListener('click', function (e) { if (e.target === m) { m.classList.add('hidden'); m.classList.remove('flex'); } });
     });
-    document.getElementById('closeEmailModal').addEventListener('click', () => {
-        document.getElementById('emailModal').classList.add('hidden');
-    });
-    document.getElementById('sendEmailConfirm').addEventListener('click', () => {
-        const type = document.getElementById('emailType').value;
-        const message = document.getElementById('modalMessage').value;
-        fetch(`/send-email/${selectedTransactionId}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
-            body: JSON.stringify({ type: type, message: message })
-        })
-        .then(async res => {
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.message || 'Failed to send email');
-            return data;
-        })
-        .then(data => {
-            showAlert('success', data.message || 'Email sent successfully!');
-            document.getElementById('emailModal').classList.add('hidden');
-        })
-        .catch(err => { showAlert('error', err.message || 'Failed to send email'); });
-    });
+});
 </script>
 @endsection
