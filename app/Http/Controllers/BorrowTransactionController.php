@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Mail\ReturnNotification;
@@ -16,26 +17,11 @@ use Illuminate\Validation\ValidationException;
 
 class BorrowTransactionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        // $transactions   = BorrowTransaction::all();
-        // $users          = User::all();
-        // $equipment      = Equipment::all();
-        // $classSchedules = ClassSchedule::with('instructor')
-        //     ->whereHas('instructor', function ($query) {
-        //         $query->where('user_type', 'Instructor');
-        //     })
-        //     ->get();
-
-        // return view('admin.transaction', compact('transactions', 'users', 'equipment', 'classSchedules'));
-
-        // with eager loading improvements
-        $transactions   = BorrowTransaction::with(['user', 'equipment', 'classSchedule'])->get();
-        $users          = User::with('borrowTransactions')->get();
-        $equipment      = Equipment::with('borrowTransactions')->get();
+        $transactions = BorrowTransaction::with(['user', 'equipment', 'classSchedule'])->get();
+        $users = User::with('borrowTransactions')->get();
+        $equipment = Equipment::with('borrowTransactions')->get();
         $classSchedules = ClassSchedule::with('instructor')
             ->whereHas('instructor', function ($query) {
                 $query->where('user_type', 'Instructor');
@@ -43,16 +29,15 @@ class BorrowTransactionController extends Controller
             ->get();
 
         return view('admin.transaction', compact('transactions', 'users', 'equipment', 'classSchedules'));
-
     }
 
     public function inlineUpdate(Request $request)
     {
         $request->validate([
-            'id'        => 'required|exists:borrow_transactions,id',
-            'status'    => 'required|in:Borrowed,Returned,Overdue',
+            'id' => 'required|exists:borrow_transactions,id',
+            'status' => 'required|in:Borrowed,Returned,Overdue',
             'condition' => 'nullable|string|max:50',
-            'remarks'   => 'nullable|string|max:255',
+            'remarks' => 'nullable|string|max:255',
         ]);
 
         try {
@@ -67,7 +52,7 @@ class BorrowTransactionController extends Controller
                 $newOut = in_array($newStatus, ['Borrowed', 'Overdue']);
 
                 if ($oldStatus !== $newStatus) {
-                    if ($oldOut && !$newOut) {
+                    if ($oldOut && ! $newOut) {
                         // Returning: add back stock (Borrowed/Overdue -> Returned)
                         $equipment->available_quantity += $transaction->quantity;
                         $equipment->status = $equipment->available_quantity > 0 ? 'Available' : 'Unavailable';
@@ -75,12 +60,12 @@ class BorrowTransactionController extends Controller
 
                         ReturnLog::create([
                             'borrow_transaction_id' => $transaction->id,
-                            'return_date'           => now(),
-                            'condition'             => $request->condition ?? 'Good',
-                            'remarks'               => $request->remarks ?? 'Auto logged from inline update',
-                            'user_id'               => auth()->id(),
+                            'return_date' => now(),
+                            'condition' => $request->condition ?? 'Good',
+                            'remarks' => $request->remarks ?? 'Auto logged from inline update',
+                            'user_id' => auth()->id(),
                         ]);
-                    } elseif (!$oldOut && $newOut) {
+                    } elseif (! $oldOut && $newOut) {
                         // Re-borrowing: deduct stock (Returned -> Borrowed/Overdue)
                         if ($equipment->available_quantity < $transaction->quantity) {
                             throw ValidationException::withMessages(['quantity' => 'Not enough equipment available.']);
@@ -104,58 +89,40 @@ class BorrowTransactionController extends Controller
         }
     }
 
-    public function getOnlyTransactionsHasClassSchedule()
-    {
-        $transactions = BorrowTransaction::with(['user', 'equipment', 'classSchedule.instructor'])
-            ->whereNotNull('class_schedule_id')
-            ->get();
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         // Filter out empty placeholder values from multi-select (prevents "equipment.0 is invalid" validation error)
         if ($request->has('equipment')) {
-            $filteredEquip = array_values(array_filter((array) $request->input('equipment'), fn($v) => $v !== '' && $v !== null));
+            $filteredEquip = array_values(array_filter((array) $request->input('equipment'), fn ($v) => $v !== '' && $v !== null));
             $request->merge(['equipment' => $filteredEquip]);
         }
         if ($request->has('quantities')) {
-            $filteredQty = array_filter((array) $request->input('quantities'), fn($v, $k) => $k !== '' && $v !== '' && $v !== null, ARRAY_FILTER_USE_BOTH);
+            $filteredQty = array_filter((array) $request->input('quantities'), fn ($v, $k) => $k !== '' && $v !== '' && $v !== null, ARRAY_FILTER_USE_BOTH);
             $request->merge(['quantities' => $filteredQty]);
         }
 
         // Validate the input
         $validated = $request->validate([
-            'user_id'           => 'required|exists:users,id',
-            'equipment'         => 'required|array|min:1',
-            'equipment.*'       => 'exists:equipment,id',
-            'quantities'        => 'required|array|min:1',
-            'quantities.*'      => 'integer|min:1',
-            'borrow_date'       => 'required|date',
-            'return_date'       => 'required|date|after_or_equal:borrow_date',
-            'purpose'           => 'required|string|max:255',
-            'status'            => 'required|in:Borrowed,Returned,Overdue',
-            'remarks'           => 'nullable|string',
+            'user_id' => 'required|exists:users,id',
+            'equipment' => 'required|array|min:1',
+            'equipment.*' => 'exists:equipment,id',
+            'quantities' => 'required|array|min:1',
+            'quantities.*' => 'integer|min:1',
+            'borrow_date' => 'required|date',
+            'return_date' => 'required|date|after_or_equal:borrow_date',
+            'purpose' => 'required|string|max:255',
+            'status' => 'required|in:Borrowed,Returned,Overdue',
+            'remarks' => 'nullable|string',
             'class_schedule_id' => 'nullable|exists:class_schedules,id',
         ]);
 
-        $userId          = $validated['user_id'];
-        $borrowDate      = $validated['borrow_date'];
-        $returnDate      = $validated['return_date'];
-        $status          = $validated['status'];
-        $remarks         = $validated['remarks'] ?? null;
+        $userId = $validated['user_id'];
+        $borrowDate = $validated['borrow_date'];
+        $returnDate = $validated['return_date'];
+        $status = $validated['status'];
+        $remarks = $validated['remarks'] ?? null;
         $classScheduleId = $validated['class_schedule_id'] ?? null;
-        $purpose         = $validated['purpose'];
+        $purpose = $validated['purpose'];
 
         // FIX: wrap multi-equipment loop in a transaction with row locking to prevent race
         // and to avoid partial writes when one item lacks stock. Also handle Overdue as "out" like Borrowed.
@@ -165,7 +132,7 @@ class BorrowTransactionController extends Controller
             DB::transaction(function () use ($validated, $userId, $borrowDate, $returnDate, $status, $remarks, $classScheduleId, $purpose, $isOut) {
                 foreach ($validated['equipment'] as $equipmentId) {
                     // quantities may be keyed as string numeric; handle missing key gracefully
-                    if (!isset($validated['quantities'][$equipmentId])) {
+                    if (! isset($validated['quantities'][$equipmentId])) {
                         throw ValidationException::withMessages(['quantity' => "Quantity missing for equipment #{$equipmentId}."]);
                     }
                     $quantity = (int) $validated['quantities'][$equipmentId];
@@ -182,14 +149,14 @@ class BorrowTransactionController extends Controller
                     }
 
                     BorrowTransaction::create([
-                        'user_id'           => $userId,
-                        'equipment_id'      => $equipmentId,
-                        'borrow_date'       => $borrowDate,
-                        'return_date'       => $returnDate,
-                        'quantity'          => $quantity,
-                        'purpose'           => $purpose,
-                        'status'            => $status,
-                        'remarks'           => $remarks,
+                        'user_id' => $userId,
+                        'equipment_id' => $equipmentId,
+                        'borrow_date' => $borrowDate,
+                        'return_date' => $returnDate,
+                        'quantity' => $quantity,
+                        'purpose' => $purpose,
+                        'status' => $status,
+                        'remarks' => $remarks,
                         'class_schedule_id' => $classScheduleId,
                     ]);
                 }
@@ -209,7 +176,7 @@ class BorrowTransactionController extends Controller
             return response()->json(['message' => 'User has no email address.'], 400);
         }
 
-        $type    = $request->input('type');
+        $type = $request->input('type');
         $message = $request->input('message');
 
         if ($type === 'custom' && empty(trim((string) $message))) {
@@ -220,11 +187,14 @@ class BorrowTransactionController extends Controller
             ? ['title' => 'Message from Admin', 'body' => $message]
             : ['title' => 'Return Reminder', 'body' => "Hello {$transaction->user->name}, please return the equipment you borrowed ({$transaction->equipment->equipment_name})."];
 
+        // Kept inline (not extracted to safe()) because the user-facing JSON
+        // response embeds $e->getMessage() — centralizing the catch would lose that.
         try {
             Mail::to($transaction->user->email)->send(new ReturnNotification($details));
         } catch (\Exception $e) {
-            \Log::error('Manual email failed for transaction ' . $id . ': ' . $e->getMessage());
-            return response()->json(['message' => 'Failed to send email: ' . $e->getMessage()], 500);
+            \Log::error('Manual email failed for transaction '.$id.': '.$e->getMessage());
+
+            return response()->json(['message' => 'Failed to send email: '.$e->getMessage()], 500);
         }
 
         return response()->json(['message' => 'Email sent successfully!']);
@@ -252,8 +222,8 @@ class BorrowTransactionController extends Controller
             if ($transaction->user && $transaction->user->email) {
                 $details = [
                     'title' => 'Return Reminder',
-                    'body'  => "Hello {$transaction->user->name}, please return the equipment you borrowed ({$transaction->equipment->equipment_name}) today ("
-                    . Carbon::parse($transaction->return_date)->format('F j, Y') . ").",
+                    'body' => "Hello {$transaction->user->name}, please return the equipment you borrowed ({$transaction->equipment->equipment_name}) today ("
+                    .Carbon::parse($transaction->return_date)->format('F j, Y').').',
                 ];
 
                 // Skip users who already received a return notice today
@@ -267,72 +237,52 @@ class BorrowTransactionController extends Controller
                     continue;
                 }
 
-                try {
-                    Mail::to($transaction->user->email)->send(new ReturnNotification($details));
-                } catch (\Exception $e) {
-                    \Log::error('Return notification mail failed for transaction ' . $transaction->id . ': ' . $e->getMessage());
+                if (! $this->safe(
+                    fn () => Mail::to($transaction->user->email)->send(new ReturnNotification($details)),
+                    'Return notification mail failed for transaction '.$transaction->id
+                )) {
                     continue;
                 }
 
                 // Save the notification into DB inside a transaction to keep mail+DB consistent
-                try {
-                    DB::transaction(function () use ($transaction, $details) {
+                $this->safe(
+                    fn () => DB::transaction(function () use ($transaction, $details) {
                         // Double-check inside transaction to avoid race
                         $exists = Notification::where('user_id', $transaction->user->id)
                             ->where('notification_type', 'Return Notice')
                             ->whereDate('send_date', Carbon::today()->toDateString())
                             ->exists();
-                        if (!$exists) {
+                        if (! $exists) {
                             Notification::create([
-                                'user_id'           => $transaction->user->id,
-                                'message'           => $details['body'],
+                                'user_id' => $transaction->user->id,
+                                'message' => $details['body'],
                                 'notification_type' => 'Return Notice',
-                                'send_date'         => Carbon::now(),
+                                'send_date' => Carbon::now(),
                             ]);
                         }
-                    });
-                } catch (\Exception $e) {
-                    \Log::error('Notification DB log failed for transaction ' . $transaction->id . ': ' . $e->getMessage());
-                }
+                    }),
+                    'Notification DB log failed for transaction '.$transaction->id
+                );
 
                 $sent++;
             }
         }
 
-        return $sent . " return notifications sent and logged for today.";
+        return $sent.' return notifications sent and logged for today.';
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(BorrowTransaction $borrowTransaction)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(BorrowTransaction $borrowTransaction)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'id'                => 'required|exists:borrow_transactions,id',
-            'user_id'           => 'required|exists:users,id',
-            'equipment_id'      => 'required|exists:equipment,id',
-            'borrow_date'       => 'required|date',
-            'return_date'       => 'nullable|date|after_or_equal:borrow_date',
-            'quantity'          => 'required|integer|min:1',
-            'purpose'           => 'required|string|max:255',
-            'status'            => 'required|in:Borrowed,Returned,Overdue',
-            'remarks'           => 'nullable|string',
+            'id' => 'required|exists:borrow_transactions,id',
+            'user_id' => 'required|exists:users,id',
+            'equipment_id' => 'required|exists:equipment,id',
+            'borrow_date' => 'required|date',
+            'return_date' => 'nullable|date|after_or_equal:borrow_date',
+            'quantity' => 'required|integer|min:1',
+            'purpose' => 'required|string|max:255',
+            'status' => 'required|in:Borrowed,Returned,Overdue',
+            'remarks' => 'nullable|string',
             'class_schedule_id' => 'nullable|exists:class_schedules,id',
         ]);
 
@@ -373,10 +323,10 @@ class BorrowTransactionController extends Controller
                 } else {
                     $equipment = Equipment::where('id', $oldEquipmentId)->lockForUpdate()->firstOrFail();
 
-                    if ($oldOut && !$newOut) {
+                    if ($oldOut && ! $newOut) {
                         // Out -> Returned: restore old quantity
                         $equipment->available_quantity += $oldQty;
-                    } elseif (!$oldOut && $newOut) {
+                    } elseif (! $oldOut && $newOut) {
                         // Returned -> Out: deduct new quantity
                         if ($equipment->available_quantity < $newQty) {
                             throw ValidationException::withMessages(['quantity' => 'Not enough equipment available.']);
@@ -405,9 +355,6 @@ class BorrowTransactionController extends Controller
         return redirect()->back()->with('success', 'Transaction updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy($id)
     {
         DB::transaction(function () use ($id) {
@@ -423,5 +370,24 @@ class BorrowTransactionController extends Controller
         });
 
         return redirect()->back()->with('success', 'Transaction deleted successfully.');
+    }
+
+    /**
+     * Run $action, logging any exception under $context. Returns true on
+     * success, false on caught \Throwable. Callers keep their own response
+     * shaping (JSON / redirect / continue) so the helper stays
+     * responsibility-light.
+     */
+    private function safe(callable $action, string $context): bool
+    {
+        try {
+            $action();
+
+            return true;
+        } catch (\Throwable $e) {
+            \Log::error($context.': '.$e->getMessage());
+
+            return false;
+        }
     }
 }
