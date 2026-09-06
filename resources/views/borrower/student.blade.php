@@ -1,86 +1,135 @@
 @extends('components.default')
-
 @section('title', 'Instructor - CICT Equipment Borrower System')
-
 @section('content')
-<div class="dash-bg min-h-screen flex flex-col">
-    <header class="sticky top-0 z-40 dash-header">
-        <div class="flex flex-wrap items-center justify-between px-6 py-4 gap-3">
-            <div class="flex items-center gap-3">
-                <div>
-                    <p class="text-xs font-medium tracking-widest uppercase" style="color:var(--text-muted)">Instructor</p>
-                    <p class="text-sm font-semibold tracking-tight text-white">Equipment Management</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <button id="open-add-modal" class="btn-primary inline-flex items-center gap-2 !py-2 !px-4 !text-sm !rounded-xl">
-                    <i class="fas fa-plus text-xs"></i> Request Item
-                </button>
-                <form method="POST" action="{{ route('logout') }}">@csrf
-                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border border-red-500/20 bg-red-500/10 text-red-300 hover:bg-red-500/20 transition">
-                        <i class="fas fa-sign-out-alt text-xs"></i> Logout
-                    </button>
-                </form>
-            </div>
-        </div>
-    </header>
 
-    <main class="flex-1 p-6 md:p-8 space-y-6 max-w-content w-full mx-auto">
+<div class="page-bg min-h-screen flex flex-col">
+    <x-ui.page-header eyebrow="Instructor" title="Equipment Management">
+        <x-slot:actions>
+            <button id="open-add-modal" type="button"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">
+                <i class="fas fa-plus text-xs"></i> Request Item
+            </button>
+            <form method="POST" action="{{ route('logout') }}">@csrf
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md bg-danger-50 text-danger-700 border border-danger-200 hover:bg-danger-100">
+                    <i class="fas fa-sign-out-alt text-xs"></i> Logout
+                </button>
+            </form>
+        </x-slot:actions>
+    </x-ui.page-header>
+
+    <main class="flex-1 p-4 sm:p-6 space-y-6 max-w-content w-full mx-auto">
         <section>
-            <h2 class="flex items-center gap-2 mb-3 text-sm font-bold tracking-tight text-white">
-                <span class="w-7 h-7 rounded-lg bg-primary-500/15 border border-primary-500/20 grid place-items-center"><i class="fas fa-list text-primary-300 text-xs"></i></span> My Equipment Requests
+            <h2 class="flex items-center gap-2 mb-3 text-base font-semibold text-neutral-900">
+                <span class="w-7 h-7 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center">
+                    <i class="fas fa-list text-primary-600 text-xs"></i>
+                </span>
+                My Equipment Requests
             </h2>
             <x-ui.table-card>
-                <table id="requestTable" class="w-full display nowrap">
-                    <thead>
-                        <tr><th>Equipment</th><th>Quantity</th><th>Status</th><th>Remarks</th><th>Actions</th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($requests as $request)
-                            <tr>
-                                <td class="font-medium text-white">{{ $request->equipment->equipment_name }}</td>
-                                <td class="tabular-nums">{{ $request->quantity }}</td>
-                                <td>
-                                    @php $variant = ['Approved'=>'success','Declined'=>'danger'][$request->status] ?? 'warning'; @endphp
-                                    <x-ui.badge :status="$request->status" :variant="$variant" />
-                                </td>
-                                <td class="text-neutral-400">{{ $request->remarks ?? '—' }}</td>
-                                <td>
-                                    <div class="flex gap-2">
-                                        <button class="px-3 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-500 text-white text-xs font-semibold edit-btn" data-id="{{ $request->id }}" data-equipment-name="{{ $request->equipment->equipment_name }}" data-quantity="{{ $request->quantity }}" data-status="{{ $request->status }}" data-remarks="{{ $request->remarks }}"><i class="fas fa-edit mr-1"></i>Edit</button>
-                                        <button class="px-3 py-1.5 rounded-lg bg-danger-600 hover:bg-danger-500 text-white text-xs font-semibold delete-btn" data-id="{{ $request->id }}" data-equipment-name="{{ $request->equipment->equipment_name }}"><i class="fas fa-trash mr-1"></i>Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                @if($requests->isEmpty())
+                    <div class="py-12 text-center">
+                        <i class="fas fa-inbox text-3xl text-neutral-300 mb-3 block"></i>
+                        <p class="text-sm font-medium text-neutral-700">No requests yet</p>
+                        <p class="text-xs text-neutral-500 mt-1">Click "Request Item" to submit one.</p>
+                    </div>
+                @else
+                    <div class="overflow-x-auto">
+                        <table id="requestTable" class="w-full display nowrap text-sm">
+                            <thead>
+                                <tr class="text-xs uppercase tracking-wider text-neutral-500 bg-neutral-50">
+                                    <th class="text-left px-4 py-3 font-semibold">Equipment</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Quantity</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Status</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Remarks</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-neutral-200">
+                                @foreach ($requests as $request)
+                                    <tr class="hover:bg-neutral-50">
+                                        <td class="px-4 py-3 font-medium text-neutral-900">{{ $request->equipment->equipment_name }}</td>
+                                        <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $request->quantity }}</td>
+                                        <td class="px-4 py-3">
+                                            @php $variant = ['Approved'=>'success','Declined'=>'danger'][$request->status] ?? 'warning'; @endphp
+                                            <x-ui.badge :status="$request->status" :variant="$variant" />
+                                        </td>
+                                        <td class="px-4 py-3 text-neutral-600">{{ $request->remarks ?? '—' }}</td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex items-center gap-1.5">
+                                                <button type="button"
+                                                        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 edit-btn"
+                                                        data-id="{{ $request->id }}"
+                                                        data-equipment-name="{{ $request->equipment->equipment_name }}"
+                                                        data-quantity="{{ $request->quantity }}"
+                                                        data-status="{{ $request->status }}"
+                                                        data-remarks="{{ $request->remarks }}">
+                                                    <i class="fas fa-edit text-[11px]"></i> Edit
+                                                </button>
+                                                <button type="button"
+                                                        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
+                                                        data-id="{{ $request->id }}"
+                                                        data-equipment-name="{{ $request->equipment->equipment_name }}">
+                                                    <i class="fas fa-trash text-[11px]"></i> Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </x-ui.table-card>
         </section>
 
         <section>
-            <h2 class="flex items-center gap-2 mb-3 text-sm font-bold tracking-tight text-white">
-                <span class="w-7 h-7 rounded-lg bg-primary-500/10 border border-primary-500/15 grid place-items-center"><i class="fas fa-history text-primary-300 text-xs"></i></span> My Borrow Transactions
+            <h2 class="flex items-center gap-2 mb-3 text-base font-semibold text-neutral-900">
+                <span class="w-7 h-7 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center">
+                    <i class="fas fa-history text-primary-600 text-xs"></i>
+                </span>
+                My Borrow Transactions
             </h2>
             <x-ui.table-card>
-                <table id="transactionTable" class="w-full display nowrap">
-                    <thead>
-                        <tr><th>Equipment</th><th>Quantity</th><th>Borrow Date</th><th>Return Date</th><th>Purpose</th><th>Status</th><th>Remarks</th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($transactions as $tx)
-                            <tr>
-                                <td class="font-medium text-white">{{ $tx->equipment->equipment_name ?? '—' }}</td>
-                                <td class="tabular-nums">{{ $tx->quantity }}</td>
-                                <td class="tabular-nums">{{ $tx->borrow_date }}</td>
-                                <td class="tabular-nums">{{ $tx->return_date ?? '—' }}</td>
-                                <td class="max-w-[14rem] truncate">{{ $tx->purpose }}</td>
-                                <td>@php $variant=['Borrowed'=>'warning','Returned'=>'success','Overdue'=>'danger'][$tx->status]??'neutral'; @endphp<x-ui.badge :status="$tx->status" :variant="$variant" /></td>
-                                <td class="text-neutral-400">{{ $tx->remarks ?? '—' }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                @if($transactions->isEmpty())
+                    <div class="py-12 text-center">
+                        <i class="fas fa-exchange-alt text-3xl text-neutral-300 mb-3 block"></i>
+                        <p class="text-sm font-medium text-neutral-700">No transactions yet</p>
+                        <p class="text-xs text-neutral-500 mt-1">Once your request is approved, your transactions will appear here.</p>
+                    </div>
+                @else
+                    <div class="overflow-x-auto">
+                        <table id="transactionTable" class="w-full display nowrap text-sm">
+                            <thead>
+                                <tr class="text-xs uppercase tracking-wider text-neutral-500 bg-neutral-50">
+                                    <th class="text-left px-4 py-3 font-semibold">Equipment</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Quantity</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Borrow Date</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Return Date</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Purpose</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Status</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-neutral-200">
+                                @foreach ($transactions as $tx)
+                                    <tr class="hover:bg-neutral-50">
+                                        <td class="px-4 py-3 font-medium text-neutral-900">{{ $tx->equipment->equipment_name ?? '—' }}</td>
+                                        <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->quantity }}</td>
+                                        <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->borrow_date }}</td>
+                                        <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->return_date ?? '—' }}</td>
+                                        <td class="px-4 py-3 text-neutral-600 max-w-[14rem] truncate" title="{{ $tx->purpose }}">{{ $tx->purpose }}</td>
+                                        <td class="px-4 py-3">
+                                            @php $variant = ['Borrowed'=>'warning','Returned'=>'success','Overdue'=>'danger'][$tx->status] ?? 'neutral'; @endphp
+                                            <x-ui.badge :status="$tx->status" :variant="$variant" />
+                                        </td>
+                                        <td class="px-4 py-3 text-neutral-600">{{ $tx->remarks ?? '—' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </x-ui.table-card>
         </section>
     </main>
@@ -91,24 +140,78 @@
 @include('components.instructor.delete-request-modal')
 
 <script>
-    $(document).ready(function () {
-        try {
-            if (window.initAppTable) {
-                window.initAppTable('#requestTable', { language: { search: "", searchPlaceholder: "Search..." } });
-                window.initAppTable('#transactionTable', { language: { search: "", searchPlaceholder: "Search..." } });
-            } else {
-                $('#requestTable, #transactionTable').DataTable({ responsive: true, autoWidth: false, pageLength: 10, lengthMenu: [[10,25,50,-1],[10,25,50,"All"]], language: { search: "", searchPlaceholder: "Search..." } });
-            }
-        } catch(e) { console.error('DataTable init failed (student)', e); }
-        $('#requestTable').on('click', '.edit-btn', function() {
-            $('#edit-id').val($(this).data('id')); $('#edit-equipment-name').text($(this).data('equipment-name')); $('#edit-quantity').val($(this).data('quantity')); $('#edit-status').val($(this).data('status')); $('#edit-remarks').val($(this).data('remarks'));
-            $('#edit-modal').removeClass('hidden').addClass('flex');
-        });
-        $('#requestTable').on('click', '.delete-btn', function () { $('#delete-item-name').text($(this).data('equipment-name')); $('#delete-form').attr('action', '/borrower/request/' + $(this).data('id')); $('#delete-modal').removeClass('hidden').addClass('flex'); });
-        $(document).on('click', '#confirm-delete', function () { $('#delete-form').submit(); });
-        $(document).on('click', '#open-add-modal', function() { $('#add-modal').removeClass('hidden').addClass('flex'); });
-        $(document).on('click', '#cancel-add, #cancel-edit, #cancel-delete', function() { $('#add-modal, #edit-modal, #delete-modal').addClass('hidden').removeClass('flex'); });
-        $(document).on('click', '#add-modal, #edit-modal, #delete-modal', function(e) { if (e.target === this) $(this).addClass('hidden').removeClass('flex'); });
+document.addEventListener('DOMContentLoaded', function () {
+    ['requestTable', 'transactionTable'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el && window.initAppTable) {
+            try {
+                window.initAppTable('#' + id, {
+                    language: { search: '', searchPlaceholder: 'Search...' }
+                });
+            } catch (e) { console.error('DataTable init failed (' + id + ')', e); }
+        }
     });
+
+    document.addEventListener('click', function (e) {
+        const editBtn = e.target.closest('.edit-btn');
+        if (editBtn) {
+            const d = editBtn.dataset;
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+            set('edit-id', d.id);
+            const nameEl = document.getElementById('edit-equipment-name'); if (nameEl) nameEl.textContent = d.equipmentName;
+            set('edit-quantity', d.quantity);
+            set('edit-remarks', d.remarks);
+            const m = document.getElementById('edit-modal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
+
+        const deleteBtn = e.target.closest('.delete-btn');
+        if (deleteBtn) {
+            const d = deleteBtn.dataset;
+            const nameEl = document.getElementById('delete-item-name'); if (nameEl) nameEl.textContent = d.equipmentName;
+            const form = document.getElementById('delete-form'); if (form) form.action = '/borrower/request/' + d.id;
+            const m = document.getElementById('delete-modal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
+
+        if (e.target.closest('#open-add-modal')) {
+            const m = document.getElementById('add-modal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
+        if (e.target.closest('.cancel-add') || e.target.closest('#cancel-add')) {
+            const m = document.getElementById('add-modal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+        if (e.target.closest('.cancel-edit') || e.target.closest('#cancel-edit')) {
+            const m = document.getElementById('edit-modal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+        if (e.target.closest('#cancel-delete') || e.target.closest('.cancel-delete')) {
+            const m = document.getElementById('delete-modal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+    });
+
+    const confirmDelete = document.getElementById('confirm-delete');
+    if (confirmDelete) {
+        confirmDelete.addEventListener('click', function () {
+            const form = document.getElementById('delete-form');
+            if (!form) return;
+            if (window.showConfirm) {
+                window.showConfirm({
+                    title: 'Delete this request?',
+                    text: 'This action cannot be undone.',
+                    icon: 'warning',
+                    confirmText: 'Yes, delete'
+                }).then(function (r) { if (r.isConfirmed) form.submit(); });
+            } else { form.submit(); }
+        });
+    }
+
+    ['add-modal', 'edit-modal', 'delete-modal'].forEach(function (id) {
+        const m = document.getElementById(id);
+        if (m) m.addEventListener('click', function (e) { if (e.target === m) { m.classList.add('hidden'); m.classList.remove('flex'); } });
+    });
+});
 </script>
 @endsection
