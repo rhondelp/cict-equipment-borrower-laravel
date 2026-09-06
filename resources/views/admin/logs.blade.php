@@ -1,69 +1,64 @@
 @extends('components.default')
-
 @section('title', 'Return Logs - CICT Equipment Borrower System')
-
 @section('content')
-    @include('components.admin.navbar')
+@include('components.admin.navbar')
 
-    <div class="dash-bg min-h-screen md:ml-80">
-        <header class="sticky top-0 z-30 dash-header">
-            <div class="flex items-center justify-between px-6 py-4">
-                <div class="flex items-center gap-3">
-                    <button id="menu-toggle" class="text-neutral-400 hover:text-white md:hidden">
-                        <i class="text-lg fas fa-bars"></i>
-                    </button>
-                    <div>
-                        <p class="text-xs font-medium tracking-widest uppercase" style="color:var(--text-muted)">Return Logs</p>
-                        <p class="text-sm font-semibold tracking-tight text-white -mt-0.5">History</p>
-                    </div>
+<div class="page-bg min-h-screen md:ml-64">
+    <x-ui.page-header eyebrow="Return Logs" title="History" />
+
+    <main class="p-4 sm:p-6 space-y-5 max-w-content mx-auto">
+        <x-ui.table-card>
+            @if($logs->isEmpty())
+                <div class="py-16 text-center">
+                    <i class="fas fa-book text-4xl text-neutral-300 mb-3 block"></i>
+                    <p class="text-sm font-medium text-neutral-700">No return logs yet</p>
+                    <p class="text-xs text-neutral-500 mt-1">When borrowers return equipment, the logs will appear here.</p>
                 </div>
-            </div>
-        </header>
-
-        <main class="p-6 space-y-5 max-w-content mx-auto">
-            <x-ui.table-card>
-                <table id="logsTable" class="w-full display nowrap">
-                    <thead>
-                        <tr>
-                            <th>Borrower</th>
-                            <th>Equipment</th>
-                            <th>Condition</th>
-                            <th>Remarks</th>
-                            <th>Return date</th>
-                            <th>Received by</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($logs as $log)
-                            <tr>
-                                <td class="font-medium text-white">{{ $log->borrower->name ?? 'N/A' }}</td>
-                                <td>{{ $log->equipment->equipment_name ?? 'N/A' }}</td>
-                                <td>
-                                    @php $variant = $log->condition === 'Good' ? 'success' : 'warning'; @endphp
-                                    <x-ui.badge :status="$log->condition" :variant="$variant" />
-                                </td>
-                                <td class="max-w-xs truncate text-neutral-300" title="{{ $log->remarks }}">{{ $log->remarks }}</td>
-                                <td class="tabular-nums text-neutral-300">{{ \Carbon\Carbon::parse($log->return_date)->format('M j, Y') }}</td>
-                                <td class="font-medium text-white">{{ $log->receiver->name ?? 'N/A' }}</td>
+            @else
+                <div class="overflow-x-auto">
+                    <table id="logsTable" class="w-full display nowrap text-sm">
+                        <thead>
+                            <tr class="text-xs uppercase tracking-wider text-neutral-500 bg-neutral-50">
+                                <th class="text-left px-4 py-3 font-semibold">Borrower</th>
+                                <th class="text-left px-4 py-3 font-semibold">Equipment</th>
+                                <th class="text-left px-4 py-3 font-semibold">Condition</th>
+                                <th class="text-left px-4 py-3 font-semibold">Remarks</th>
+                                <th class="text-left px-4 py-3 font-semibold">Return date</th>
+                                <th class="text-left px-4 py-3 font-semibold">Received by</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </x-ui.table-card>
-        </main>
-    </div>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-200">
+                            @foreach ($logs as $log)
+                                <tr class="hover:bg-neutral-50">
+                                    <td class="px-4 py-3 font-medium text-neutral-900">{{ $log->borrower->name ?? 'N/A' }}</td>
+                                    <td class="px-4 py-3 text-neutral-700">{{ $log->equipment->equipment_name ?? 'N/A' }}</td>
+                                    <td class="px-4 py-3">
+                                        @php $variant = $log->condition === 'Good' ? 'success' : 'warning'; @endphp
+                                        <x-ui.badge :status="$log->condition" :variant="$variant" />
+                                    </td>
+                                    <td class="px-4 py-3 text-neutral-600 max-w-xs truncate" title="{{ $log->remarks }}">{{ $log->remarks }}</td>
+                                    <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ \Carbon\Carbon::parse($log->return_date)->format('M j, Y') }}</td>
+                                    <td class="px-4 py-3 font-medium text-neutral-900">{{ $log->receiver->name ?? 'N/A' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </x-ui.table-card>
+    </main>
+</div>
 
-    <script>
-        $(document).ready(function() {
-            try {
-                let table = (window.initAppTable ? window.initAppTable('#logsTable', {
-                    language: { search: "", searchPlaceholder: "Search logs..." }
-                }) : $('#logsTable').DataTable({
-                    responsive: true, autoWidth: false, pageLength: 10,
-                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
-                    language: { search: "", searchPlaceholder: "Search logs..." }
-                }));
-            } catch(e) { console.error('DataTable init failed (logsTable)', e); }
-        });
-    </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const tableEl = document.getElementById('logsTable');
+    if (tableEl && window.initAppTable) {
+        try {
+            window.initAppTable('#logsTable', {
+                language: { search: '', searchPlaceholder: 'Search logs...' }
+            });
+        } catch (e) { console.error('DataTable init failed (logsTable)', e); }
+    }
+});
+</script>
 @endsection
