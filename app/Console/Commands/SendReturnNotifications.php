@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Http\Controllers\BorrowTransactionController;
+use Illuminate\Console\Command;
 
 class SendReturnNotifications extends Command
 {
@@ -25,7 +25,7 @@ class SendReturnNotifications extends Command
     public function handle()
     {
         // Call the controller method
-        $controller = new BorrowTransactionController();
+        $controller = new BorrowTransactionController;
         $controller->sendReturnAlertNotification();
 
         $this->info('Return notifications sent successfully.');
