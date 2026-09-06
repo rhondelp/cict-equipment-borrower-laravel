@@ -1,32 +1,32 @@
-<!-- Delete Modal — z-[60] -->
-<div id="delete-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
-    <div class="w-full max-w-md mx-4 modal-card animate-fade-in">
-        <div class="modal-header">
-            <h3 class="flex items-center gap-2 text-white">
-                <i class="text-red-400 fas fa-exclamation-triangle text-sm"></i> Delete Item Request
+<!-- Delete Request Modal — flat light theme -->
+<div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-neutral-900/50 p-4">
+    <div class="w-full max-w-md bg-white border border-neutral-200 rounded-xl shadow-flat flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
+            <h3 class="flex items-center gap-2 text-base font-semibold text-neutral-900">
+                <i class="text-sm text-danger-600 fas fa-exclamation-triangle"></i> Delete Item Request
             </h3>
-            <button type="button" class="modal-close" id="cancel-delete-x" aria-label="Close" onclick="document.getElementById('delete-modal').classList.add('hidden')">
-                <i class="fas fa-times text-xs"></i>
+            <button type="button" class="w-8 h-8 grid place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900" id="cancel-delete-x" aria-label="Close">
+                <i class="text-xs fas fa-times"></i>
             </button>
         </div>
 
-        <form id="delete-form" method="POST">
+        <form id="delete-form" method="POST" class="flex flex-col flex-1">
             @csrf
             @method('DELETE')
-            
-            <div class="modal-body space-y-3">
-                <p class="text-neutral-300">
-                    Are you sure you want to delete <strong id="delete-item-name" class="text-white font-semibold"></strong>?
+
+            <div class="px-6 py-5 space-y-3">
+                <p class="text-sm text-neutral-700">
+                    Are you sure you want to delete <strong id="delete-item-name" class="font-semibold text-neutral-900"></strong>?
                 </p>
-                <p class="text-xs text-red-400/80 leading-relaxed">
-                    <i class="fas fa-info-circle mr-1"></i> This action is irreversible and will remove this request.
+                <p class="text-xs text-danger-600 flex items-start gap-1.5 leading-relaxed">
+                    <i class="fas fa-info-circle mt-0.5"></i> This action is irreversible and will remove this request.
                 </p>
             </div>
 
-            <div class="modal-footer">
-                <button type="button" id="cancel-delete" class="btn-ds-secondary">Cancel</button>
-                <button type="submit" class="btn-ds-danger">
-                    <i class="fas fa-trash-alt text-xs mr-1"></i> Confirm Delete
+            <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
+                <button type="button" id="cancel-delete" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50">Cancel</button>
+                <button type="submit" class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-danger-600 text-white hover:bg-danger-700">
+                    <i class="text-xs fas fa-trash-alt"></i> Confirm Delete
                 </button>
             </div>
         </form>

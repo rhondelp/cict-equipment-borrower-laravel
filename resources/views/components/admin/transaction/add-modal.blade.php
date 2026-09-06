@@ -1,104 +1,102 @@
-<!-- Add Transaction Modal -->
-<div id="add-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50">
-    <div class="modal-card max-w-2xl w-full mx-4 animate-fade-in">
-        <!-- Header -->
-        <div class="modal-header">
-            <h3 class="flex items-center gap-2 text-white">
-                <i class="text-primary-300 fas fa-exchange-alt text-sm"></i> Add Transaction
+<!-- Add Transaction Modal — flat light theme -->
+<div id="add-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-neutral-900/50 p-4">
+    <div class="w-full max-w-xl bg-white border border-neutral-200 rounded-xl shadow-flat flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
+            <h3 class="flex items-center gap-2 text-base font-semibold text-neutral-900">
+                <i class="text-sm text-primary-600 fas fa-exchange-alt"></i> Add Transaction
             </h3>
-            <button type="button" class="modal-close cancel-add" aria-label="Close">
-                <i class="fas fa-times text-xs"></i>
+            <button type="button" class="w-8 h-8 grid place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 cancel-add" aria-label="Close">
+                <i class="text-xs fas fa-times"></i>
             </button>
         </div>
 
-        <form action="{{ route('admin.transaction.store') }}" method="POST">
+        <form action="{{ route('admin.transaction.store') }}" method="POST" class="flex flex-col flex-1 min-h-0">
             @csrf
 
-            <div class="modal-body space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-                <!-- User Selection -->
-                <div class="ds-field">
-                    <label>Select User</label>
-                    <select name="user_id" required>
+            <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+                <div>
+                    <label for="add-user" class="block text-sm font-medium text-neutral-700">Select User</label>
+                    <select id="add-user" name="user_id" required
+                            class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
                         <option value="" disabled selected>-- Select User --</option>
                         @foreach ($users as $user)
-                        <option value="{{ $user->id }}">{{ $user->name }}</option>
+                            <option value="{{ $user->id }}">{{ $user->name }}</option>
                         @endforeach
                     </select>
                 </div>
 
-                <!-- Equipment Selection -->
-                <div class="ds-field">
-                    <label>Select Equipment</label>
-                    <select name="equipment[]" id="equipment-select" class="min-h-[120px]" multiple required>
+                <div>
+                    <label for="equipment-select" class="block text-sm font-medium text-neutral-700">Select Equipment</label>
+                    <select name="equipment[]" id="equipment-select" multiple required
+                            class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none min-h-[120px]">
                         @foreach ($equipment->where('status', 'Available')->where('available_quantity', '>', 0) as $eq)
-                        <option value="{{ $eq->id }}">{{ $eq->id }} | {{ $eq->equipment_name }} (Available: {{ $eq->available_quantity }})</option>
+                            <option value="{{ $eq->id }}">{{ $eq->id }} | {{ $eq->equipment_name }} (Available: {{ $eq->available_quantity }})</option>
                         @endforeach
                     </select>
-                    <small class="text-xs mt-1 block" style="color:var(--text-muted)">
-                        <i class="fas fa-info-circle mr-1"></i> Hold Ctrl (Windows) or Command (Mac) to select multiple items.
-                    </small>
+                    <p class="mt-1.5 text-xs text-neutral-500">
+                        <i class="fas fa-info-circle"></i> Hold Ctrl (Windows) or Command (Mac) to select multiple items.
+                    </p>
                 </div>
 
-                <!-- Dynamically Generated Quantity Fields -->
                 <div id="equipment-quantities" class="space-y-4">
-                    <!-- Quantity fields will appear here after selecting equipment -->
+                    {{-- Quantity fields appear here after selecting equipment --}}
                 </div>
 
-                <!-- Borrow and Return Dates -->
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div class="ds-field">
-                        <label>Borrow Date</label>
-                        <input type="date" name="borrow_date" required>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="add-borrow-date" class="block text-sm font-medium text-neutral-700">Borrow Date</label>
+                        <input type="date" id="add-borrow-date" name="borrow_date" required
+                               class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
                     </div>
-                    <div class="ds-field">
-                        <label>Return Date</label>
-                        <input type="date" name="return_date" required>
+                    <div>
+                        <label for="add-return-date" class="block text-sm font-medium text-neutral-700">Return Date</label>
+                        <input type="date" id="add-return-date" name="return_date" required
+                               class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
                     </div>
                 </div>
 
-                <!-- Purpose of Borrowing -->
-                <div class="ds-field">
-                    <label>Purpose</label>
-                    <input type="text" name="purpose" required placeholder="Reason for borrowing">
+                <div>
+                    <label for="add-purpose" class="block text-sm font-medium text-neutral-700">Purpose</label>
+                    <input type="text" id="add-purpose" name="purpose" required placeholder="Reason for borrowing"
+                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
                 </div>
 
-                <!-- Status Selection -->
-                <div class="ds-field">
-                    <label>Transaction Status</label>
-                    <select name="status" required>
+                <div>
+                    <label for="add-status" class="block text-sm font-medium text-neutral-700">Transaction Status</label>
+                    <select id="add-status" name="status" required
+                            class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
                         <option value="Borrowed">Borrowed</option>
                         <option value="Returned">Returned</option>
                         <option value="Overdue">Overdue</option>
                     </select>
                 </div>
 
-                <!-- Remarks -->
-                <div class="ds-field">
-                    <label>Remarks (Optional)</label>
-                    <textarea name="remarks" rows="2" placeholder="Optional notes..."></textarea>
+                <div>
+                    <label for="add-remarks" class="block text-sm font-medium text-neutral-700">Remarks (Optional)</label>
+                    <textarea id="add-remarks" name="remarks" rows="2" placeholder="Optional notes..."
+                              class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none"></textarea>
                 </div>
 
-                <!-- Class Schedule (Optional) -->
-                <div class="ds-field">
-                    <label>Class Schedule (Optional)</label>
-                    <select name="class_schedule_id">
+                <div>
+                    <label for="add-class-schedule" class="block text-sm font-medium text-neutral-700">Class Schedule (Optional)</label>
+                    <select id="add-class-schedule" name="class_schedule_id"
+                            class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
                         <option value="" selected>-- None --</option>
                         @foreach ($classSchedules as $schedule)
-                        <option value="{{ $schedule->id }}">
-                            {{ $schedule->schedule_time }}
-                            - {{ $schedule->instructor?->name ?? 'No Instructor' }}
-                            - {{ $schedule->room }}
-                        </option>
+                            <option value="{{ $schedule->id }}">
+                                {{ $schedule->schedule_time }}
+                                - {{ $schedule->instructor?->name ?? 'No Instructor' }}
+                                - {{ $schedule->room }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
             </div>
 
-            <!-- Actions -->
-            <div class="modal-footer">
-                <button type="button" id="cancel-add" class="btn-ds-secondary cancel-add">Cancel</button>
-                <button type="submit" class="btn-ds-primary">
-                    <i class="fas fa-save text-xs mr-1"></i> Create Transaction
+            <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
+                <button type="button" id="cancel-add" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50 cancel-add">Cancel</button>
+                <button type="submit" class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">
+                    <i class="text-xs fas fa-save"></i> Create Transaction
                 </button>
             </div>
         </form>

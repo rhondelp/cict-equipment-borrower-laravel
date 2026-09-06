@@ -1,58 +1,45 @@
-<!-- Edit Modal — z-[60] -->
-<div id="edit-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black bg-opacity-50 backdrop-blur-sm">
-    <div class="modal-card max-w-xl w-full mx-4 animate-fade-in" style="color: #f1f5f9;">
-        <!-- Modal Header -->
-        <div class="modal-header">
-            <h3 class="flex items-center gap-2" style="color: white !important;">
-                <i class="text-primary-300 fas fa-edit text-sm"></i> Edit Item Request
+<!-- Edit Request Modal — flat light theme -->
+<div id="edit-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-neutral-900/50 p-4">
+    <div class="w-full max-w-lg bg-white border border-neutral-200 rounded-xl shadow-flat flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
+            <h3 class="flex items-center gap-2 text-base font-semibold text-neutral-900">
+                <i class="text-sm text-primary-600 fas fa-edit"></i> Edit Item Request
             </h3>
-            <button type="button" class="modal-close cancel-edit" aria-label="Close">
-                <i class="fas fa-times text-xs"></i>
+            <button type="button" class="w-8 h-8 grid place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 cancel-edit" aria-label="Close">
+                <i class="text-xs fas fa-times"></i>
             </button>
         </div>
 
-        <form id="edit-form" method="POST" action="{{ route('borrower.request.update') }}" class="space-y-4">
+        <form id="edit-form" method="POST" action="{{ route('borrower.request.update') }}" class="flex flex-col flex-1">
             @csrf
             @method('PUT')
             <input type="hidden" name="id" id="edit-id">
 
-            <!-- Equipment Name (readonly) -->
-            <div class="ds-field">
-                <label>Equipment</label>
-                <p id="edit-equipment-name" class="px-3 py-2 mt-1 bg-gray-100 rounded-l rounded-lg text-sm font-medium text-gray-900"></p>
+            <div class="px-6 py-5 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-neutral-700">Equipment</label>
+                    <p id="edit-equipment-name" class="mt-1.5 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-sm font-medium text-neutral-900"></p>
+                </div>
+
+                <div>
+                    <label for="edit-quantity" class="block text-sm font-medium text-neutral-700">Quantity</label>
+                    <input type="number" name="quantity" id="edit-quantity" required
+                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none tabular-nums">
+                </div>
+
+                <div>
+                    <label for="edit-remarks" class="block text-sm font-medium text-neutral-700">Remarks</label>
+                    <textarea name="remarks" id="edit-remarks" rows="3"
+                              class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none min-h-[60px]"></textarea>
+                </div>
             </div>
 
-            <!-- Quantity -->
-            <div class="ds-field">
-                <label for="edit-quantity">Quantity</label>
-                <input type="number" name="quantity" id="edit-quantity" required class="tabular-nums">
-            </div>
-
-
-            <!-- Remarks -->
-            <div class="ds-field">
-                <label for="edit-remarks">Remarks</label>
-                <textarea name="remarks" id="edit-remarks" rows="3" class="min-h-[60px]"></textarea>
-            </div>
-
-            <!-- Footer -->
-            <div class="modal-footer">
-                <button type="button" id="cancel-edit" class="btn-ds-secondary cancel-edit">Cancel</button>
-                <button type="submit" class="btn-ds-primary">
-                    <i class="fas fa-save text-xs mr-1"></i> Save Changes
+            <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
+                <button type="button" id="cancel-edit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50 cancel-edit">Cancel</button>
+                <button type="submit" class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">
+                    <i class="text-xs fas fa-save"></i> Save Changes
                 </button>
             </div>
         </form>
     </div>
 </div>
-
-<style>
-    /* Simple fade-in animation */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fadeIn {
-        animation: fadeIn 0.3s ease-out;
-    }
-</style>
