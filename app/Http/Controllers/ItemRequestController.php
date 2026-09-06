@@ -13,9 +13,6 @@ use Illuminate\Validation\ValidationException;
 
 class ItemRequestController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         $requests = ItemRequest::with(['user', 'equipment'])->get();
@@ -86,17 +83,6 @@ class ItemRequestController extends Controller
         return back()->with('error', 'Unknown action.');
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -119,25 +105,6 @@ class ItemRequestController extends Controller
             ->with('success', 'Your item request has been submitted successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(ItemRequest $itemRequest)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(ItemRequest $itemRequest)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, ItemRequest $itemRequest)
     {
         $validated = $request->validate([
@@ -147,11 +114,7 @@ class ItemRequestController extends Controller
         ]);
 
         $itemRequest = ItemRequest::findOrFail($validated['id']);
-
-        // A borrower may only update their own requests.
-        if ($itemRequest->user_id !== Auth::id()) {
-            abort(403, 'Unauthorized action.');
-        }
+        $this->assertOwner($itemRequest);
 
         $itemRequest->update([
             'quantity' => $validated['quantity'],
@@ -163,23 +126,25 @@ class ItemRequestController extends Controller
             ->with('success', 'Request has been updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy($id)
     {
-        //
         $itemRequest = ItemRequest::findOrFail($id);
-
-        // A borrower may only delete their own requests.
-        if ($itemRequest->user_id !== Auth::id()) {
-            abort(403, 'Unauthorized action.');
-        }
+        $this->assertOwner($itemRequest);
 
         $itemRequest->delete();
 
         return redirect()
             ->back()
             ->with('success', 'Your item request has been deleted successfully.');
+    }
+
+    /**
+     * A borrower may only modify their own item requests.
+     */
+    private function assertOwner(ItemRequest $itemRequest): void
+    {
+        if ($itemRequest->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
     }
 }
