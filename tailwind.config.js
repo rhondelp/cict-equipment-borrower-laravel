@@ -1,5 +1,4 @@
 export default {
-  darkMode: 'class',
   content: [
     "./resources/**/*.blade.php",
     "./resources/**/*.js",
@@ -15,10 +14,10 @@ export default {
           300: '#a8bff0',
           400: '#8aa8e8',
           500: '#5b8de0',
-          600: '#4a6fa5',
-          700: '#3d5a85',
-          800: '#2e4466',
-          900: '#1e2d42',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
         },
         neutral: {
           50: '#f8fafc',
@@ -70,15 +69,13 @@ export default {
         display: ['Inter', 'sans-serif'],
       },
       fontSize: {
-        // Rebalanced around 15px base for comfortable reading (was 13px)
-        // xs stays compact for badges/headers/meta — but not squint-inducing (11px → 12px)
-        'xs': ['12px', { lineHeight: '1.5', letterSpacing: '0.04em' }],
-        'sm': ['13px', { lineHeight: '1.5', letterSpacing: '0.01em' }],
-        'base': ['15px', { lineHeight: '1.6', letterSpacing: '-0.01em' }],
-        'lg': ['17px', { lineHeight: '1.5', letterSpacing: '-0.015em' }],
-        'xl': ['20px', { lineHeight: '1.35', letterSpacing: '-0.02em' }],
-        '2xl': ['24px', { lineHeight: '1.25', letterSpacing: '-0.025em' }],
-        '3xl': ['30px', { lineHeight: '1.2', letterSpacing: '-0.03em' }],
+        xs:   ['12px', { lineHeight: '1.5',   letterSpacing: '0.04em' }],
+        sm:   ['13px', { lineHeight: '1.5',   letterSpacing: '0.01em' }],
+        base: ['15px', { lineHeight: '1.6',   letterSpacing: '-0.01em' }],
+        lg:   ['17px', { lineHeight: '1.5',   letterSpacing: '-0.015em' }],
+        xl:   ['20px', { lineHeight: '1.35',  letterSpacing: '-0.02em' }],
+        '2xl':['24px', { lineHeight: '1.25',  letterSpacing: '-0.025em' }],
+        '3xl':['30px', { lineHeight: '1.2',   letterSpacing: '-0.03em' }],
       },
       spacing: {
         '18': '4.5rem',
@@ -89,13 +86,12 @@ export default {
         'content': '1440px',
       },
       borderRadius: {
-        'card': '14px',
-        'input': '8px',
-        'btn': '8px',
+        card: '8px',
+        input: '6px',
+        btn: '6px',
       },
       boxShadow: {
-        'tinted': '0 8px 24px rgba(10,14,26,0.45), 0 1px 0 rgba(148,163,184,0.04) inset',
-        'tinted-hover': '0 10px 28px rgba(10,14,26,0.50), 0 1px 0 rgba(255,255,255,0.06) inset',
+        flat: '0 1px 2px rgba(0, 0, 0, 0.05)',
       },
     },
   },
