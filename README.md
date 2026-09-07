@@ -168,3 +168,4 @@ Contributions, issues, and feature requests are welcome. Feel free to open a pul
 ## 📄 License
 
 This project is built on the Laravel framework, which is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT). Check the repository for any project-specific license terms.
+  

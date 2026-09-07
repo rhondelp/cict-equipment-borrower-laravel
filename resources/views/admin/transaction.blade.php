@@ -3,39 +3,39 @@
 @section('content')
 @include('components.admin.navbar')
 
-<div class="page-bg min-h-screen md:ml-64">
+<div class="min-h-screen page-bg md:ml-64">
     <x-ui.page-header eyebrow="Transactions" title="Borrow & returns">
         <x-slot:actions>
             <button id="open-add-modal" type="button"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">
-                <i class="fas fa-plus text-xs"></i> Add Transaction
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md bg-primary-600 hover:bg-primary-700">
+                <i class="text-xs fas fa-plus"></i> Add Transaction
             </button>
         </x-slot:actions>
     </x-ui.page-header>
 
-    <main class="p-4 sm:p-6 space-y-5 max-w-content mx-auto">
+    <main class="p-4 mx-auto space-y-5 sm:p-6 max-w-content">
         <x-ui.table-card>
             @if($transactions->isEmpty())
                 <div class="py-16 text-center">
-                    <i class="fas fa-exchange-alt text-4xl text-neutral-300 mb-3 block"></i>
+                    <i class="block mb-3 text-4xl fas fa-exchange-alt text-neutral-300"></i>
                     <p class="text-sm font-medium text-neutral-700">No transactions yet</p>
-                    <p class="text-xs text-neutral-500 mt-1">Click "Add Transaction" to log a new borrow.</p>
+                    <p class="mt-1 text-xs text-neutral-500">Click "Add Transaction" to log a new borrow.</p>
                 </div>
             @else
-                <div class="overflow-x-auto">
-                    <table id="transactions-table" class="w-full display nowrap text-sm">
+                <div class="p-4 overflow-x-auto">
+                    <table id="transactions-table" class="w-full text-sm display nowrap">
                         <thead>
-                            <tr class="text-xs uppercase tracking-wider text-neutral-500 bg-neutral-50">
-                                <th class="text-left px-4 py-3 font-semibold">User</th>
-                                <th class="text-left px-4 py-3 font-semibold">Equipment</th>
-                                <th class="text-left px-4 py-3 font-semibold">Borrow date</th>
-                                <th class="text-left px-4 py-3 font-semibold">Return date</th>
-                                <th class="text-left px-4 py-3 font-semibold">Qty</th>
-                                <th class="text-left px-4 py-3 font-semibold">Purpose</th>
-                                <th class="text-left px-4 py-3 font-semibold">Status</th>
-                                <th class="text-left px-4 py-3 font-semibold">Remarks</th>
-                                <th class="text-left px-4 py-3 font-semibold">Class sched</th>
-                                <th class="text-left px-4 py-3 font-semibold">Actions</th>
+                            <tr class="text-xs tracking-wider uppercase text-neutral-500 bg-neutral-50">
+                                <th class="px-4 py-3 font-semibold text-left">User</th>
+                                <th class="px-4 py-3 font-semibold text-left">Equipment</th>
+                                <th class="px-4 py-3 font-semibold text-left">Borrow date</th>
+                                <th class="px-4 py-3 font-semibold text-left">Return date</th>
+                                <th class="px-4 py-3 font-semibold text-left">Qty</th>
+                                <th class="px-4 py-3 font-semibold text-left">Purpose</th>
+                                <th class="px-4 py-3 font-semibold text-left">Status</th>
+                                <th class="px-4 py-3 font-semibold text-left">Remarks</th>
+                                <th class="px-4 py-3 font-semibold text-left">Class sched</th>
+                                <th class="px-4 py-3 font-semibold text-left">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-neutral-200">

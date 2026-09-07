@@ -3,39 +3,39 @@
 @section('content')
 @include('components.admin.navbar')
 
-<div class="page-bg min-h-screen md:ml-64">
+<div class="min-h-screen page-bg md:ml-64">
     <x-ui.page-header eyebrow="Users" title="Manage accounts & schedules">
         <x-slot:actions>
             <button id="open-add-sched-modal" type="button"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50">
-                <i class="fas fa-calendar-check text-xs"></i> Add Schedule
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50">
+                <i class="text-xs fas fa-calendar-check"></i> Add Schedule
             </button>
             <button id="open-add-modal" type="button"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">
-                <i class="fas fa-user-plus text-xs"></i> Add User
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md bg-primary-600 hover:bg-primary-700">
+                <i class="text-xs fas fa-user-plus"></i> Add User
             </button>
         </x-slot:actions>
     </x-ui.page-header>
 
-    <main class="p-4 sm:p-6 space-y-5 max-w-content mx-auto">
+    <main class="p-4 mx-auto space-y-5 sm:p-6 max-w-content">
         <x-ui.table-card>
             @if($users->isEmpty())
                 <div class="py-16 text-center">
-                    <i class="fas fa-users text-4xl text-neutral-300 mb-3 block"></i>
+                    <i class="block mb-3 text-4xl fas fa-users text-neutral-300"></i>
                     <p class="text-sm font-medium text-neutral-700">No users yet</p>
-                    <p class="text-xs text-neutral-500 mt-1">Click "Add User" to create one.</p>
+                    <p class="mt-1 text-xs text-neutral-500">Click "Add User" to create one.</p>
                 </div>
             @else
-                <div class="overflow-x-auto">
-                    <table id="users-table" class="w-full display nowrap text-sm">
+                <div class="p-4 overflow-x-auto">
+                    <table id="users-table" class="w-full text-sm display nowrap">
                         <thead>
-                            <tr class="text-xs uppercase tracking-wider text-neutral-500 bg-neutral-50">
-                                <th class="text-left px-4 py-3 font-semibold">Name</th>
-                                <th class="text-left px-4 py-3 font-semibold">Email</th>
-                                <th class="text-left px-4 py-3 font-semibold">User type</th>
-                                <th class="text-left px-4 py-3 font-semibold">Contact</th>
-                                <th class="text-left px-4 py-3 font-semibold">Class schedule</th>
-                                <th class="text-left px-4 py-3 font-semibold">Actions</th>
+                            <tr class="text-xs tracking-wider uppercase text-neutral-500 bg-neutral-50">
+                                <th class="px-4 py-3 font-semibold text-left">Name</th>
+                                <th class="px-4 py-3 font-semibold text-left">Email</th>
+                                <th class="px-4 py-3 font-semibold text-left">User type</th>
+                                <th class="px-4 py-3 font-semibold text-left">Contact</th>
+                                <th class="px-4 py-3 font-semibold text-left">Class schedule</th>
+                                <th class="px-4 py-3 font-semibold text-left">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-neutral-200">
@@ -47,7 +47,7 @@
                                     <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $user->contact_number ?? '—' }}</td>
                                     <td class="px-4 py-3">
                                         @if ($user->classSchedules->count() > 0)
-                                            <ul class="text-sm text-neutral-700 space-y-1">
+                                            <ul class="space-y-1 text-sm text-neutral-700">
                                                 @foreach ($user->classSchedules as $sched)
                                                     <li class="leading-relaxed">
                                                         {{ $sched->subject_code }} - {{ $sched->subject_name }}
@@ -56,7 +56,7 @@
                                                 @endforeach
                                             </ul>
                                         @else
-                                            <span class="text-neutral-500 text-sm">No schedules</span>
+                                            <span class="text-sm text-neutral-500">No schedules</span>
                                         @endif
                                     </td>
                                     <td class="px-4 py-3">
@@ -85,17 +85,17 @@
 </div>
 
 {{-- Add Schedule Modal --}}
-<div id="add-sched-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-neutral-900/50 p-4">
+<div id="add-sched-modal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-neutral-900/50">
     <div class="w-full max-w-lg bg-white border border-neutral-200 rounded-xl shadow-flat flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <h3 class="text-base font-semibold text-neutral-900">Add Class Schedule</h3>
-            <button type="button" class="w-8 h-8 grid place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 cancel-sched" aria-label="Close">
+            <button type="button" class="grid w-8 h-8 rounded-md place-items-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 cancel-sched" aria-label="Close">
                 <i class="text-xs fas fa-times"></i>
             </button>
         </div>
         <form action="{{ route('admin.add-sched') }}" method="POST" class="flex flex-col flex-1 min-h-0">
             @csrf
-            <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+            <div class="flex-1 px-6 py-5 space-y-4 overflow-y-auto">
                 <div>
                     <label class="block text-sm font-medium text-neutral-700">Instructor</label>
                     <select name="user_id" required
@@ -137,25 +137,25 @@
                 </div>
             </div>
             <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
-                <button type="button" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50 cancel-sched">Cancel</button>
-                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">Add Schedule</button>
+                <button type="button" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50 cancel-sched">Cancel</button>
+                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-md bg-primary-600 hover:bg-primary-700">Add Schedule</button>
             </div>
         </form>
     </div>
 </div>
 
 {{-- Add User Modal --}}
-<div id="add-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-neutral-900/50 p-4">
+<div id="add-modal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-neutral-900/50">
     <div class="w-full max-w-lg bg-white border border-neutral-200 rounded-xl shadow-flat flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <h3 class="text-base font-semibold text-neutral-900">Add User</h3>
-            <button type="button" class="w-8 h-8 grid place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 cancel-add" aria-label="Close">
+            <button type="button" class="grid w-8 h-8 rounded-md place-items-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 cancel-add" aria-label="Close">
                 <i class="text-xs fas fa-times"></i>
             </button>
         </div>
         <form action="{{ route('admin.user.register') }}" method="POST" class="flex flex-col flex-1 min-h-0">
             @csrf
-            <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+            <div class="flex-1 px-6 py-5 space-y-4 overflow-y-auto">
                 <div>
                     <label class="block text-sm font-medium text-neutral-700">Full Name</label>
                     <input type="text" name="name" required
@@ -195,26 +195,26 @@
                 </div>
             </div>
             <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
-                <button type="button" id="cancel-add" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50 cancel-add">Cancel</button>
-                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">Add User</button>
+                <button type="button" id="cancel-add" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50 cancel-add">Cancel</button>
+                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-md bg-primary-600 hover:bg-primary-700">Add User</button>
             </div>
         </form>
     </div>
 </div>
 
 {{-- Edit User Modal --}}
-<div id="edit-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-neutral-900/50 p-4">
+<div id="edit-modal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-neutral-900/50">
     <div class="w-full max-w-md bg-white border border-neutral-200 rounded-xl shadow-flat flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <h3 class="text-base font-semibold text-neutral-900">Edit User</h3>
-            <button type="button" class="w-8 h-8 grid place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 cancel-edit" aria-label="Close">
+            <button type="button" class="grid w-8 h-8 rounded-md place-items-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 cancel-edit" aria-label="Close">
                 <i class="text-xs fas fa-times"></i>
             </button>
         </div>
         <form id="edit-form" action="{{ route('admin.users.update') }}" method="POST" class="flex flex-col flex-1 min-h-0">
             @csrf
             <input type="hidden" name="id" id="edit-id">
-            <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+            <div class="flex-1 px-6 py-5 space-y-4 overflow-y-auto">
                 <div>
                     <label class="block text-sm font-medium text-neutral-700">Name</label>
                     <input type="text" name="name" id="edit-name"
@@ -251,21 +251,21 @@
                 </div>
             </div>
             <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
-                <button type="button" id="cancel-edit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50 cancel-edit">Cancel</button>
-                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">Save Changes</button>
+                <button type="button" id="cancel-edit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50 cancel-edit">Cancel</button>
+                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-md bg-primary-600 hover:bg-primary-700">Save Changes</button>
             </div>
         </form>
     </div>
 </div>
 
 {{-- Delete Confirmation Modal --}}
-<div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-neutral-900/50 p-4">
-    <div class="w-full max-w-md bg-white border border-neutral-200 rounded-xl shadow-flat flex flex-col">
+<div id="delete-modal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-neutral-900/50">
+    <div class="flex flex-col w-full max-w-md bg-white border border-neutral-200 rounded-xl shadow-flat">
         <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <h3 class="flex items-center gap-2 text-base font-semibold text-neutral-900">
                 <i class="text-sm text-danger-600 fas fa-exclamation-triangle"></i> Delete User
             </h3>
-            <button type="button" class="w-8 h-8 grid place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900" id="cancel-delete" aria-label="Close">
+            <button type="button" class="grid w-8 h-8 rounded-md place-items-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900" id="cancel-delete" aria-label="Close">
                 <i class="text-xs fas fa-times"></i>
             </button>
         </div>
@@ -281,8 +281,8 @@
                 </p>
             </div>
             <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
-                <button type="button" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50" id="cancel-delete-btn">Cancel</button>
-                <button type="button" id="confirm-delete" class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-danger-600 text-white hover:bg-danger-700">
+                <button type="button" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50" id="cancel-delete-btn">Cancel</button>
+                <button type="button" id="confirm-delete" class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md bg-danger-600 hover:bg-danger-700">
                     <i class="text-xs fas fa-trash-alt"></i> Delete
                 </button>
             </div>

@@ -2,46 +2,46 @@
 @section('title', 'Borrower - CICT Equipment Borrower System')
 @section('content')
 
-<div class="page-bg min-h-screen flex flex-col">
+<div class="flex flex-col min-h-screen page-bg">
     <x-ui.page-header eyebrow="Borrower" title="Dashboard">
         <x-slot:actions>
             <button id="open-add-modal" type="button"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">
-                <i class="fas fa-plus text-xs"></i> Request Item
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md bg-primary-600 hover:bg-primary-700">
+                <i class="text-xs fas fa-plus"></i> Request Item
             </button>
             <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden">@csrf</form>
             <button type="button" id="logout-btn"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50">
-                <i class="fas fa-sign-out-alt text-xs"></i> Logout
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50">
+                <i class="text-xs fas fa-sign-out-alt"></i> Logout
             </button>
         </x-slot:actions>
     </x-ui.page-header>
 
-    <main class="flex-1 p-4 sm:p-6 space-y-6 max-w-content w-full mx-auto">
+    <main class="flex-1 w-full p-4 mx-auto space-y-6 sm:p-6 max-w-content">
         <section>
             <h2 class="flex items-center gap-2 mb-3 text-base font-semibold text-neutral-900">
-                <span class="w-7 h-7 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center">
-                    <i class="fas fa-list text-primary-600 text-xs"></i>
+                <span class="grid border rounded-lg w-7 h-7 bg-primary-50 border-primary-100 place-items-center">
+                    <i class="text-xs fas fa-list text-primary-600"></i>
                 </span>
                 My Equipment Requests
             </h2>
             <x-ui.table-card>
                 @if($requests->isEmpty())
                     <div class="py-12 text-center">
-                        <i class="fas fa-inbox text-3xl text-neutral-300 mb-3 block"></i>
+                        <i class="block mb-3 text-3xl fas fa-inbox text-neutral-300"></i>
                         <p class="text-sm font-medium text-neutral-700">No requests yet</p>
-                        <p class="text-xs text-neutral-500 mt-1">Click "Request Item" to submit one.</p>
+                        <p class="mt-1 text-xs text-neutral-500">Click "Request Item" to submit one.</p>
                     </div>
                 @else
-                    <div class="overflow-x-auto">
-                        <table id="requestTable" class="w-full display nowrap text-sm">
+                    <div class="p-4 overflow-x-auto">
+                        <table id="requestTable" class="w-full text-sm display nowrap">
                             <thead>
-                                <tr class="text-xs uppercase tracking-wider text-neutral-500 bg-neutral-50">
-                                    <th class="text-left px-4 py-3 font-semibold">Equipment</th>
-                                    <th class="text-left px-4 py-3 font-semibold">Qty</th>
-                                    <th class="text-left px-4 py-3 font-semibold">Status</th>
-                                    <th class="text-left px-4 py-3 font-semibold">Remarks</th>
-                                    <th class="text-left px-4 py-3 font-semibold">Actions</th>
+                                <tr class="text-xs tracking-wider uppercase text-neutral-500 bg-neutral-50">
+                                    <th class="px-4 py-3 font-semibold text-left">Equipment</th>
+                                    <th class="px-4 py-3 font-semibold text-left">Qty</th>
+                                    <th class="px-4 py-3 font-semibold text-left">Status</th>
+                                    <th class="px-4 py-3 font-semibold text-left">Remarks</th>
+                                    <th class="px-4 py-3 font-semibold text-left">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-neutral-200">
@@ -82,30 +82,30 @@
 
         <section>
             <h2 class="flex items-center gap-2 mb-3 text-base font-semibold text-neutral-900">
-                <span class="w-7 h-7 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center">
-                    <i class="fas fa-history text-primary-600 text-xs"></i>
+                <span class="grid border rounded-lg w-7 h-7 bg-primary-50 border-primary-100 place-items-center">
+                    <i class="text-xs fas fa-history text-primary-600"></i>
                 </span>
                 My borrow transactions
             </h2>
             <x-ui.table-card>
                 @if($transactions->isEmpty())
                     <div class="py-12 text-center">
-                        <i class="fas fa-exchange-alt text-3xl text-neutral-300 mb-3 block"></i>
+                        <i class="block mb-3 text-3xl fas fa-exchange-alt text-neutral-300"></i>
                         <p class="text-sm font-medium text-neutral-700">No transactions yet</p>
-                        <p class="text-xs text-neutral-500 mt-1">Once your request is approved, your transactions will appear here.</p>
+                        <p class="mt-1 text-xs text-neutral-500">Once your request is approved, your transactions will appear here.</p>
                     </div>
                 @else
-                    <div class="overflow-x-auto">
-                        <table id="transactionTable" class="w-full display nowrap text-sm">
+                    <div class="p-4 overflow-x-auto">
+                        <table id="transactionTable" class="w-full text-sm display nowrap">
                             <thead>
-                                <tr class="text-xs uppercase tracking-wider text-neutral-500 bg-neutral-50">
-                                    <th class="text-left px-4 py-3 font-semibold">Equipment</th>
-                                    <th class="text-left px-4 py-3 font-semibold">Qty</th>
-                                    <th class="text-left px-4 py-3 font-semibold">Borrow</th>
-                                    <th class="text-left px-4 py-3 font-semibold">Return</th>
-                                    <th class="text-left px-4 py-3 font-semibold">Purpose</th>
-                                    <th class="text-left px-4 py-3 font-semibold">Status</th>
-                                    <th class="text-left px-4 py-3 font-semibold">Remarks</th>
+                                <tr class="text-xs tracking-wider uppercase text-neutral-500 bg-neutral-50">
+                                    <th class="px-4 py-3 font-semibold text-left">Equipment</th>
+                                    <th class="px-4 py-3 font-semibold text-left">Qty</th>
+                                    <th class="px-4 py-3 font-semibold text-left">Borrow</th>
+                                    <th class="px-4 py-3 font-semibold text-left">Return</th>
+                                    <th class="px-4 py-3 font-semibold text-left">Purpose</th>
+                                    <th class="px-4 py-3 font-semibold text-left">Status</th>
+                                    <th class="px-4 py-3 font-semibold text-left">Remarks</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-neutral-200">
@@ -133,15 +133,15 @@
 </div>
 
 {{-- Logout confirm modal --}}
-<div id="logout-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-neutral-900/50 p-4">
-    <div class="w-full max-w-sm bg-white border border-neutral-200 rounded-xl shadow-flat flex flex-col">
+<div id="logout-modal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-neutral-900/50">
+    <div class="flex flex-col w-full max-w-sm bg-white border border-neutral-200 rounded-xl shadow-flat">
         <div class="px-6 py-5">
             <h3 class="text-base font-semibold text-neutral-900">Confirm Logout</h3>
-            <p class="text-sm text-neutral-600 mt-1">Are you sure you want to log out?</p>
+            <p class="mt-1 text-sm text-neutral-600">Are you sure you want to log out?</p>
         </div>
         <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
-            <button id="cancel-logout" type="button" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50">Cancel</button>
-            <button id="confirm-logout" type="button" class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-md bg-danger-600 text-white hover:bg-danger-700">Logout</button>
+            <button id="cancel-logout" type="button" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50">Cancel</button>
+            <button id="confirm-logout" type="button" class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white rounded-md bg-danger-600 hover:bg-danger-700">Logout</button>
         </div>
     </div>
 </div>

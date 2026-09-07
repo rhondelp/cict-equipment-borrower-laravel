@@ -3,29 +3,29 @@
 @section('content')
 @include('components.admin.navbar')
 
-<div class="page-bg min-h-screen md:ml-64">
+<div class="min-h-screen page-bg md:ml-64">
     <x-ui.page-header eyebrow="Requests" title="Item requests" />
 
-    <main class="p-4 sm:p-6 space-y-5 max-w-content mx-auto">
+    <main class="p-4 mx-auto space-y-5 sm:p-6 max-w-content">
         <x-ui.table-card>
             @if($requests->isEmpty())
                 <div class="py-16 text-center">
-                    <i class="fas fa-clipboard-list text-4xl text-neutral-300 mb-3 block"></i>
+                    <i class="block mb-3 text-4xl fas fa-clipboard-list text-neutral-300"></i>
                     <p class="text-sm font-medium text-neutral-700">No item requests</p>
-                    <p class="text-xs text-neutral-500 mt-1">Borrowers haven't submitted anything yet.</p>
+                    <p class="mt-1 text-xs text-neutral-500">Borrowers haven't submitted anything yet.</p>
                 </div>
             @else
-                <div class="overflow-x-auto">
-                    <table id="requestTable" class="w-full display nowrap text-sm">
+                <div class="p-4 overflow-x-auto">
+                    <table id="requestTable" class="w-full text-sm display nowrap">
                         <thead>
-                            <tr class="text-xs uppercase tracking-wider text-neutral-500 bg-neutral-50">
-                                <th class="text-left px-4 py-3 font-semibold">User</th>
-                                <th class="text-left px-4 py-3 font-semibold">Equipment</th>
-                                <th class="text-left px-4 py-3 font-semibold">Qty</th>
-                                <th class="text-left px-4 py-3 font-semibold">Requested</th>
-                                <th class="text-left px-4 py-3 font-semibold">Remarks</th>
-                                <th class="text-left px-4 py-3 font-semibold">Status</th>
-                                <th class="text-left px-4 py-3 font-semibold">Actions</th>
+                            <tr class="text-xs tracking-wider uppercase text-neutral-500 bg-neutral-50">
+                                <th class="px-4 py-3 font-semibold text-left">User</th>
+                                <th class="px-4 py-3 font-semibold text-left">Equipment</th>
+                                <th class="px-4 py-3 font-semibold text-left">Qty</th>
+                                <th class="px-4 py-3 font-semibold text-left">Requested</th>
+                                <th class="px-4 py-3 font-semibold text-left">Remarks</th>
+                                <th class="px-4 py-3 font-semibold text-left">Status</th>
+                                <th class="px-4 py-3 font-semibold text-left">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-neutral-200">
