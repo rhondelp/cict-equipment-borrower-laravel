@@ -84,7 +84,7 @@
         e.preventDefault();
         // window.showConfirm is loaded app-wide by resources/js/alert.js,
         // which is bundled into resources/js/app.js and loaded on every
-        // page via @vite in default.blade.php. No fallback shim needed.
+        // page through the master layout. No fallback shim needed.
         window.showConfirm({
             title: 'Are you sure?',
             text: 'You will be logged out!',
