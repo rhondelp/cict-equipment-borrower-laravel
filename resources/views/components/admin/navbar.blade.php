@@ -56,7 +56,7 @@
                 <button id="settingsBtn" class="w-9 h-9 grid place-items-center rounded-md bg-white border border-neutral-200 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition" aria-label="Open menu">
                     <i class="fas fa-cog text-xs"></i>
                 </button>
-                <div id="logoutDropdown" class="absolute right-0 bottom-full mb-2 hidden w-44 bg-white border border-neutral-200 shadow-flat rounded-lg overflow-hidden">
+                <div id="logoutDropdown" class="absolute right-0 bottom-full mb-2 hidden w-44 bg-white border border-neutral-200 rounded-lg overflow-hidden">
                     <form id="logoutForm" method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="button" id="logoutBtn" class="w-full px-4 py-2.5 text-sm text-left text-neutral-700 hover:bg-neutral-100 flex items-center gap-2">
@@ -82,23 +82,15 @@
     });
     document.getElementById('logoutBtn')?.addEventListener('click', function (e) {
         e.preventDefault();
-        (window.showConfirm ? window.showConfirm({
+        // window.showConfirm is loaded app-wide by resources/js/alert.js,
+        // which is bundled into resources/js/app.js and loaded on every
+        // page via @vite in default.blade.php. No fallback shim needed.
+        window.showConfirm({
             title: 'Are you sure?',
             text: 'You will be logged out!',
             icon: 'warning',
             confirmText: 'Yes, logout'
-        }) : Swal.fire({
-            title: 'Are you sure?',
-            text: 'You will be logged out!',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#2563eb',
-            cancelButtonColor: '#e2e8f0',
-            confirmButtonText: 'Yes, logout',
-            background: '#ffffff',
-            color: '#0f172a',
-            customClass: { popup: 'rounded-lg border border-neutral-200 shadow-sm' }
-        })).then(function (result) {
+        }).then(function (result) {
             if (result.isConfirmed) document.getElementById('logoutForm').submit();
         });
     });
