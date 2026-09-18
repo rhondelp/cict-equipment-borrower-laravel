@@ -39,14 +39,11 @@ class ItemRequestController extends Controller
                     // Lock equipment to guard race on available_quantity
                     $equipment = Equipment::where('id', $itemRequest->equipment_id)->lockForUpdate()->firstOrFail();
 
-                    if ($equipment->available_quantity < $itemRequest->quantity) {
-                        throw ValidationException::withMessages(['quantity' => 'Not enough '.$equipment->equipment_name.' available (have '.$equipment->available_quantity.', need '.$itemRequest->quantity.').']);
-                    }
-
                     // Deduct stock
-                    $equipment->available_quantity -= $itemRequest->quantity;
-                    $equipment->status = $equipment->available_quantity > 0 ? 'Available' : 'Unavailable';
-                    $equipment->save();
+                    $equipment->reserveStock(
+                        $itemRequest->quantity,
+                        'Not enough '.$equipment->equipment_name.' available (have '.$equipment->available_quantity.', need '.$itemRequest->quantity.').'
+                    );
 
                     // Flip request
                     $itemRequest->status = 'Approved';

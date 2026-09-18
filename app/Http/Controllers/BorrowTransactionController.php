@@ -54,9 +54,7 @@ class BorrowTransactionController extends Controller
                 if ($oldStatus !== $newStatus) {
                     if ($oldOut && ! $newOut) {
                         // Returning: add back stock (Borrowed/Overdue -> Returned)
-                        $equipment->available_quantity += $transaction->quantity;
-                        $equipment->status = $equipment->available_quantity > 0 ? 'Available' : 'Unavailable';
-                        $equipment->save();
+                        $equipment->releaseStock($transaction->quantity);
 
                         ReturnLog::create([
                             'borrow_transaction_id' => $transaction->id,
@@ -67,12 +65,7 @@ class BorrowTransactionController extends Controller
                         ]);
                     } elseif (! $oldOut && $newOut) {
                         // Re-borrowing: deduct stock (Returned -> Borrowed/Overdue)
-                        if ($equipment->available_quantity < $transaction->quantity) {
-                            throw ValidationException::withMessages(['quantity' => 'Not enough equipment available.']);
-                        }
-                        $equipment->available_quantity -= $transaction->quantity;
-                        $equipment->status = $equipment->available_quantity > 0 ? 'Available' : 'Unavailable';
-                        $equipment->save();
+                        $equipment->reserveStock($transaction->quantity);
                     }
                     // Borrowed <-> Overdue : no stock change (both are "out")
                 }
@@ -140,12 +133,10 @@ class BorrowTransactionController extends Controller
                     $equipment = Equipment::where('id', $equipmentId)->lockForUpdate()->firstOrFail();
 
                     if ($isOut) {
-                        if ($equipment->available_quantity < $quantity) {
-                            throw ValidationException::withMessages(['quantity' => "Not enough {$equipment->equipment_name} available (have {$equipment->available_quantity}, need {$quantity})."]);
-                        }
-                        $equipment->available_quantity -= $quantity;
-                        $equipment->status = $equipment->available_quantity > 0 ? 'Available' : 'Unavailable';
-                        $equipment->save();
+                        $equipment->reserveStock(
+                            $quantity,
+                            "Not enough {$equipment->equipment_name} available (have {$equipment->available_quantity}, need {$quantity})."
+                        );
                     }
 
                     BorrowTransaction::create([
@@ -308,42 +299,34 @@ class BorrowTransactionController extends Controller
                     $equipment = $locked[$newEquipmentId];
 
                     if ($oldOut) {
-                        $oldEquipment->available_quantity += $oldQty;
-                        $oldEquipment->status = $oldEquipment->available_quantity > 0 ? 'Available' : 'Unavailable';
-                        $oldEquipment->save();
+                        $oldEquipment->releaseStock($oldQty);
                     }
                     if ($newOut) {
-                        if ($equipment->available_quantity < $newQty) {
-                            throw ValidationException::withMessages(['quantity' => 'Not enough equipment available.']);
-                        }
-                        $equipment->available_quantity -= $newQty;
-                        $equipment->status = $equipment->available_quantity > 0 ? 'Available' : 'Unavailable';
-                        $equipment->save();
+                        $equipment->reserveStock($newQty);
                     }
                 } else {
                     $equipment = Equipment::where('id', $oldEquipmentId)->lockForUpdate()->firstOrFail();
 
                     if ($oldOut && ! $newOut) {
                         // Out -> Returned: restore old quantity
-                        $equipment->available_quantity += $oldQty;
+                        $equipment->releaseStock($oldQty);
                     } elseif (! $oldOut && $newOut) {
                         // Returned -> Out: deduct new quantity
-                        if ($equipment->available_quantity < $newQty) {
-                            throw ValidationException::withMessages(['quantity' => 'Not enough equipment available.']);
-                        }
-                        $equipment->available_quantity -= $newQty;
+                        $equipment->reserveStock($newQty);
                     } elseif ($oldOut && $newOut) {
                         // Out -> Out with possible quantity change
                         $diff = $newQty - $oldQty; // positive means need more stock
-                        if ($diff > 0 && $equipment->available_quantity < $diff) {
-                            throw ValidationException::withMessages(['quantity' => 'Not enough equipment available.']);
+                        if ($diff > 0) {
+                            $equipment->reserveStock($diff);
+                        } else {
+                            // Negative diff returns stock; a zero diff still resaves, as before.
+                            $equipment->releaseStock(-$diff);
                         }
-                        $equipment->available_quantity -= $diff;
+                    } else {
+                        // Returned -> Returned : no stock change even if quantity changed,
+                        // but the status is still recomputed and saved, as it was before.
+                        $equipment->releaseStock(0);
                     }
-                    // Returned -> Returned : no stock change even if quantity changed
-
-                    $equipment->status = $equipment->available_quantity > 0 ? 'Available' : 'Unavailable';
-                    $equipment->save();
                 }
 
                 $transaction->update($validated);
@@ -362,9 +345,7 @@ class BorrowTransactionController extends Controller
             $equipment = Equipment::where('id', $transaction->equipment_id)->lockForUpdate()->firstOrFail();
             // Both Borrowed and Overdue are "out" and should restore stock on delete
             if (in_array($transaction->status, ['Borrowed', 'Overdue'])) {
-                $equipment->available_quantity += $transaction->quantity;
-                $equipment->status = $equipment->available_quantity > 0 ? 'Available' : 'Unavailable';
-                $equipment->save();
+                $equipment->releaseStock($transaction->quantity);
             }
             $transaction->delete();
         });
