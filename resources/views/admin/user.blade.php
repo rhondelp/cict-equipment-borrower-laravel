@@ -45,43 +45,23 @@
                                     <td class="px-4 py-3 text-neutral-700">{{ $user->email }}</td>
                                     <td class="px-4 py-3"><x-ui.badge :status="$user->user_type" variant="neutral" /></td>
                                     <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $user->contact_number ?? '—' }}</td>
+                                    {{-- Compact summary: stays on one line no matter how many
+                                         schedules a user has. The per-schedule actions live in
+                                         the Manage modal, not in this cell. --}}
                                     <td class="px-4 py-3">
-                                        @if ($user->classSchedules->count() > 0)
-                                            <ul class="space-y-1 text-sm text-neutral-700">
-                                                @foreach ($user->classSchedules as $sched)
-                                                    <li class="flex items-start justify-between gap-2 leading-relaxed">
-                                                        <span class="min-w-0">
-                                                            {{ $sched->subject_code }} - {{ $sched->subject_name }}
-                                                            ({{ $sched->schedule_time }}) - Room: {{ $sched->room }}
-                                                        </span>
-                                                        <span class="flex items-center gap-1 shrink-0">
-                                                            <button type="button"
-                                                                    class="inline-flex items-center justify-center rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 sched-edit-btn"
-                                                                    title="Edit schedule" aria-label="Edit schedule"
-                                                                    data-id="{{ $sched->id }}"
-                                                                    data-user-id="{{ $sched->user_id }}"
-                                                                    data-user-name="{{ $user->name }}"
-                                                                    data-year-level="{{ $sched->year_level }}"
-                                                                    data-block-name="{{ $sched->block_name }}"
-                                                                    data-subject-code="{{ $sched->subject_code }}"
-                                                                    data-subject-name="{{ $sched->subject_name }}"
-                                                                    data-schedule-time="{{ $sched->schedule_time }}"
-                                                                    data-room="{{ $sched->room }}">
-                                                                <i class="fas fa-pen text-sm"></i>
-                                                            </button>
-                                                            <button type="button"
-                                                                    class="inline-flex items-center justify-center rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 sched-delete-btn"
-                                                                    title="Delete schedule" aria-label="Delete schedule"
-                                                                    data-id="{{ $sched->id }}"
-                                                                    data-label="{{ $sched->subject_code }} - {{ $sched->subject_name }}">
-                                                                <i class="fas fa-trash text-sm"></i>
-                                                            </button>
-                                                        </span>
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                        @else
+                                        @php $schedCount = $user->classSchedules->count(); @endphp
+                                        @if ($schedCount === 0)
                                             <span class="text-sm text-neutral-600">No schedules</span>
+                                        @else
+                                            <div class="flex items-center gap-2 whitespace-nowrap">
+                                                <x-ui.badge :status="$schedCount . ' schedule' . ($schedCount === 1 ? '' : 's')" variant="neutral" />
+                                                <button type="button"
+                                                        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 manage-sched-btn"
+                                                        data-user-id="{{ $user->id }}"
+                                                        data-user-name="{{ $user->name }}">
+                                                    <i class="fas fa-calendar-check text-sm"></i> Manage
+                                                </button>
+                                            </div>
                                         @endif
                                     </td>
                                     <td class="px-4 py-3">
@@ -170,7 +150,77 @@
 </div>
 
 {{-- Edit Schedule Modal --}}
-<div id="edit-sched-modal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-neutral-900/50">
+{{-- Manage Schedules Modal — one shared shell; each user's rows are rendered
+     once into a hidden group and revealed by the Manage button. --}}
+<div id="manage-sched-modal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-neutral-900/50">
+    <div class="w-full max-w-2xl bg-white border border-neutral-200 rounded-xl shadow-flat flex flex-col max-h-[90vh]">
+        <div class="flex items-start justify-between gap-3 px-6 py-4 border-b border-neutral-200">
+            <div class="min-w-0">
+                <h3 class="flex items-center gap-2 text-lg font-semibold text-neutral-900">
+                    <i class="text-base text-primary-600 fas fa-calendar-check"></i> Class Schedules
+                </h3>
+                <p id="manage-sched-user" class="mt-1 text-base truncate text-neutral-600"></p>
+            </div>
+            <button type="button" class="grid w-10 h-10 rounded-md shrink-0 place-items-center text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 cancel-manage-sched" aria-label="Close">
+                <i class="text-base fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="flex-1 px-6 py-5 overflow-y-auto">
+            @foreach ($users as $user)
+                @if ($user->classSchedules->count() > 0)
+                    <div class="hidden space-y-3 manage-sched-group" data-user-id="{{ $user->id }}">
+                        @foreach ($user->classSchedules as $sched)
+                            <div class="flex items-start justify-between gap-3 p-4 border rounded-lg border-neutral-200 bg-neutral-50">
+                                <div class="min-w-0 space-y-1">
+                                    <p class="text-base font-semibold text-neutral-900">
+                                        {{ $sched->subject_code }} — {{ $sched->subject_name }}
+                                    </p>
+                                    <p class="text-sm text-neutral-600">
+                                        {{ $sched->year_level }} · Block {{ $sched->block_name }} · Room {{ $sched->room }}
+                                    </p>
+                                    <p class="text-sm text-neutral-600">
+                                        <i class="fas fa-clock"></i> {{ $sched->schedule_time }}
+                                    </p>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <button type="button"
+                                            class="grid w-10 h-10 border rounded-md place-items-center bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 sched-edit-btn"
+                                            title="Edit schedule" aria-label="Edit schedule"
+                                            data-id="{{ $sched->id }}"
+                                            data-user-id="{{ $sched->user_id }}"
+                                            data-user-name="{{ $user->name }}"
+                                            data-year-level="{{ $sched->year_level }}"
+                                            data-block-name="{{ $sched->block_name }}"
+                                            data-subject-code="{{ $sched->subject_code }}"
+                                            data-subject-name="{{ $sched->subject_name }}"
+                                            data-schedule-time="{{ $sched->schedule_time }}"
+                                            data-room="{{ $sched->room }}">
+                                        <i class="text-base fas fa-pen"></i>
+                                    </button>
+                                    <button type="button"
+                                            class="grid w-10 h-10 border rounded-md place-items-center bg-danger-50 text-danger-700 border-danger-200 hover:bg-danger-100 sched-delete-btn"
+                                            title="Delete schedule" aria-label="Delete schedule"
+                                            data-id="{{ $sched->id }}"
+                                            data-label="{{ $sched->subject_code }} - {{ $sched->subject_name }}">
+                                        <i class="text-base fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            @endforeach
+        </div>
+
+        <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
+            <button type="button" class="inline-flex items-center justify-center min-h-[44px] px-5 py-3 text-base font-semibold bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50 cancel-manage-sched">Close</button>
+        </div>
+    </div>
+</div>
+
+{{-- Edit Schedule Modal — sits above the Manage modal, which stays open behind it. --}}
+<div id="edit-sched-modal" class="fixed inset-0 z-[60] items-center justify-center hidden p-4 bg-neutral-900/50">
     <div class="w-full max-w-lg bg-white border border-neutral-200 rounded-xl shadow-flat flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <h3 class="flex items-center gap-2 text-lg font-semibold text-neutral-900">
@@ -422,6 +472,24 @@ document.addEventListener('DOMContentLoaded', function () {
             if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
         }
 
+        // Class schedule — open the per-user Manage modal
+        const manageBtn = e.target.closest('.manage-sched-btn');
+        if (manageBtn) {
+            const d = manageBtn.dataset;
+            const title = document.getElementById('manage-sched-user');
+            if (title) title.textContent = d.userName || '';
+            document.querySelectorAll('.manage-sched-group').forEach(function (g) {
+                g.classList.toggle('hidden', g.dataset.userId !== d.userId);
+            });
+            const m = document.getElementById('manage-sched-modal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
+
+        if (e.target.closest('.cancel-manage-sched')) {
+            const m = document.getElementById('manage-sched-modal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+
         // Class schedule — edit
         const schedEditBtn = e.target.closest('.sched-edit-btn');
         if (schedEditBtn) {
@@ -526,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    ['add-modal', 'edit-modal', 'delete-modal', 'add-sched-modal', 'edit-sched-modal'].forEach(function (id) {
+    ['add-modal', 'edit-modal', 'delete-modal', 'add-sched-modal', 'manage-sched-modal', 'edit-sched-modal'].forEach(function (id) {
         const m = document.getElementById(id);
         if (m) m.addEventListener('click', function (e) { if (e.target === m) { m.classList.add('hidden'); m.classList.remove('flex'); } });
     });
