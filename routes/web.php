@@ -69,6 +69,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/borrower/request', [ItemRequestController::class, 'store'])->name('borrower.request.store');
         Route::put('/borrower/request', [ItemRequestController::class, 'update'])->name('borrower.request.update');
         Route::delete('/borrower/request/{id}', [ItemRequestController::class, 'destroy'])->name('borrower.request.destroy');
+        Route::get('/borrower/transaction/{id}/receipt', [BorrowTransactionController::class, 'receipt'])->name('borrower.transaction.receipt');
     });
 
 });

@@ -288,15 +288,21 @@
                                         </td>
                                         <td class="px-4 py-3 text-neutral-600">{{ $tx->remarks ?? '—' }}</td>
                                         <td class="px-4 py-3">
-                                            @if ($tx->status === 'Returned' && $tx->equipment)
-                                                <button type="button"
-                                                        class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200"
-                                                        data-request-equipment="{{ $tx->equipment_id }}">
-                                                    <i class="text-sm fas fa-rotate-right"></i> Borrow again
-                                                </button>
-                                            @else
-                                                <span class="text-neutral-600">—</span>
-                                            @endif
+                                            <div class="flex items-center gap-2">
+                                                <a href="{{ route('borrower.transaction.receipt', $tx->id) }}"
+                                                   target="_blank" rel="noopener"
+                                                   class="inline-flex items-center gap-1.5 whitespace-nowrap min-h-[40px] px-4 py-2 text-sm font-semibold rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200"
+                                                   title="Open a printable borrow slip in a new tab">
+                                                    <i class="text-sm fas fa-print"></i> Print
+                                                </a>
+                                                @if ($tx->status === 'Returned' && $tx->equipment)
+                                                    <button type="button"
+                                                            class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200"
+                                                            data-request-equipment="{{ $tx->equipment_id }}">
+                                                        <i class="text-sm fas fa-rotate-right"></i> Borrow again
+                                                    </button>
+                                                @endif
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach

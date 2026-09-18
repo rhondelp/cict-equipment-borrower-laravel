@@ -31,6 +31,23 @@ class BorrowTransactionController extends Controller
         return view('admin.transaction', compact('transactions', 'users', 'equipment', 'classSchedules'));
     }
 
+    /**
+     * Print-friendly slip for a single transaction.
+     *
+     * Scoped to the signed-in borrower: the route sits in the borrower group, so
+     * without this ownership check any borrower could read another's slip by id.
+     */
+    public function receipt($id)
+    {
+        $transaction = BorrowTransaction::with(['user', 'equipment'])->findOrFail($id);
+
+        if ($transaction->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        return view('borrower.receipt', compact('transaction'));
+    }
+
     public function inlineUpdate(Request $request)
     {
         $request->validate([
