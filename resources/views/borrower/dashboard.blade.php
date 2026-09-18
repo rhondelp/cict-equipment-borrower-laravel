@@ -18,6 +18,49 @@
     </x-ui.page-header>
 
     <main class="flex-1 w-full p-4 mx-auto space-y-6 sm:p-6 max-w-content">
+        {{-- Quick stats — derived from the collections already passed to this view. --}}
+        @php
+            $activeBorrows = $transactions->whereIn('status', ['Borrowed', 'Overdue'])->count();
+            $pendingRequests = $requests->where('status', 'Pending')->count();
+            $overdueCount = $transactions->where('status', 'Overdue')->count();
+        @endphp
+        <section>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div class="flex items-center justify-between p-5 bg-white border rounded-lg border-neutral-200">
+                    <div>
+                        <p class="text-sm font-semibold tracking-wider uppercase text-neutral-600">Active borrows</p>
+                        <p class="mt-1 text-3xl font-bold text-neutral-900 tabular-nums">{{ $activeBorrows }}</p>
+                        <p class="mt-1 text-sm text-neutral-600">Borrowed or overdue</p>
+                    </div>
+                    <div class="grid w-12 h-12 border rounded-lg bg-primary-50 border-primary-100 place-items-center shrink-0">
+                        <i class="text-lg text-primary-600 fas fa-exchange-alt"></i>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between p-5 bg-white border rounded-lg border-neutral-200">
+                    <div>
+                        <p class="text-sm font-semibold tracking-wider uppercase text-neutral-600">Pending requests</p>
+                        <p class="mt-1 text-3xl font-bold text-neutral-900 tabular-nums">{{ $pendingRequests }}</p>
+                        <p class="mt-1 text-sm text-neutral-600">Awaiting approval</p>
+                    </div>
+                    <div class="grid w-12 h-12 border rounded-lg bg-warning-50 border-warning-200 place-items-center shrink-0">
+                        <i class="text-lg text-warning-700 fas fa-clock"></i>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between p-5 bg-white border rounded-lg {{ $overdueCount > 0 ? 'border-danger-200' : 'border-neutral-200' }}">
+                    <div>
+                        <p class="text-sm font-semibold tracking-wider uppercase text-neutral-600">Overdue</p>
+                        <p class="mt-1 text-3xl font-bold tabular-nums {{ $overdueCount > 0 ? 'text-danger-700' : 'text-neutral-900' }}">{{ $overdueCount }}</p>
+                        <p class="mt-1 text-sm text-neutral-600">Please return soon</p>
+                    </div>
+                    <div class="grid w-12 h-12 border rounded-lg bg-danger-50 border-danger-200 place-items-center shrink-0">
+                        <i class="text-lg fas fa-triangle-exclamation text-danger-700"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section>
             <h2 class="flex items-center gap-2 mb-3 text-lg font-semibold text-neutral-900">
                 <span class="grid border rounded-lg w-9 h-9 bg-primary-50 border-primary-100 place-items-center">
@@ -33,6 +76,15 @@
                         <p class="mt-1 text-base text-neutral-600">Click "Request Item" to submit one.</p>
                     </div>
                 @else
+                    {{-- Client-side status filter over the already-rendered rows. --}}
+                    <div class="flex flex-wrap items-center gap-2 px-4 pt-4" role="group" aria-label="Filter requests by status">
+                        @foreach (['all' => 'All', 'Pending' => 'Pending', 'Approved' => 'Approved', 'Declined' => 'Declined'] as $value => $label)
+                            <button type="button"
+                                    class="status-filter-btn inline-flex items-center min-h-[40px] px-4 py-2 text-sm font-semibold rounded-md border transition {{ $value === 'all' ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100' }}"
+                                    data-table="requestTable" data-filter="{{ $value }}"
+                                    aria-pressed="{{ $value === 'all' ? 'true' : 'false' }}">{{ $label }}</button>
+                        @endforeach
+                    </div>
                     <div class="p-4 overflow-x-auto">
                         <table id="requestTable" class="w-full text-sm display nowrap">
                             <thead>
@@ -46,7 +98,7 @@
                             </thead>
                             <tbody class="divide-y divide-neutral-200">
                                 @foreach ($requests as $request)
-                                    <tr class="hover:bg-neutral-50">
+                                    <tr class="hover:bg-neutral-50" data-status="{{ $request->status }}">
                                         <td class="px-4 py-3 font-medium text-neutral-900">{{ $request->equipment->equipment_name }}</td>
                                         <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $request->quantity }}</td>
                                         <td class="px-4 py-3">
@@ -95,6 +147,15 @@
                         <p class="mt-1 text-base text-neutral-600">Once your request is approved, your transactions will appear here.</p>
                     </div>
                 @else
+                    {{-- Client-side status filter over the already-rendered rows. --}}
+                    <div class="flex flex-wrap items-center gap-2 px-4 pt-4" role="group" aria-label="Filter transactions by status">
+                        @foreach (['all' => 'All', 'Borrowed' => 'Borrowed', 'Returned' => 'Returned', 'Overdue' => 'Overdue'] as $value => $label)
+                            <button type="button"
+                                    class="status-filter-btn inline-flex items-center min-h-[40px] px-4 py-2 text-sm font-semibold rounded-md border transition {{ $value === 'all' ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100' }}"
+                                    data-table="transactionTable" data-filter="{{ $value }}"
+                                    aria-pressed="{{ $value === 'all' ? 'true' : 'false' }}">{{ $label }}</button>
+                        @endforeach
+                    </div>
                     <div class="p-4 overflow-x-auto">
                         <table id="transactionTable" class="w-full text-sm display nowrap">
                             <thead>
@@ -110,7 +171,14 @@
                             </thead>
                             <tbody class="divide-y divide-neutral-200">
                                 @foreach ($transactions as $tx)
-                                    <tr class="hover:bg-neutral-50">
+                                    @php
+                                        // Overdue in practice: either already swept to Overdue by the
+                                        // nightly job, or still Borrowed with the return date behind us.
+                                        $isOverdueRow = $tx->status === 'Overdue'
+                                            || ($tx->status === 'Borrowed' && $tx->return_date
+                                                && \Carbon\Carbon::parse($tx->return_date)->lt(\Carbon\Carbon::today()));
+                                    @endphp
+                                    <tr class="{{ $isOverdueRow ? 'bg-danger-50 hover:bg-danger-100' : 'hover:bg-neutral-50' }}" data-status="{{ $tx->status }}">
                                         <td class="px-4 py-3 font-medium text-neutral-900">{{ $tx->equipment->equipment_name ?? '—' }}</td>
                                         <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->quantity }}</td>
                                         <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->borrow_date }}</td>
@@ -160,6 +228,55 @@ document.addEventListener('DOMContentLoaded', function () {
                     language: { search: '', searchPlaceholder: 'Search...' }
                 });
             } catch (e) { console.error('DataTable init failed (' + id + ')', e); }
+        }
+    });
+
+    // Status filters over the already-rendered rows — no request, no reload.
+    // These hook DataTables' own search pipeline rather than hiding <tr>s directly,
+    // so paging and the "showing N entries" count stay correct and survive redraws.
+    // If DataTables is unavailable the buttons fall back to plain show/hide.
+    const statusFilter = { requestTable: 'all', transactionTable: 'all' };
+    const hasDT = !!(window.jQuery && window.jQuery.fn && window.jQuery.fn.dataTable);
+
+    if (hasDT) {
+        window.jQuery.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+            const wanted = statusFilter[settings.nTable.id];
+            if (!wanted || wanted === 'all') return true;
+            const row = settings.aoData[dataIndex].nTr;
+            return !!row && row.getAttribute('data-status') === wanted;
+        });
+    }
+
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.status-filter-btn');
+        if (!btn) return;
+
+        const tableId = btn.dataset.table;
+        statusFilter[tableId] = btn.dataset.filter;
+
+        document.querySelectorAll('.status-filter-btn[data-table="' + tableId + '"]').forEach(function (b) {
+            const on = b === btn;
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            b.classList.toggle('bg-primary-50', on);
+            b.classList.toggle('text-primary-700', on);
+            b.classList.toggle('border-primary-200', on);
+            b.classList.toggle('bg-white', !on);
+            b.classList.toggle('text-neutral-700', !on);
+            b.classList.toggle('border-neutral-300', !on);
+            b.classList.toggle('hover:bg-neutral-100', !on);
+        });
+
+        const table = document.getElementById(tableId);
+        if (!table) return;
+
+        if (hasDT && window.jQuery.fn.dataTable.isDataTable(table)) {
+            window.jQuery(table).DataTable().draw();
+        } else {
+            table.querySelectorAll('tbody tr').forEach(function (row) {
+                const show = statusFilter[tableId] === 'all'
+                    || row.getAttribute('data-status') === statusFilter[tableId];
+                row.classList.toggle('hidden', !show);
+            });
         }
     });
 
