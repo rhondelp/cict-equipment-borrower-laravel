@@ -6,13 +6,13 @@
     <x-ui.page-header eyebrow="Instructor" title="Equipment Management">
         <x-slot:actions>
             <button id="open-add-modal" type="button"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">
-                <i class="fas fa-plus text-xs"></i> Request Item
+                    class="inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold rounded-md bg-primary-600 text-white hover:bg-primary-700">
+                <i class="fas fa-plus text-base"></i> Request Item
             </button>
             <form method="POST" action="{{ route('logout') }}">@csrf
                 <button type="submit"
-                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md bg-danger-50 text-danger-700 border border-danger-200 hover:bg-danger-100">
-                    <i class="fas fa-sign-out-alt text-xs"></i> Logout
+                        class="inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold rounded-md bg-danger-50 text-danger-700 border border-danger-200 hover:bg-danger-100">
+                    <i class="fas fa-sign-out-alt text-base"></i> Logout
                 </button>
             </form>
         </x-slot:actions>
@@ -20,24 +20,24 @@
 
     <main class="flex-1 p-4 sm:p-6 space-y-6 max-w-content w-full mx-auto">
         <section>
-            <h2 class="flex items-center gap-2 mb-3 text-base font-semibold text-neutral-900">
-                <span class="w-7 h-7 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center">
-                    <i class="fas fa-list text-primary-600 text-xs"></i>
+            <h2 class="flex items-center gap-2 mb-3 text-lg font-semibold text-neutral-900">
+                <span class="w-9 h-9 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center">
+                    <i class="fas fa-list text-primary-600 text-base"></i>
                 </span>
                 My Equipment Requests
             </h2>
             <x-ui.table-card>
                 @if($requests->isEmpty())
                     <div class="py-12 text-center">
-                        <i class="fas fa-inbox text-3xl text-neutral-300 mb-3 block"></i>
-                        <p class="text-sm font-medium text-neutral-700">No requests yet</p>
-                        <p class="text-xs text-neutral-500 mt-1">Click "Request Item" to submit one.</p>
+                        <i class="fas fa-inbox text-4xl text-neutral-400 mb-3 block"></i>
+                        <p class="text-lg font-semibold text-neutral-700">No requests yet</p>
+                        <p class="text-base text-neutral-600 mt-1">Click "Request Item" to submit one.</p>
                     </div>
                 @else
                     <div class="overflow-x-auto">
                         <table id="requestTable" class="w-full display nowrap text-sm">
                             <thead>
-                                <tr class="text-xs uppercase tracking-wider text-neutral-500 bg-neutral-50">
+                                <tr class="text-sm uppercase tracking-wider text-neutral-600 bg-neutral-50">
                                     <th class="text-left px-4 py-3 font-semibold">Equipment</th>
                                     <th class="text-left px-4 py-3 font-semibold">Quantity</th>
                                     <th class="text-left px-4 py-3 font-semibold">Status</th>
@@ -58,19 +58,19 @@
                                         <td class="px-4 py-3">
                                             <div class="flex items-center gap-1.5">
                                                 <button type="button"
-                                                        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 edit-btn"
+                                                        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 edit-btn"
                                                         data-id="{{ $request->id }}"
                                                         data-equipment-name="{{ $request->equipment->equipment_name }}"
                                                         data-quantity="{{ $request->quantity }}"
                                                         data-status="{{ $request->status }}"
                                                         data-remarks="{{ $request->remarks }}">
-                                                    <i class="fas fa-edit text-[11px]"></i> Edit
+                                                    <i class="fas fa-edit text-sm"></i> Edit
                                                 </button>
                                                 <button type="button"
-                                                        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
+                                                        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
                                                         data-id="{{ $request->id }}"
                                                         data-equipment-name="{{ $request->equipment->equipment_name }}">
-                                                    <i class="fas fa-trash text-[11px]"></i> Delete
+                                                    <i class="fas fa-trash text-sm"></i> Delete
                                                 </button>
                                             </div>
                                         </td>
@@ -84,24 +84,24 @@
         </section>
 
         <section>
-            <h2 class="flex items-center gap-2 mb-3 text-base font-semibold text-neutral-900">
-                <span class="w-7 h-7 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center">
-                    <i class="fas fa-history text-primary-600 text-xs"></i>
+            <h2 class="flex items-center gap-2 mb-3 text-lg font-semibold text-neutral-900">
+                <span class="w-9 h-9 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center">
+                    <i class="fas fa-history text-primary-600 text-base"></i>
                 </span>
                 My Borrow Transactions
             </h2>
             <x-ui.table-card>
                 @if($transactions->isEmpty())
                     <div class="py-12 text-center">
-                        <i class="fas fa-exchange-alt text-3xl text-neutral-300 mb-3 block"></i>
-                        <p class="text-sm font-medium text-neutral-700">No transactions yet</p>
-                        <p class="text-xs text-neutral-500 mt-1">Once your request is approved, your transactions will appear here.</p>
+                        <i class="fas fa-exchange-alt text-4xl text-neutral-400 mb-3 block"></i>
+                        <p class="text-lg font-semibold text-neutral-700">No transactions yet</p>
+                        <p class="text-base text-neutral-600 mt-1">Once your request is approved, your transactions will appear here.</p>
                     </div>
                 @else
                     <div class="overflow-x-auto">
                         <table id="transactionTable" class="w-full display nowrap text-sm">
                             <thead>
-                                <tr class="text-xs uppercase tracking-wider text-neutral-500 bg-neutral-50">
+                                <tr class="text-sm uppercase tracking-wider text-neutral-600 bg-neutral-50">
                                     <th class="text-left px-4 py-3 font-semibold">Equipment</th>
                                     <th class="text-left px-4 py-3 font-semibold">Quantity</th>
                                     <th class="text-left px-4 py-3 font-semibold">Borrow Date</th>
