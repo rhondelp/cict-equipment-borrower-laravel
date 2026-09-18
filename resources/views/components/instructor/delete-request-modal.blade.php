@@ -5,7 +5,7 @@
             <h3 class="flex items-center gap-2 text-lg font-semibold text-neutral-900">
                 <i class="text-base text-danger-600 fas fa-exclamation-triangle"></i> Delete Item Request
             </h3>
-            <button type="button" class="w-10 h-10 grid place-items-center rounded-md text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900" id="cancel-delete-x" aria-label="Close">
+            <button type="button" class="cancel-delete w-10 h-10 grid place-items-center rounded-md text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900" id="cancel-delete-x" aria-label="Close">
                 <i class="text-base fas fa-times"></i>
             </button>
         </div>

@@ -16,6 +16,7 @@
     background-color: theme('colors.neutral.50');
     color: theme('colors.neutral.900');
     min-height: 100vh;
+    min-height: 100dvh; /* dvh tracks the collapsing mobile URL bar; 100vh above is the fallback */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -40,4 +41,23 @@
 
   /* Page-level background tint for admin areas */
   .page-bg { background-color: theme('colors.neutral.50'); }
+}
+
+/* =========================================================
+   Entry motion
+   Staggered rise for the top-level sections of a page, applied
+   with .anim-rise plus a Tailwind [animation-delay:*] utility.
+
+   The hidden starting state lives *inside* the reduced-motion
+   query on purpose: declaring opacity:0 at rest would leave the
+   content invisible for anyone who prefers reduced motion, since
+   the animation that reveals it would never run for them.
+   ========================================================= */
+@keyframes anim-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .anim-rise { animation: anim-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
 }
