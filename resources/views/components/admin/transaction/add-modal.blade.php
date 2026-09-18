@@ -113,12 +113,14 @@
                     <select id="add-class-schedule" name="class_schedule_id"
                             class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                         <option value="" selected>-- None --</option>
-                        @foreach ($classSchedules as $schedule)
-                            <option value="{{ $schedule->id }}">
-                                {{ $schedule->schedule_time }}
-                                - {{ $schedule->instructor?->name ?? 'No Instructor' }}
-                                - {{ $schedule->room }}
-                            </option>
+                        {{-- Display-only grouping of the same records: one optgroup per
+                             instructor, so the name is not repeated on every line. --}}
+                        @foreach ($classSchedules->groupBy(fn ($s) => $s->instructor?->name ?? 'No Instructor')->sortKeys() as $instructorName => $instructorSchedules)
+                            <optgroup label="{{ $instructorName }}">
+                                @foreach ($instructorSchedules as $schedule)
+                                    <option value="{{ $schedule->id }}">{{ $schedule->schedule_time }} — {{ $schedule->room }}</option>
+                                @endforeach
+                            </optgroup>
                         @endforeach
                     </select>
                 </div>
