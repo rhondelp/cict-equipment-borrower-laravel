@@ -3,7 +3,7 @@
 @section('content')
 
 <div class="page-bg min-h-screen flex flex-col">
-    <x-ui.page-header eyebrow="Instructor" title="Equipment Management">
+    <x-ui.page-header logo eyebrow="Instructor" title="Equipment Management">
         <x-slot:actions>
             <button id="open-add-modal" type="button"
                     class="inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold rounded-md bg-primary-600 text-white hover:bg-primary-700">

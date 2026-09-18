@@ -3,7 +3,7 @@
 @section('content')
 
 <div class="flex flex-col min-h-screen page-bg">
-    <x-ui.page-header eyebrow="Borrower" title="Dashboard">
+    <x-ui.page-header logo eyebrow="Borrower" title="Dashboard">
         <x-slot:actions>
             {{-- Notifications bell. Read-only feed of the rows written by the
                  return-reminder job; nothing here creates or mutates them. --}}
