@@ -25,21 +25,52 @@
                     </select>
                 </div>
 
+                {{-- Searchable equipment checklist.
+                     Field names are unchanged: each row posts equipment[] and
+                     quantities[<id>]. The quantity input carries its real name but
+                     stays disabled until the row is ticked, and disabled controls
+                     are not submitted, so unticked rows post nothing at all. --}}
                 <div>
-                    <label for="equipment-select" class="block text-base font-medium text-neutral-800">Select Equipment</label>
-                    <select name="equipment[]" id="equipment-select" multiple required
-                            class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none min-h-[120px]">
-                        @foreach ($equipment->where('status', 'Available')->where('available_quantity', '>', 0) as $eq)
-                            <option value="{{ $eq->id }}">{{ $eq->id }} | {{ $eq->equipment_name }} (Available: {{ $eq->available_quantity }})</option>
-                        @endforeach
-                    </select>
-                    <p class="mt-2 text-sm text-neutral-600">
-                        <i class="fas fa-info-circle"></i> Hold Ctrl (Windows) or Command (Mac) to select multiple items.
-                    </p>
-                </div>
+                    <label for="equipment-search" class="block text-base font-medium text-neutral-800">Select Equipment</label>
 
-                <div id="equipment-quantities" class="space-y-4">
-                    {{-- Quantity fields appear here after selecting equipment --}}
+                    <div class="relative mt-2">
+                        <i class="fas fa-search absolute text-sm -translate-y-1/2 pointer-events-none left-4 top-1/2 text-neutral-500"></i>
+                        <input type="text" id="equipment-search" autocomplete="off" placeholder="Search equipment by name..."
+                               class="w-full py-3 pr-4 text-base border rounded-md pl-11 border-neutral-300 text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
+                    </div>
+
+                    <div id="equipment-list" class="mt-2 overflow-y-auto border rounded-md max-h-72 border-neutral-300 divide-y divide-neutral-200">
+                        @forelse ($equipment->where('status', 'Available')->where('available_quantity', '>', 0) as $eq)
+                            <div class="p-4 equipment-option" data-name="{{ strtolower($eq->equipment_name) }}">
+                                <label for="equipment-{{ $eq->id }}" class="flex items-start gap-3 cursor-pointer">
+                                    <input type="checkbox" name="equipment[]" value="{{ $eq->id }}" id="equipment-{{ $eq->id }}"
+                                           class="w-5 h-5 mt-1 rounded shrink-0 equipment-checkbox accent-primary-600"
+                                           data-available="{{ $eq->available_quantity }}">
+                                    <span class="flex-1 min-w-0">
+                                        <span class="block text-base font-medium text-neutral-900">{{ $eq->equipment_name }}</span>
+                                        <span class="block text-sm text-neutral-600">
+                                            Available: <span class="font-semibold tabular-nums">{{ $eq->available_quantity }}</span>
+                                        </span>
+                                    </span>
+                                </label>
+
+                                <div class="hidden mt-3 equipment-qty-wrap pl-8">
+                                    <label for="quantity-{{ $eq->id }}" class="block text-sm font-medium text-neutral-800">Quantity</label>
+                                    <input type="number" id="quantity-{{ $eq->id }}" name="quantities[{{ $eq->id }}]"
+                                           min="1" max="{{ $eq->available_quantity }}" value="1" required disabled
+                                           class="w-full py-3 mt-1 text-base border rounded-md equipment-qty sm:w-40 px-4 border-neutral-300 text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none tabular-nums">
+                                    <p class="hidden mt-2 text-sm font-medium equipment-qty-msg text-danger-700"></p>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="p-4 text-base text-neutral-600">No equipment is currently available to borrow.</p>
+                        @endforelse
+                    </div>
+
+                    <p id="equipment-no-match" class="hidden mt-2 text-sm text-neutral-600">No equipment matches your search.</p>
+                    <p class="mt-2 text-sm text-neutral-600">
+                        <i class="fas fa-info-circle"></i> Tick each item you need, then set its quantity.
+                    </p>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

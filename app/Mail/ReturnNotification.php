@@ -23,7 +23,7 @@ class ReturnNotification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('nicolejose.perez@nmsc.edu.ph', 'CICT Equipment Borrower'),
+            from: new Address('laradevelopment99@gmail.com', 'CICT Equipment Borrower'),
             subject: 'Return Notice',
         );
     }

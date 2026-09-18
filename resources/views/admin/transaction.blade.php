@@ -125,24 +125,89 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (e) { console.error('DataTable init failed (transactions-table)', e); }
     }
 
-    // Dynamic quantity fields for the add modal
-    const sel = document.getElementById('equipment-select');
-    if (sel) {
-        sel.addEventListener('change', function () {
-            const rawIds = Array.from(this.selectedOptions).map(function (o) { return o.value; });
-            const equipmentIds = rawIds.filter(function (v) { return v !== '' && v !== null; });
-            const quantitiesDiv = document.getElementById('equipment-quantities');
-            if (!quantitiesDiv) return;
-            quantitiesDiv.innerHTML = '';
-            equipmentIds.forEach(function (equipmentId) {
-                const field = document.createElement('div');
-                field.innerHTML =
-                    '<label class="block text-base font-medium text-neutral-800">Quantity for Equipment #' + equipmentId + '</label>' +
-                    '<input type="number" name="quantities[' + equipmentId + ']" min="1" required ' +
-                    'class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none tabular-nums">';
-                quantitiesDiv.appendChild(field);
-            });
+    // Equipment picker for the add modal: searchable checklist, with a quantity
+    // field revealed per ticked row. The quantity inputs already carry their
+    // quantities[<id>] name in the markup and are disabled until ticked, so the
+    // submitted payload is identical to the old multi-select.
+    const equipmentList = document.getElementById('equipment-list');
+    if (equipmentList) {
+        const setQtyMessage = function (qtyInput, text) {
+            const wrap = qtyInput.closest('.equipment-qty-wrap');
+            const msg = wrap ? wrap.querySelector('.equipment-qty-msg') : null;
+            if (!msg) return;
+            msg.textContent = text || '';
+            msg.classList.toggle('hidden', !text);
+            qtyInput.classList.toggle('border-danger-300', !!text);
+        };
+
+        // Advisory only — BorrowTransactionController::store re-checks stock
+        // under a row lock and remains the source of truth.
+        const validateQty = function (qtyInput) {
+            const max = parseInt(qtyInput.getAttribute('max'), 10);
+            const val = parseInt(qtyInput.value, 10);
+            if (!isNaN(max) && !isNaN(val) && val > max) {
+                setQtyMessage(qtyInput, 'Only ' + max + ' available right now — please lower the quantity.');
+            } else {
+                setQtyMessage(qtyInput, '');
+            }
+        };
+
+        const syncRow = function (checkbox) {
+            const row = checkbox.closest('.equipment-option');
+            if (!row) return;
+            const wrap = row.querySelector('.equipment-qty-wrap');
+            const qty = row.querySelector('.equipment-qty');
+            if (!wrap || !qty) return;
+            if (checkbox.checked) {
+                wrap.classList.remove('hidden');
+                qty.disabled = false;
+                if (!qty.value) qty.value = 1;
+                validateQty(qty);
+            } else {
+                wrap.classList.add('hidden');
+                qty.disabled = true;
+                setQtyMessage(qty, '');
+            }
+        };
+
+        equipmentList.addEventListener('change', function (e) {
+            const cb = e.target.closest('.equipment-checkbox');
+            if (cb) syncRow(cb);
+
+            const qty = e.target.closest('.equipment-qty');
+            if (qty) {
+                // Clamp once the value is committed, so typing is never fought.
+                const max = parseInt(qty.getAttribute('max'), 10);
+                const val = parseInt(qty.value, 10);
+                if (!isNaN(max) && !isNaN(val) && val > max) qty.value = max;
+                validateQty(qty);
+            }
         });
+
+        equipmentList.addEventListener('input', function (e) {
+            const qty = e.target.closest('.equipment-qty');
+            if (qty) validateQty(qty);
+        });
+
+        // Client-side search filter only — no request is made.
+        const equipmentSearch = document.getElementById('equipment-search');
+        const noMatch = document.getElementById('equipment-no-match');
+        if (equipmentSearch) {
+            equipmentSearch.addEventListener('input', function () {
+                const term = this.value.trim().toLowerCase();
+                let matched = 0;
+                equipmentList.querySelectorAll('.equipment-option').forEach(function (row) {
+                    const matches = !term || (row.dataset.name || '').indexOf(term) !== -1;
+                    const ticked = !!row.querySelector('.equipment-checkbox:checked');
+                    // Ticked rows stay visible so nothing is submitted while hidden.
+                    row.classList.toggle('hidden', !(matches || ticked));
+                    if (matches) matched++;
+                });
+                // Counts matches, not visible rows: a ticked row that is being kept
+                // on screen should not suppress the "nothing found" notice.
+                if (noMatch) noMatch.classList.toggle('hidden', matched > 0);
+            });
+        }
     }
 
     // Edit / Delete / Add modal open/close
