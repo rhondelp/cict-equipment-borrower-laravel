@@ -1,6 +1,6 @@
-﻿@extends("components.default")
+@extends("components.default")
 
-@section("title", "Login - CICT Equipment Borrower System")
+@section("title", "Forgot Password - CICT Equipment Borrower System")
 
 @section("content")
 <div class="lp-root">
@@ -20,43 +20,32 @@
         </aside>
 
         <section class="lp-right">
-            <div class="lp-eyebrow"><span class="lp-dot" aria-hidden="true"></span>Welcome Back</div>
-            <h1 class="lp-title">Sign in to<br>your account</h1>
-            <p class="lp-sub">Enter your credentials to continue.</p>
+            <div class="lp-eyebrow"><span class="lp-dot" aria-hidden="true"></span>Account Recovery</div>
+            <h1 class="lp-title">Forgot your<br>password?</h1>
+            <p class="lp-sub">Enter your email address and we'll send you a link to choose a new one.</p>
+
             @if ($errors->any())
                 <div class="lp-alert lp-alert-error"><i class="fa-solid fa-circle-exclamation"></i><span>{{ $errors->first() }}</span></div>
             @endif
             @if (session('status'))
                 <div class="lp-alert lp-alert-success"><i class="fa-solid fa-circle-check"></i><span>{{ session('status') }}</span></div>
             @endif
-            <form class="lp-form" action="{{ route('login.store') }}" method="POST">
+
+            <form class="lp-form" action="{{ route('password.email') }}" method="POST">
                 @csrf
                 <div class="lp-field">
                     <label for="email" class="field-label">Email Address</label>
                     <div class="input-wrap">
                         <i class="fa-regular fa-envelope input-icon"></i>
-                        <input type="email" name="email" id="email" placeholder="name@company.com" value="{{ old('email') }}" class="ds-input" required>
+                        <input type="email" name="email" id="email" placeholder="name@company.com" value="{{ old('email') }}" class="ds-input" required autofocus>
                     </div>
                 </div>
-                <div class="lp-field">
-                    <div class="field-label-row">
-                        <label for="password" class="field-label">Password</label>
-                        <a href="{{ route('password.request') }}" class="field-hint">Forgot password?</a>
-                    </div>
-                    <div class="input-wrap">
-                        <i class="fa-solid fa-lock input-icon" style="font-size:13px"></i>
-                        <input type="password" name="password" id="password" placeholder="**********" class="ds-input has-trailing" required>
-                        <button type="button" class="eye-btn" aria-label="Show password"><i class="fa-solid fa-eye"></i></button>
-                    </div>
-                </div>
-                <label class="lp-remember">
-                    <input type="checkbox" name="remember" class="ds-checkbox">
-                    <span>Remember me</span>
-                </label>
+
                 <button type="submit" class="btn-primary lp-submit">
-                    <i class="fa-solid fa-right-to-bracket"></i> Sign in
+                    <i class="fa-solid fa-paper-plane"></i> Send reset link
                 </button>
-                <p class="auth-footer">Don't have an account? <a href="{{ route('register') }}">Sign up</a></p>
+
+                <p class="auth-footer">Remembered your password? <a href="{{ route('login') }}">Sign in</a></p>
             </form>
         </section>
     </div>

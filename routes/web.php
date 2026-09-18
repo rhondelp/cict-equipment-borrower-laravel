@@ -6,6 +6,7 @@ use App\Http\Controllers\ClassScheduleController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ItemRequestController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\ReturnLogsController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,12 @@ Route::get('/register', [AuthenticateUser::class, 'registerUser'])->name('regist
 Route::get('/welcome', function () {
     return view('welcome');
 })->name('auth.welcome');
+
+// Password reset — must stay outside the 'auth' group so a locked-out user can reach it.
+Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
+Route::post('/forgot-password', [PasswordResetController::class, 'email'])->name('password.email');
+Route::get('/reset-password/{token}', [PasswordResetController::class, 'reset'])->name('password.reset');
+Route::post('/reset-password', [PasswordResetController::class, 'update'])->name('password.update');
 
 Route::middleware('auth')->group(function () {
     Route::middleware(['userType:Admin'])->group(function () {
