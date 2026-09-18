@@ -42,6 +42,8 @@ Route::middleware('auth')->group(function () {
         Route::post('admin/users', [AuthenticateUser::class, 'register'])->name('admin.user.register');
         Route::post('/admin/users/update', [UserController::class, 'update'])->name('admin.users.update');
         Route::post('/admin/users/add-sched', [ClassScheduleController::class, 'store'])->name('admin.add-sched');
+        Route::post('/admin/users/sched/update', [ClassScheduleController::class, 'update'])->name('admin.sched.update');
+        Route::delete('/admin/users/sched/{id}', [ClassScheduleController::class, 'destroy'])->name('admin.sched.destroy');
         Route::delete('/admin/users/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
         Route::get('/admin/transaction', [BorrowTransactionController::class, 'index'])->name('admin.transaction');
         Route::post('/admin/transaction', [BorrowTransactionController::class, 'store'])->name('admin.transaction.store');

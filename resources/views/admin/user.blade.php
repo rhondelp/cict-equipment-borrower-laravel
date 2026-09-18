@@ -49,14 +49,39 @@
                                         @if ($user->classSchedules->count() > 0)
                                             <ul class="space-y-1 text-sm text-neutral-700">
                                                 @foreach ($user->classSchedules as $sched)
-                                                    <li class="leading-relaxed">
-                                                        {{ $sched->subject_code }} - {{ $sched->subject_name }}
-                                                        ({{ $sched->schedule_time }}) - Room: {{ $sched->room }}
+                                                    <li class="flex items-start justify-between gap-2 leading-relaxed">
+                                                        <span class="min-w-0">
+                                                            {{ $sched->subject_code }} - {{ $sched->subject_name }}
+                                                            ({{ $sched->schedule_time }}) - Room: {{ $sched->room }}
+                                                        </span>
+                                                        <span class="flex items-center gap-1 shrink-0">
+                                                            <button type="button"
+                                                                    class="inline-flex items-center justify-center rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 sched-edit-btn"
+                                                                    title="Edit schedule" aria-label="Edit schedule"
+                                                                    data-id="{{ $sched->id }}"
+                                                                    data-user-id="{{ $sched->user_id }}"
+                                                                    data-user-name="{{ $user->name }}"
+                                                                    data-year-level="{{ $sched->year_level }}"
+                                                                    data-block-name="{{ $sched->block_name }}"
+                                                                    data-subject-code="{{ $sched->subject_code }}"
+                                                                    data-subject-name="{{ $sched->subject_name }}"
+                                                                    data-schedule-time="{{ $sched->schedule_time }}"
+                                                                    data-room="{{ $sched->room }}">
+                                                                <i class="fas fa-pen text-sm"></i>
+                                                            </button>
+                                                            <button type="button"
+                                                                    class="inline-flex items-center justify-center rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 sched-delete-btn"
+                                                                    title="Delete schedule" aria-label="Delete schedule"
+                                                                    data-id="{{ $sched->id }}"
+                                                                    data-label="{{ $sched->subject_code }} - {{ $sched->subject_name }}">
+                                                                <i class="fas fa-trash text-sm"></i>
+                                                            </button>
+                                                        </span>
                                                     </li>
                                                 @endforeach
                                             </ul>
                                         @else
-                                            <span class="text-sm text-neutral-500">No schedules</span>
+                                            <span class="text-sm text-neutral-600">No schedules</span>
                                         @endif
                                     </td>
                                     <td class="px-4 py-3">
@@ -143,6 +168,77 @@
         </form>
     </div>
 </div>
+
+{{-- Edit Schedule Modal --}}
+<div id="edit-sched-modal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-neutral-900/50">
+    <div class="w-full max-w-lg bg-white border border-neutral-200 rounded-xl shadow-flat flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
+            <h3 class="flex items-center gap-2 text-lg font-semibold text-neutral-900">
+                <i class="text-base text-primary-600 fas fa-calendar-check"></i> Edit Class Schedule
+            </h3>
+            <button type="button" class="grid w-10 h-10 rounded-md place-items-center text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 cancel-edit-sched" aria-label="Close">
+                <i class="text-base fas fa-times"></i>
+            </button>
+        </div>
+        <form action="{{ route('admin.sched.update') }}" method="POST" class="flex flex-col flex-1 min-h-0">
+            @csrf
+            <input type="hidden" name="id" id="edit-sched-id">
+            <div class="flex-1 px-6 py-5 space-y-4 overflow-y-auto">
+                <div>
+                    <label for="edit-sched-user" class="block text-base font-medium text-neutral-800">Instructor</label>
+                    <select name="user_id" id="edit-sched-user" required
+                            class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
+                        @foreach ($instructors as $inst)
+                            <option value="{{ $inst->id }}">{{ $inst->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="edit-sched-year" class="block text-base font-medium text-neutral-800">Year Level</label>
+                    <input type="text" name="year_level" id="edit-sched-year" required
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
+                </div>
+                <div>
+                    <label for="edit-sched-block" class="block text-base font-medium text-neutral-800">Block Name</label>
+                    <input type="text" name="block_name" id="edit-sched-block" required
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
+                </div>
+                <div>
+                    <label for="edit-sched-code" class="block text-base font-medium text-neutral-800">Subject Code</label>
+                    <input type="text" name="subject_code" id="edit-sched-code" required
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
+                </div>
+                <div>
+                    <label for="edit-sched-name" class="block text-base font-medium text-neutral-800">Subject Name</label>
+                    <input type="text" name="subject_name" id="edit-sched-name" required
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
+                </div>
+                <div>
+                    <label for="edit-sched-time" class="block text-base font-medium text-neutral-800">Schedule Time</label>
+                    <input type="text" name="schedule_time" id="edit-sched-time" required placeholder="e.g., Mon/Wed 8:00 AM - 10:00 AM"
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
+                </div>
+                <div>
+                    <label for="edit-sched-room" class="block text-base font-medium text-neutral-800">Room</label>
+                    <input type="text" name="room" id="edit-sched-room" required
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
+                <button type="button" class="inline-flex items-center justify-center min-h-[44px] px-5 py-3 text-base font-semibold bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50 cancel-edit-sched">Cancel</button>
+                <button type="submit" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700">
+                    <i class="text-base fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- Delete Schedule — submitted by the SweetAlert2 confirm, no separate modal markup --}}
+<form id="delete-sched-form" method="POST" action="" class="hidden">
+    @csrf
+    @method('DELETE')
+</form>
 
 {{-- Add User Modal --}}
 <div id="add-modal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-neutral-900/50">
@@ -326,6 +422,63 @@ document.addEventListener('DOMContentLoaded', function () {
             if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
         }
 
+        // Class schedule — edit
+        const schedEditBtn = e.target.closest('.sched-edit-btn');
+        if (schedEditBtn) {
+            const d = schedEditBtn.dataset;
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+            set('edit-sched-id', d.id);
+            set('edit-sched-year', d.yearLevel);
+            set('edit-sched-block', d.blockName);
+            set('edit-sched-code', d.subjectCode);
+            set('edit-sched-name', d.subjectName);
+            set('edit-sched-time', d.scheduleTime);
+            set('edit-sched-room', d.room);
+
+            // The select only lists current Instructors. If this schedule belongs
+            // to someone no longer typed as one, add them back so that saving
+            // cannot silently reassign the schedule to the first instructor.
+            const schedUser = document.getElementById('edit-sched-user');
+            if (schedUser) {
+                schedUser.value = d.userId;
+                if (schedUser.value !== String(d.userId)) {
+                    const opt = document.createElement('option');
+                    opt.value = d.userId;
+                    opt.textContent = d.userName || ('User #' + d.userId);
+                    schedUser.prepend(opt);
+                    schedUser.value = d.userId;
+                }
+            }
+
+            const m = document.getElementById('edit-sched-modal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
+
+        // Class schedule — delete, via the shared SweetAlert2 confirm helper
+        const schedDeleteBtn = e.target.closest('.sched-delete-btn');
+        if (schedDeleteBtn) {
+            const d = schedDeleteBtn.dataset;
+            const form = document.getElementById('delete-sched-form');
+            if (form) {
+                form.action = '/admin/users/sched/' + d.id;
+                if (window.showConfirm) {
+                    window.showConfirm({
+                        title: 'Delete this schedule?',
+                        text: (d.label || 'This schedule') + ' will be removed. This action cannot be undone.',
+                        icon: 'warning',
+                        confirmText: 'Yes, delete'
+                    }).then(function (r) { if (r.isConfirmed) form.submit(); });
+                } else {
+                    form.submit();
+                }
+            }
+        }
+
+        if (e.target.closest('.cancel-edit-sched')) {
+            const m = document.getElementById('edit-sched-modal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+
         if (e.target.closest('#open-add-modal')) {
             const m = document.getElementById('add-modal');
             if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
@@ -373,7 +526,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    ['add-modal', 'edit-modal', 'delete-modal', 'add-sched-modal'].forEach(function (id) {
+    ['add-modal', 'edit-modal', 'delete-modal', 'add-sched-modal', 'edit-sched-modal'].forEach(function (id) {
         const m = document.getElementById(id);
         if (m) m.addEventListener('click', function (e) { if (e.target === m) { m.classList.add('hidden'); m.classList.remove('flex'); } });
     });
