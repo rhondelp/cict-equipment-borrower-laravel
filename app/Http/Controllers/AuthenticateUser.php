@@ -34,11 +34,6 @@ class AuthenticateUser extends Controller
         return view('borrower.dashboard', compact('requests', 'transactions', 'equipments'));
     }
 
-    public function studentView()
-    {
-        return view('student.dashboard');
-    }
-
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -94,20 +89,15 @@ class AuthenticateUser extends Controller
     public function register(Request $request)
     {
         $validatedData = $request->validate([
-            'user_type' => 'required|in:Admin,Instructor,Student',
+            'user_type' => 'required|in:Instructor,Student',
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:4|confirmed',
             'contact_number' => 'nullable|string|max:15',
         ]);
 
-        // Only admins may assign roles; public self-registration is always a Student account.
-        $userType = $request->routeIs('admin.user.register')
-            ? $validatedData['user_type']
-            : 'Student';
-
         $user = User::create([
-            'user_type' => $userType,
+            'user_type' => $validatedData['user_type'],
             'name' => $validatedData['name'],
             'email' => $validatedData['email'],
             'password' => Hash::make($validatedData['password']),
@@ -117,3 +107,4 @@ class AuthenticateUser extends Controller
         return redirect()->back()->with('success', 'User added successfully!');
     }
 }
+

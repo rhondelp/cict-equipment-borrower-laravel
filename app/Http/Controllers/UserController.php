@@ -21,13 +21,6 @@ class UserController extends Controller
         return view('admin.user', compact('users', 'instructors'));
     }
 
-    public function show(string $id)
-    {
-        $user = UserModel::findOrFail($id);
-
-        return view('user.show', compact('user'));
-    }
-
     public function update(Request $request)
     {
         $userId = $request->id;

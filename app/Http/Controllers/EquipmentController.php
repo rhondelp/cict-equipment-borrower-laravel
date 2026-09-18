@@ -14,15 +14,6 @@ class EquipmentController extends Controller
         return view('admin.equipment', compact('equipment'));
     }
 
-    public function availableEquipment()
-    {
-        $availableEquipments = Equipment::where('status', 'Available')
-            ->where('available_quantity', '>', 0)
-            ->get();
-
-        return view('admin.transaction', compact('availableEquipments'));
-    }
-
     public function store(Request $request)
     {
         $validated = $request->validate([
