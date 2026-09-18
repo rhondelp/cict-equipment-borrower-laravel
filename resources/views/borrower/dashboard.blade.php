@@ -76,9 +76,15 @@
     </x-ui.page-header>
 
     <main class="flex-1 w-full p-4 mx-auto space-y-6 sm:p-6 max-w-content">
+        {{-- Top row: user card + stat cards share one responsive grid. --}}
+        @php
+            $activeBorrows = $transactions->whereIn('status', ['Borrowed', 'Overdue'])->count();
+            $pendingRequests = $requests->where('status', 'Pending')->count();
+            $overdueCount = $transactions->where('status', 'Overdue')->count();
+        @endphp
         {{-- Signed-in user at a glance. Auth::user() is available in every view,
              so this needs nothing from the controller. --}}
-        <section>
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="flex flex-wrap items-center gap-4 p-5 bg-white border rounded-lg border-neutral-200">
                 <div class="grid w-12 h-12 border rounded-lg shrink-0 bg-primary-50 border-primary-100 place-items-center">
                     <i class="text-lg fas fa-user text-primary-600"></i>
@@ -100,16 +106,6 @@
                     </p>
                 </div>
             </div>
-        </section>
-
-        {{-- Quick stats — derived from the collections already passed to this view. --}}
-        @php
-            $activeBorrows = $transactions->whereIn('status', ['Borrowed', 'Overdue'])->count();
-            $pendingRequests = $requests->where('status', 'Pending')->count();
-            $overdueCount = $transactions->where('status', 'Overdue')->count();
-        @endphp
-        <section>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div class="flex items-center justify-between p-5 bg-white border rounded-lg border-neutral-200">
                     <div>
                         <p class="text-sm font-semibold tracking-wider uppercase text-neutral-600">Active borrows</p>
@@ -142,202 +138,214 @@
                         <i class="text-lg fas fa-triangle-exclamation text-danger-700"></i>
                     </div>
                 </div>
-            </div>
         </section>
 
-        {{-- Browse what's on the shelf. Each Request button only pre-fills the
-             existing request modal — same form, same submission target. --}}
-        @php $availableEquipment = $equipments->where('status', 'Available')->where('available_quantity', '>', 0); @endphp
-        <section>
-            <h2 class="flex items-center gap-2 mb-3 text-lg font-semibold text-neutral-900">
-                <span class="grid border rounded-lg w-9 h-9 bg-primary-50 border-primary-100 place-items-center">
-                    <i class="text-base fas fa-tools text-primary-600"></i>
-                </span>
-                Browse Equipment
-            </h2>
-            <x-ui.table-card>
-                @if($availableEquipment->isEmpty())
-                    <div class="py-12 text-center">
-                        <i class="block mb-3 text-4xl fas fa-box-open text-neutral-400"></i>
-                        <p class="text-lg font-semibold text-neutral-700">Nothing available right now</p>
-                        <p class="mt-1 text-base text-neutral-600">Check back once items have been returned.</p>
-                    </div>
-                @else
-                    <div class="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-                        @foreach ($availableEquipment as $item)
-                            <div class="flex items-center justify-between gap-3 p-4 border rounded-lg border-neutral-200 bg-neutral-50">
-                                <div class="min-w-0">
-                                    <p class="text-base font-semibold truncate text-neutral-900" title="{{ $item->equipment_name }}">{{ $item->equipment_name }}</p>
-                                    <p class="mt-1 text-sm text-neutral-600">
-                                        Available: <span class="font-semibold tabular-nums">{{ $item->available_quantity }}</span>
-                                    </p>
-                                </div>
-                                <button type="button"
-                                        class="inline-flex items-center gap-1.5 shrink-0 min-h-[40px] px-4 py-2 text-sm font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700"
-                                        data-request-equipment="{{ $item->id }}">
-                                    <i class="text-sm fas fa-plus"></i> Request
-                                </button>
+        {{-- Two-column on large screens, single column on mobile. Transactions
+             lead as the primary column; requests and browsing sit beside them. --}}
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div class="space-y-6 lg:col-span-2 min-w-0">
+                <section>
+                    <h2 class="flex items-center gap-2 mb-3 text-lg font-semibold text-neutral-900">
+                        <span class="grid border rounded-lg w-9 h-9 bg-primary-50 border-primary-100 place-items-center">
+                            <i class="text-base fas fa-history text-primary-600"></i>
+                        </span>
+                        My borrow transactions
+                    </h2>
+                    <x-ui.table-card>
+                        @if($transactions->isEmpty())
+                            <div class="py-12 text-center">
+                                <i class="block mb-3 text-4xl fas fa-exchange-alt text-neutral-400"></i>
+                                <p class="text-lg font-semibold text-neutral-700">No transactions yet</p>
+                                <p class="mt-1 text-base text-neutral-600">Once your request is approved, your transactions will appear here.</p>
                             </div>
-                        @endforeach
-                    </div>
-                @endif
-            </x-ui.table-card>
-        </section>
-
-        <section>
-            <h2 class="flex items-center gap-2 mb-3 text-lg font-semibold text-neutral-900">
-                <span class="grid border rounded-lg w-9 h-9 bg-primary-50 border-primary-100 place-items-center">
-                    <i class="text-base fas fa-list text-primary-600"></i>
-                </span>
-                My Equipment Requests
-            </h2>
-            <x-ui.table-card>
-                @if($requests->isEmpty())
-                    <div class="py-12 text-center">
-                        <i class="block mb-3 text-4xl fas fa-inbox text-neutral-400"></i>
-                        <p class="text-lg font-semibold text-neutral-700">No requests yet</p>
-                        <p class="mt-1 text-base text-neutral-600">Click "Request Item" to submit one.</p>
-                    </div>
-                @else
-                    {{-- Client-side status filter over the already-rendered rows. --}}
-                    <div class="flex flex-wrap items-center gap-2 px-4 pt-4" role="group" aria-label="Filter requests by status">
-                        @foreach (['all' => 'All', 'Pending' => 'Pending', 'Approved' => 'Approved', 'Declined' => 'Declined'] as $value => $label)
-                            <button type="button"
-                                    class="status-filter-btn inline-flex items-center min-h-[40px] px-4 py-2 text-sm font-semibold rounded-md border transition {{ $value === 'all' ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100' }}"
-                                    data-table="requestTable" data-filter="{{ $value }}"
-                                    aria-pressed="{{ $value === 'all' ? 'true' : 'false' }}">{{ $label }}</button>
-                        @endforeach
-                    </div>
-                    <div class="p-4 overflow-x-auto">
-                        <table id="requestTable" class="w-full text-sm display nowrap">
-                            <thead>
-                                <tr class="text-sm tracking-wider uppercase text-neutral-600 bg-neutral-50">
-                                    <th class="px-4 py-3 font-semibold text-left">Equipment</th>
-                                    <th class="px-4 py-3 font-semibold text-left">Qty</th>
-                                    <th class="px-4 py-3 font-semibold text-left">Status</th>
-                                    <th class="px-4 py-3 font-semibold text-left">Remarks</th>
-                                    <th class="px-4 py-3 font-semibold text-left">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-neutral-200">
-                                @foreach ($requests as $request)
-                                    <tr class="hover:bg-neutral-50" data-status="{{ $request->status }}">
-                                        <td class="px-4 py-3 font-medium text-neutral-900">{{ $request->equipment->equipment_name }}</td>
-                                        <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $request->quantity }}</td>
-                                        <td class="px-4 py-3">
-                                            @php $variant = ['Approved'=>'success','Declined'=>'danger','Pending'=>'warning'][$request->status] ?? 'neutral'; @endphp
-                                            <x-ui.badge :status="$request->status" :variant="$variant" />
-                                        </td>
-                                        <td class="px-4 py-3 text-neutral-600">{{ $request->remarks ?? '—' }}</td>
-                                        <td class="px-4 py-3">
-                                            <button type="button"
-                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 edit-btn"
-                                                    data-id="{{ $request->id }}"
-                                                    data-equipment-name="{{ $request->equipment->equipment_name }}"
-                                                    data-quantity="{{ $request->quantity }}"
-                                                    data-status="{{ $request->status }}"
-                                                    data-remarks="{{ $request->remarks }}">
-                                                <i class="fas fa-edit text-sm"></i> Edit
-                                            </button>
-                                            <button type="button"
-                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
-                                                    data-id="{{ $request->id }}"
-                                                    data-equipment-name="{{ $request->equipment->equipment_name }}">
-                                                <i class="fas fa-trash text-sm"></i> Delete
-                                            </button>
-                                        </td>
-                                    </tr>
+                        @else
+                            {{-- Client-side status filter over the already-rendered rows. --}}
+                            <div class="flex flex-wrap items-center gap-2 px-4 pt-4" role="group" aria-label="Filter transactions by status">
+                                @foreach (['all' => 'All', 'Borrowed' => 'Borrowed', 'Returned' => 'Returned', 'Overdue' => 'Overdue'] as $value => $label)
+                                    <button type="button"
+                                            class="status-filter-btn inline-flex items-center min-h-[40px] px-4 py-2 text-sm font-semibold rounded-md border transition {{ $value === 'all' ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100' }}"
+                                            data-table="transactionTable" data-filter="{{ $value }}"
+                                            aria-pressed="{{ $value === 'all' ? 'true' : 'false' }}">{{ $label }}</button>
                                 @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-            </x-ui.table-card>
-        </section>
-
-        <section>
-            <h2 class="flex items-center gap-2 mb-3 text-lg font-semibold text-neutral-900">
-                <span class="grid border rounded-lg w-9 h-9 bg-primary-50 border-primary-100 place-items-center">
-                    <i class="text-base fas fa-history text-primary-600"></i>
-                </span>
-                My borrow transactions
-            </h2>
-            <x-ui.table-card>
-                @if($transactions->isEmpty())
-                    <div class="py-12 text-center">
-                        <i class="block mb-3 text-4xl fas fa-exchange-alt text-neutral-400"></i>
-                        <p class="text-lg font-semibold text-neutral-700">No transactions yet</p>
-                        <p class="mt-1 text-base text-neutral-600">Once your request is approved, your transactions will appear here.</p>
-                    </div>
-                @else
-                    {{-- Client-side status filter over the already-rendered rows. --}}
-                    <div class="flex flex-wrap items-center gap-2 px-4 pt-4" role="group" aria-label="Filter transactions by status">
-                        @foreach (['all' => 'All', 'Borrowed' => 'Borrowed', 'Returned' => 'Returned', 'Overdue' => 'Overdue'] as $value => $label)
-                            <button type="button"
-                                    class="status-filter-btn inline-flex items-center min-h-[40px] px-4 py-2 text-sm font-semibold rounded-md border transition {{ $value === 'all' ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100' }}"
-                                    data-table="transactionTable" data-filter="{{ $value }}"
-                                    aria-pressed="{{ $value === 'all' ? 'true' : 'false' }}">{{ $label }}</button>
-                        @endforeach
-                    </div>
-                    <div class="p-4 overflow-x-auto">
-                        <table id="transactionTable" class="w-full text-sm display nowrap">
-                            <thead>
-                                <tr class="text-sm tracking-wider uppercase text-neutral-600 bg-neutral-50">
-                                    <th class="px-4 py-3 font-semibold text-left">Equipment</th>
-                                    <th class="px-4 py-3 font-semibold text-left">Qty</th>
-                                    <th class="px-4 py-3 font-semibold text-left">Borrow</th>
-                                    <th class="px-4 py-3 font-semibold text-left">Return</th>
-                                    <th class="px-4 py-3 font-semibold text-left">Purpose</th>
-                                    <th class="px-4 py-3 font-semibold text-left">Status</th>
-                                    <th class="px-4 py-3 font-semibold text-left">Remarks</th>
-                                    <th class="px-4 py-3 font-semibold text-left">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-neutral-200">
-                                @foreach ($transactions as $tx)
-                                    @php
-                                        // Overdue in practice: either already swept to Overdue by the
-                                        // nightly job, or still Borrowed with the return date behind us.
-                                        $isOverdueRow = $tx->status === 'Overdue'
-                                            || ($tx->status === 'Borrowed' && $tx->return_date
-                                                && \Carbon\Carbon::parse($tx->return_date)->lt(\Carbon\Carbon::today()));
-                                    @endphp
-                                    <tr class="{{ $isOverdueRow ? 'bg-danger-50 hover:bg-danger-100' : 'hover:bg-neutral-50' }}" data-status="{{ $tx->status }}">
-                                        <td class="px-4 py-3 font-medium text-neutral-900">{{ $tx->equipment->equipment_name ?? '—' }}</td>
-                                        <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->quantity }}</td>
-                                        <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->borrow_date }}</td>
-                                        <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->return_date ?? '—' }}</td>
-                                        <td class="px-4 py-3 text-neutral-600 max-w-[14rem] truncate" title="{{ $tx->purpose }}">{{ $tx->purpose }}</td>
-                                        <td class="px-4 py-3">
-                                            @php $variant = ['Borrowed'=>'warning','Returned'=>'success','Overdue'=>'danger'][$tx->status] ?? 'neutral'; @endphp
-                                            <x-ui.badge :status="$tx->status" :variant="$variant" />
-                                        </td>
-                                        <td class="px-4 py-3 text-neutral-600">{{ $tx->remarks ?? '—' }}</td>
-                                        <td class="px-4 py-3">
-                                            <div class="flex items-center gap-2">
-                                                <a href="{{ route('borrower.transaction.receipt', $tx->id) }}"
-                                                   target="_blank" rel="noopener"
-                                                   class="inline-flex items-center gap-1.5 whitespace-nowrap min-h-[40px] px-4 py-2 text-sm font-semibold rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200"
-                                                   title="Open a printable borrow slip in a new tab">
-                                                    <i class="text-sm fas fa-print"></i> Print
-                                                </a>
-                                                @if ($tx->status === 'Returned' && $tx->equipment)
+                            </div>
+                            <div class="p-4 overflow-x-auto">
+                                <table id="transactionTable" class="w-full text-sm display nowrap">
+                                    <thead>
+                                        <tr class="text-sm tracking-wider uppercase text-neutral-600 bg-neutral-50">
+                                            <th class="px-4 py-3 font-semibold text-left">Equipment</th>
+                                            <th class="px-4 py-3 font-semibold text-left">Qty</th>
+                                            <th class="px-4 py-3 font-semibold text-left">Borrow</th>
+                                            <th class="px-4 py-3 font-semibold text-left">Return</th>
+                                            <th class="px-4 py-3 font-semibold text-left">Purpose</th>
+                                            <th class="px-4 py-3 font-semibold text-left">Status</th>
+                                            <th class="px-4 py-3 font-semibold text-left">Remarks</th>
+                                            <th class="px-4 py-3 font-semibold text-left">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-neutral-200">
+                                        @foreach ($transactions as $tx)
+                                            @php
+                                                // Overdue in practice: either already swept to Overdue by the
+                                                // nightly job, or still Borrowed with the return date behind us.
+                                                $isOverdueRow = $tx->status === 'Overdue'
+                                                    || ($tx->status === 'Borrowed' && $tx->return_date
+                                                        && \Carbon\Carbon::parse($tx->return_date)->lt(\Carbon\Carbon::today()));
+                                            @endphp
+                                            <tr class="{{ $isOverdueRow ? 'bg-danger-50 hover:bg-danger-100' : 'hover:bg-neutral-50' }}" data-status="{{ $tx->status }}">
+                                                <td class="px-4 py-3 font-medium text-neutral-900">{{ $tx->equipment->equipment_name ?? '—' }}</td>
+                                                <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->quantity }}</td>
+                                                <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->borrow_date }}</td>
+                                                <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->return_date ?? '—' }}</td>
+                                                <td class="px-4 py-3 text-neutral-600 max-w-[14rem] truncate" title="{{ $tx->purpose }}">{{ $tx->purpose }}</td>
+                                                <td class="px-4 py-3">
+                                                    @php $variant = ['Borrowed'=>'warning','Returned'=>'success','Overdue'=>'danger'][$tx->status] ?? 'neutral'; @endphp
+                                                    <x-ui.badge :status="$tx->status" :variant="$variant" />
+                                                </td>
+                                                <td class="px-4 py-3 text-neutral-600">{{ $tx->remarks ?? '—' }}</td>
+                                                <td class="px-4 py-3">
+                                                    <div class="flex items-center gap-2">
+                                                        <a href="{{ route('borrower.transaction.receipt', $tx->id) }}"
+                                                           target="_blank" rel="noopener"
+                                                           class="inline-flex items-center gap-1.5 whitespace-nowrap min-h-[40px] px-4 py-2 text-sm font-semibold rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200"
+                                                           title="Open a printable borrow slip in a new tab">
+                                                            <i class="text-sm fas fa-print"></i> Print
+                                                        </a>
+                                                        @if ($tx->status === 'Returned' && $tx->equipment)
+                                                            <button type="button"
+                                                                    class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200"
+                                                                    data-request-equipment="{{ $tx->equipment_id }}">
+                                                                <i class="text-sm fas fa-rotate-right"></i> Borrow again
+                                                            </button>
+                                                        @endif
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </x-ui.table-card>
+                </section>
+            </div>
+            <div class="space-y-6 lg:col-span-1 min-w-0">
+                <section>
+                    <h2 class="flex items-center gap-2 mb-3 text-lg font-semibold text-neutral-900">
+                        <span class="grid border rounded-lg w-9 h-9 bg-primary-50 border-primary-100 place-items-center">
+                            <i class="text-base fas fa-list text-primary-600"></i>
+                        </span>
+                        My Equipment Requests
+                    </h2>
+                    <x-ui.table-card>
+                        @if($requests->isEmpty())
+                            <div class="py-12 text-center">
+                                <i class="block mb-3 text-4xl fas fa-inbox text-neutral-400"></i>
+                                <p class="text-lg font-semibold text-neutral-700">No requests yet</p>
+                                <p class="mt-1 text-base text-neutral-600">Click "Request Item" to submit one.</p>
+                            </div>
+                        @else
+                            {{-- Client-side status filter over the already-rendered rows. --}}
+                            <div class="flex flex-wrap items-center gap-2 px-4 pt-4" role="group" aria-label="Filter requests by status">
+                                @foreach (['all' => 'All', 'Pending' => 'Pending', 'Approved' => 'Approved', 'Declined' => 'Declined'] as $value => $label)
+                                    <button type="button"
+                                            class="status-filter-btn inline-flex items-center min-h-[40px] px-4 py-2 text-sm font-semibold rounded-md border transition {{ $value === 'all' ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100' }}"
+                                            data-table="requestTable" data-filter="{{ $value }}"
+                                            aria-pressed="{{ $value === 'all' ? 'true' : 'false' }}">{{ $label }}</button>
+                                @endforeach
+                            </div>
+                            <div class="p-4 overflow-x-auto">
+                                <table id="requestTable" class="w-full text-sm display nowrap">
+                                    <thead>
+                                        <tr class="text-sm tracking-wider uppercase text-neutral-600 bg-neutral-50">
+                                            <th class="px-4 py-3 font-semibold text-left">Equipment</th>
+                                            <th class="px-4 py-3 font-semibold text-left">Qty</th>
+                                            <th class="px-4 py-3 font-semibold text-left">Status</th>
+                                            <th class="px-4 py-3 font-semibold text-left">Remarks</th>
+                                            <th class="px-4 py-3 font-semibold text-left">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-neutral-200">
+                                        @foreach ($requests as $request)
+                                            <tr class="hover:bg-neutral-50" data-status="{{ $request->status }}">
+                                                <td class="px-4 py-3 font-medium text-neutral-900">{{ $request->equipment->equipment_name }}</td>
+                                                <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $request->quantity }}</td>
+                                                <td class="px-4 py-3">
+                                                    @php $variant = ['Approved'=>'success','Declined'=>'danger','Pending'=>'warning'][$request->status] ?? 'neutral'; @endphp
+                                                    <x-ui.badge :status="$request->status" :variant="$variant" />
+                                                </td>
+                                                <td class="px-4 py-3 text-neutral-600">{{ $request->remarks ?? '—' }}</td>
+                                                <td class="px-4 py-3">
                                                     <button type="button"
-                                                            class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200"
-                                                            data-request-equipment="{{ $tx->equipment_id }}">
-                                                        <i class="text-sm fas fa-rotate-right"></i> Borrow again
+                                                            class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 edit-btn"
+                                                            data-id="{{ $request->id }}"
+                                                            data-equipment-name="{{ $request->equipment->equipment_name }}"
+                                                            data-quantity="{{ $request->quantity }}"
+                                                            data-status="{{ $request->status }}"
+                                                            data-remarks="{{ $request->remarks }}">
+                                                        <i class="fas fa-edit text-sm"></i> Edit
                                                     </button>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
+                                                    <button type="button"
+                                                            class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
+                                                            data-id="{{ $request->id }}"
+                                                            data-equipment-name="{{ $request->equipment->equipment_name }}">
+                                                        <i class="fas fa-trash text-sm"></i> Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </x-ui.table-card>
+                </section>
+                {{-- Browse what's on the shelf. Each Request button only pre-fills the
+                     existing request modal — same form, same submission target. --}}
+                @php $availableEquipment = $equipments->where('status', 'Available')->where('available_quantity', '>', 0); @endphp
+                <section>
+                    <h2 class="flex items-center gap-2 mb-3 text-lg font-semibold text-neutral-900">
+                        <span class="grid border rounded-lg w-9 h-9 bg-primary-50 border-primary-100 place-items-center">
+                            <i class="text-base fas fa-tools text-primary-600"></i>
+                        </span>
+                        Browse Equipment
+                    </h2>
+                    <x-ui.table-card>
+                        @if($availableEquipment->isEmpty())
+                            <div class="py-12 text-center">
+                                <i class="block mb-3 text-4xl fas fa-box-open text-neutral-400"></i>
+                                <p class="text-lg font-semibold text-neutral-700">Nothing available right now</p>
+                                <p class="mt-1 text-base text-neutral-600">Check back once items have been returned.</p>
+                            </div>
+                        @else
+                            {{-- Two-up while this panel is full width; back to one-up at
+                                 lg, where it sits in the narrow secondary column. --}}
+                            <div class="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-1">
+                                @foreach ($availableEquipment as $item)
+                                    <div class="flex items-center justify-between gap-3 p-4 border rounded-lg border-neutral-200 bg-neutral-50">
+                                        <div class="min-w-0">
+                                            <p class="text-base font-semibold truncate text-neutral-900" title="{{ $item->equipment_name }}">{{ $item->equipment_name }}</p>
+                                            <p class="mt-1 text-sm text-neutral-600">
+                                                Available: <span class="font-semibold tabular-nums">{{ $item->available_quantity }}</span>
+                                            </p>
+                                        </div>
+                                        <button type="button"
+                                                class="inline-flex items-center gap-1.5 shrink-0 min-h-[40px] px-4 py-2 text-sm font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700"
+                                                data-request-equipment="{{ $item->id }}">
+                                            <i class="text-sm fas fa-plus"></i> Request
+                                        </button>
+                                    </div>
                                 @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-            </x-ui.table-card>
-        </section>
+                            </div>
+                        @endif
+                    </x-ui.table-card>
+                </section>
+            </div>
+        </div>
+
+
+
+
+
     </main>
 </div>
 
