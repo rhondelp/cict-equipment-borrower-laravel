@@ -11,8 +11,8 @@
             @if($requests->isEmpty())
                 <div class="py-16 text-center">
                     <i class="block mb-3 text-4xl fas fa-clipboard-list text-neutral-300"></i>
-                    <p class="text-sm font-medium text-neutral-700">No item requests</p>
-                    <p class="mt-1 text-xs text-neutral-500">Borrowers haven't submitted anything yet.</p>
+                    <p class="text-lg font-semibold text-neutral-700">No item requests</p>
+                    <p class="mt-1 text-base text-neutral-600">Borrowers haven't submitted anything yet.</p>
                 </div>
             @else
                 <div class="p-4 overflow-x-auto">
@@ -46,15 +46,15 @@
                                                 <form action="{{ route('admin.request.approve') }}" method="POST" class="inline approve-form">
                                                     @csrf
                                                     <input type="hidden" name="id" value="{{ $request->id }}">
-                                                    <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-md bg-success-50 text-success-700 border border-success-200 hover:bg-success-100">
-                                                        <i class="fas fa-check text-[11px]"></i> Approve
+                                                    <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-success-50 text-success-700 border border-success-200 hover:bg-success-100">
+                                                        <i class="fas fa-check text-sm"></i> Approve
                                                     </button>
                                                 </form>
                                                 <form action="{{ route('admin.request.decline') }}" method="POST" class="inline decline-form">
                                                     @csrf
                                                     <input type="hidden" name="id" value="{{ $request->id }}">
-                                                    <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-md bg-danger-50 text-danger-700 border border-danger-200 hover:bg-danger-100">
-                                                        <i class="fas fa-times text-[11px]"></i> Decline
+                                                    <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-danger-50 text-danger-700 border border-danger-200 hover:bg-danger-100">
+                                                        <i class="fas fa-times text-sm"></i> Decline
                                                     </button>
                                                 </form>
                                             </div>

@@ -7,8 +7,8 @@
     <x-ui.page-header eyebrow="Equipment" title="Manage inventory">
         <x-slot:actions>
             <button id="open-add-modal" type="button"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md bg-primary-600 hover:bg-primary-700">
-                <i class="text-xs fas fa-plus"></i> Add Equipment
+                    class="inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700">
+                <i class="text-base fas fa-plus"></i> Add Equipment
             </button>
         </x-slot:actions>
     </x-ui.page-header>
@@ -18,8 +18,8 @@
             @if($equipment->isEmpty())
                 <div class="py-16 text-center">
                     <i class="block mb-3 text-4xl fas fa-tools text-neutral-300"></i>
-                    <p class="text-sm font-medium text-neutral-700">No equipment yet</p>
-                    <p class="mt-1 text-xs text-neutral-500">Click "Add Equipment" to create your first item.</p>
+                    <p class="text-lg font-semibold text-neutral-700">No equipment yet</p>
+                    <p class="mt-1 text-base text-neutral-600">Click "Add Equipment" to create your first item.</p>
                 </div>
             @else
                 <div class="p-4 overflow-x-auto">
@@ -48,20 +48,20 @@
                                     <td class="px-4 py-3">
                                         <div class="flex items-center gap-2">
                                             <button type="button"
-                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary-50 text-primary-700 border border-primary-100 hover:bg-primary-100 edit-btn"
+                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-primary-50 text-primary-700 border border-primary-100 hover:bg-primary-100 edit-btn"
                                                     data-id="{{ $item->id }}"
                                                     data-name="{{ $item->equipment_name }}"
                                                     data-description="{{ $item->description }}"
                                                     data-quantity="{{ $item->quantity }}"
                                                     data-available="{{ $item->available_quantity }}"
                                                     data-status="{{ $item->status }}">
-                                                <i class="fas fa-edit text-[11px]"></i> Edit
+                                                <i class="fas fa-edit text-sm"></i> Edit
                                             </button>
                                             <button type="button"
-                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
+                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
                                                     data-id="{{ $item->id }}"
                                                     data-name="{{ $item->equipment_name }}">
-                                                <i class="fas fa-trash text-[11px]"></i> Delete
+                                                <i class="fas fa-trash text-sm"></i> Delete
                                             </button>
                                         </div>
                                     </td>

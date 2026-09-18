@@ -7,8 +7,8 @@
     <x-ui.page-header eyebrow="Transactions" title="Borrow & returns">
         <x-slot:actions>
             <button id="open-add-modal" type="button"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md bg-primary-600 hover:bg-primary-700">
-                <i class="text-xs fas fa-plus"></i> Add Transaction
+                    class="inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700">
+                <i class="text-base fas fa-plus"></i> Add Transaction
             </button>
         </x-slot:actions>
     </x-ui.page-header>
@@ -18,8 +18,8 @@
             @if($transactions->isEmpty())
                 <div class="py-16 text-center">
                     <i class="block mb-3 text-4xl fas fa-exchange-alt text-neutral-300"></i>
-                    <p class="text-sm font-medium text-neutral-700">No transactions yet</p>
-                    <p class="mt-1 text-xs text-neutral-500">Click "Add Transaction" to log a new borrow.</p>
+                    <p class="text-lg font-semibold text-neutral-700">No transactions yet</p>
+                    <p class="mt-1 text-base text-neutral-600">Click "Add Transaction" to log a new borrow.</p>
                 </div>
             @else
                 <div class="p-4 overflow-x-auto">
@@ -52,7 +52,7 @@
                                     <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->quantity }}</td>
                                     <td class="px-4 py-3 max-w-[14rem] truncate text-neutral-600" title="{{ $tx->purpose }}">{{ $tx->purpose }}</td>
                                     <td class="px-4 py-3">
-                                        <select class="status-dropdown inline-flex px-2.5 py-1 text-xs font-semibold rounded-md border focus:outline-none focus:ring-2 focus:ring-primary-500/30
+                                        <select class="status-dropdown inline-flex px-4 py-2 text-sm font-semibold rounded-md border focus:outline-none focus:ring-2 focus:ring-primary-500/30
                                             @if($tx->status === 'Borrowed') bg-warning-50 text-warning-700 border-warning-200 @endif
                                             @if($tx->status === 'Returned') bg-success-50 text-success-700 border-success-200 @endif
                                             @if($tx->status === 'Overdue') bg-danger-50 text-danger-700 border-danger-200 @endif"
@@ -73,7 +73,7 @@
                                     <td class="px-4 py-3">
                                         <div class="flex items-center gap-1.5">
                                             <button type="button"
-                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 edit-btn"
+                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 edit-btn"
                                                     data-id="{{ $tx->id }}" data-user="{{ $tx->user->id ?? '' }}"
                                                     data-equipment="{{ $tx->equipment->id ?? '' }}"
                                                     data-borrow="{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}"
@@ -81,17 +81,17 @@
                                                     data-purpose="{{ $tx->purpose }}" data-status="{{ $tx->status }}"
                                                     data-remarks="{{ $tx->remarks ?? '' }}"
                                                     data-class="{{ $tx->classSchedule->id ?? '' }}">
-                                                <i class="fas fa-edit text-[11px]"></i> Edit
+                                                <i class="fas fa-edit text-sm"></i> Edit
                                             </button>
                                             <button type="button"
-                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 send-email-btn"
+                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 send-email-btn"
                                                     data-id="{{ $tx->id }}" data-user-email="{{ $tx->user->email ?? '' }}">
-                                                <i class="fas fa-envelope text-[11px]"></i> Email
+                                                <i class="fas fa-envelope text-sm"></i> Email
                                             </button>
                                             <button type="button"
-                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
+                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
                                                     data-id="{{ $tx->id }}" data-name="transaction #{{ $tx->id }}">
-                                                <i class="fas fa-trash text-[11px]"></i>
+                                                <i class="fas fa-trash text-sm"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -137,9 +137,9 @@ document.addEventListener('DOMContentLoaded', function () {
             equipmentIds.forEach(function (equipmentId) {
                 const field = document.createElement('div');
                 field.innerHTML =
-                    '<label class="block text-sm font-medium text-neutral-700">Quantity for Equipment #' + equipmentId + '</label>' +
+                    '<label class="block text-base font-medium text-neutral-800">Quantity for Equipment #' + equipmentId + '</label>' +
                     '<input type="number" name="quantities[' + equipmentId + ']" min="1" required ' +
-                    'class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none tabular-nums">';
+                    'class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none tabular-nums">';
                 quantitiesDiv.appendChild(field);
             });
         });

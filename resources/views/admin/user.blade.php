@@ -7,12 +7,12 @@
     <x-ui.page-header eyebrow="Users" title="Manage accounts & schedules">
         <x-slot:actions>
             <button id="open-add-sched-modal" type="button"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50">
-                <i class="text-xs fas fa-calendar-check"></i> Add Schedule
+                    class="inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50">
+                <i class="text-base fas fa-calendar-check"></i> Add Schedule
             </button>
             <button id="open-add-modal" type="button"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md bg-primary-600 hover:bg-primary-700">
-                <i class="text-xs fas fa-user-plus"></i> Add User
+                    class="inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700">
+                <i class="text-base fas fa-user-plus"></i> Add User
             </button>
         </x-slot:actions>
     </x-ui.page-header>
@@ -22,8 +22,8 @@
             @if($users->isEmpty())
                 <div class="py-16 text-center">
                     <i class="block mb-3 text-4xl fas fa-users text-neutral-300"></i>
-                    <p class="text-sm font-medium text-neutral-700">No users yet</p>
-                    <p class="mt-1 text-xs text-neutral-500">Click "Add User" to create one.</p>
+                    <p class="text-lg font-semibold text-neutral-700">No users yet</p>
+                    <p class="mt-1 text-base text-neutral-600">Click "Add User" to create one.</p>
                 </div>
             @else
                 <div class="p-4 overflow-x-auto">
@@ -62,15 +62,15 @@
                                     <td class="px-4 py-3">
                                         <div class="flex items-center gap-1.5">
                                             <button type="button"
-                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 edit-btn"
+                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 edit-btn"
                                                     data-id="{{ $user->id }}" data-name="{{ $user->name }}" data-email="{{ $user->email }}"
                                                     data-user-type="{{ $user->user_type }}" data-contact="{{ $user->contact_number }}">
-                                                <i class="fas fa-edit text-[11px]"></i> Edit
+                                                <i class="fas fa-edit text-sm"></i> Edit
                                             </button>
                                             <button type="button"
-                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
+                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
                                                     data-id="{{ $user->id }}" data-name="{{ $user->name }}">
-                                                <i class="fas fa-trash text-[11px]"></i>
+                                                <i class="fas fa-trash text-sm"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -90,55 +90,55 @@
         <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <h3 class="text-base font-semibold text-neutral-900">Add Class Schedule</h3>
             <button type="button" class="grid w-8 h-8 rounded-md place-items-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 cancel-sched" aria-label="Close">
-                <i class="text-xs fas fa-times"></i>
+                <i class="text-base fas fa-times"></i>
             </button>
         </div>
         <form action="{{ route('admin.add-sched') }}" method="POST" class="flex flex-col flex-1 min-h-0">
             @csrf
             <div class="flex-1 px-6 py-5 space-y-4 overflow-y-auto">
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Instructor</label>
+                    <label class="block text-base font-medium text-neutral-800">Instructor</label>
                     <select name="user_id" required
-                            class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                            class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                         @foreach ($instructors as $inst)
                             <option value="{{ $inst->id }}">{{ $inst->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Year Level</label>
+                    <label class="block text-base font-medium text-neutral-800">Year Level</label>
                     <input type="text" name="year_level" required
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Block Name</label>
+                    <label class="block text-base font-medium text-neutral-800">Block Name</label>
                     <input type="text" name="block_name" required
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Subject Code</label>
+                    <label class="block text-base font-medium text-neutral-800">Subject Code</label>
                     <input type="text" name="subject_code" required
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Subject Name</label>
+                    <label class="block text-base font-medium text-neutral-800">Subject Name</label>
                     <input type="text" name="subject_name" required
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Schedule Time</label>
+                    <label class="block text-base font-medium text-neutral-800">Schedule Time</label>
                     <input type="text" name="schedule_time" required placeholder="e.g., Mon/Wed 8:00 AM - 10:00 AM"
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Room</label>
+                    <label class="block text-base font-medium text-neutral-800">Room</label>
                     <input type="text" name="room" required
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
             </div>
             <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
-                <button type="button" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50 cancel-sched">Cancel</button>
-                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-md bg-primary-600 hover:bg-primary-700">Add Schedule</button>
+                <button type="button" class="inline-flex items-center justify-center min-h-[44px] px-5 py-3 text-base font-semibold bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50 cancel-sched">Cancel</button>
+                <button type="submit" class="inline-flex items-center justify-center min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700">Add Schedule</button>
             </div>
         </form>
     </div>
@@ -150,26 +150,26 @@
         <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <h3 class="text-base font-semibold text-neutral-900">Add User</h3>
             <button type="button" class="grid w-8 h-8 rounded-md place-items-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 cancel-add" aria-label="Close">
-                <i class="text-xs fas fa-times"></i>
+                <i class="text-base fas fa-times"></i>
             </button>
         </div>
         <form action="{{ route('admin.user.register') }}" method="POST" class="flex flex-col flex-1 min-h-0">
             @csrf
             <div class="flex-1 px-6 py-5 space-y-4 overflow-y-auto">
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Full Name</label>
+                    <label class="block text-base font-medium text-neutral-800">Full Name</label>
                     <input type="text" name="name" required
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Email Address</label>
+                    <label class="block text-base font-medium text-neutral-800">Email Address</label>
                     <input type="email" name="email" required
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">User Type</label>
+                    <label class="block text-base font-medium text-neutral-800">User Type</label>
                     <select name="user_type" required
-                            class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                            class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                         <option value="" disabled selected>-- Select User Type --</option>
                         <option value="Admin">Admin</option>
                         <option value="Instructor">Instructor</option>
@@ -177,26 +177,26 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Contact Number</label>
+                    <label class="block text-base font-medium text-neutral-800">Contact Number</label>
                     <input type="text" name="contact_number"
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700">Password</label>
+                        <label class="block text-base font-medium text-neutral-800">Password</label>
                         <input type="password" name="password" required
-                               class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                               class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-neutral-700">Confirm Password</label>
+                        <label class="block text-base font-medium text-neutral-800">Confirm Password</label>
                         <input type="password" name="password_confirmation" required
-                               class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                               class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                     </div>
                 </div>
             </div>
             <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
-                <button type="button" id="cancel-add" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50 cancel-add">Cancel</button>
-                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-md bg-primary-600 hover:bg-primary-700">Add User</button>
+                <button type="button" id="cancel-add" class="inline-flex items-center justify-center min-h-[44px] px-5 py-3 text-base font-semibold bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50 cancel-add">Cancel</button>
+                <button type="submit" class="inline-flex items-center justify-center min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700">Add User</button>
             </div>
         </form>
     </div>
@@ -208,7 +208,7 @@
         <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
             <h3 class="text-base font-semibold text-neutral-900">Edit User</h3>
             <button type="button" class="grid w-8 h-8 rounded-md place-items-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 cancel-edit" aria-label="Close">
-                <i class="text-xs fas fa-times"></i>
+                <i class="text-base fas fa-times"></i>
             </button>
         </div>
         <form id="edit-form" action="{{ route('admin.users.update') }}" method="POST" class="flex flex-col flex-1 min-h-0">
@@ -216,43 +216,43 @@
             <input type="hidden" name="id" id="edit-id">
             <div class="flex-1 px-6 py-5 space-y-4 overflow-y-auto">
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Name</label>
+                    <label class="block text-base font-medium text-neutral-800">Name</label>
                     <input type="text" name="name" id="edit-name"
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Email</label>
+                    <label class="block text-base font-medium text-neutral-800">Email</label>
                     <input type="email" name="email" id="edit-email"
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">User Type</label>
+                    <label class="block text-base font-medium text-neutral-800">User Type</label>
                     <select name="user_type" id="edit-user-type"
-                            class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                            class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                         <option value="Admin">Admin</option>
                         <option value="Instructor">Instructor</option>
                         <option value="Student">Student</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Contact Number</label>
+                    <label class="block text-base font-medium text-neutral-800">Contact Number</label>
                     <input type="text" name="contact_number" id="edit-contact"
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Password (leave blank to keep current)</label>
+                    <label class="block text-base font-medium text-neutral-800">Password (leave blank to keep current)</label>
                     <input type="password" name="password" id="edit-password"
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-neutral-700">Confirm Password</label>
+                    <label class="block text-base font-medium text-neutral-800">Confirm Password</label>
                     <input type="password" name="password_confirmation" id="edit-password-confirmation"
-                           class="mt-1.5 w-full px-3 py-2 border border-neutral-300 rounded-md text-sm text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none">
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                 </div>
             </div>
             <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
-                <button type="button" id="cancel-edit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50 cancel-edit">Cancel</button>
-                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-md bg-primary-600 hover:bg-primary-700">Save Changes</button>
+                <button type="button" id="cancel-edit" class="inline-flex items-center justify-center min-h-[44px] px-5 py-3 text-base font-semibold bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50 cancel-edit">Cancel</button>
+                <button type="submit" class="inline-flex items-center justify-center min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700">Save Changes</button>
             </div>
         </form>
     </div>
@@ -262,28 +262,28 @@
 <div id="delete-modal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-neutral-900/50">
     <div class="flex flex-col w-full max-w-md bg-white border border-neutral-200 rounded-xl shadow-flat">
         <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-            <h3 class="flex items-center gap-2 text-base font-semibold text-neutral-900">
-                <i class="text-sm text-danger-600 fas fa-exclamation-triangle"></i> Delete User
+            <h3 class="flex items-center gap-2 text-lg font-semibold text-neutral-900">
+                <i class="text-base text-danger-600 fas fa-exclamation-triangle"></i> Delete User
             </h3>
             <button type="button" class="grid w-8 h-8 rounded-md place-items-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900" id="cancel-delete" aria-label="Close">
-                <i class="text-xs fas fa-times"></i>
+                <i class="text-base fas fa-times"></i>
             </button>
         </div>
         <form id="delete-form" method="POST" action="" class="flex flex-col flex-1">
             @csrf
             @method('DELETE')
             <div class="px-6 py-5 space-y-3">
-                <p class="text-sm text-neutral-700">
+                <p class="text-base text-neutral-800">
                     Are you sure you want to delete <span id="delete-item-name" class="font-semibold text-neutral-900"></span>?
                 </p>
-                <p class="text-xs text-danger-600 flex items-start gap-1.5 leading-relaxed">
+                <p class="text-base text-danger-700 bg-danger-50 border border-danger-200 rounded-md px-4 py-3 flex items-start gap-2 leading-relaxed">
                     <i class="fas fa-info-circle mt-0.5"></i> This action cannot be undone.
                 </p>
             </div>
             <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
-                <button type="button" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50" id="cancel-delete-btn">Cancel</button>
-                <button type="button" id="confirm-delete" class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md bg-danger-600 hover:bg-danger-700">
-                    <i class="text-xs fas fa-trash-alt"></i> Delete
+                <button type="button" class="inline-flex items-center justify-center min-h-[44px] px-5 py-3 text-base font-semibold bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50" id="cancel-delete-btn">Cancel</button>
+                <button type="button" id="confirm-delete" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-danger-600 hover:bg-danger-700">
+                    <i class="text-base fas fa-trash-alt"></i> Delete
                 </button>
             </div>
         </form>
