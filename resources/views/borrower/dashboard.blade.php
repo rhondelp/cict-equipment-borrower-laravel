@@ -76,6 +76,32 @@
     </x-ui.page-header>
 
     <main class="flex-1 w-full p-4 mx-auto space-y-6 sm:p-6 max-w-content">
+        {{-- Signed-in user at a glance. Auth::user() is available in every view,
+             so this needs nothing from the controller. --}}
+        <section>
+            <div class="flex flex-wrap items-center gap-4 p-5 bg-white border rounded-lg border-neutral-200">
+                <div class="grid w-12 h-12 border rounded-lg shrink-0 bg-primary-50 border-primary-100 place-items-center">
+                    <i class="text-lg fas fa-user text-primary-600"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <p class="text-lg font-semibold truncate text-neutral-900" title="{{ Auth::user()->name }}">{{ Auth::user()->name }}</p>
+                        <x-ui.badge :status="Auth::user()->user_type" variant="neutral" />
+                    </div>
+                    <p class="flex flex-wrap items-center mt-1 text-base gap-x-4 gap-y-1 text-neutral-600">
+                        <span class="inline-flex items-center gap-2 min-w-0">
+                            <i class="fas fa-envelope text-neutral-600 shrink-0"></i>
+                            <span class="truncate" title="{{ Auth::user()->email }}">{{ Auth::user()->email }}</span>
+                        </span>
+                        <span class="inline-flex items-center gap-2">
+                            <i class="fas fa-phone text-neutral-600 shrink-0"></i>
+                            {{ Auth::user()->contact_number ?: 'No contact number' }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </section>
+
         {{-- Quick stats — derived from the collections already passed to this view. --}}
         @php
             $activeBorrows = $transactions->whereIn('status', ['Borrowed', 'Overdue'])->count();

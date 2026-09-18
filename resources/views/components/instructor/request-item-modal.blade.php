@@ -17,7 +17,7 @@
                 <div>
                     <label for="add-equipment" class="block text-base font-medium text-neutral-800">Select Equipment</label>
                     <select id="add-equipment" name="equipment_id" required
-                            class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none min-h-[120px]">
+                            class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none">
                         <option value="" disabled selected>Select equipment</option>
                         @foreach ($equipments as $equipment)
                             <option value="{{ $equipment->id }}">{{ $equipment->equipment_name }} | Available: {{ $equipment->available_quantity }}</option>
@@ -28,7 +28,8 @@
                 <div>
                     <label for="add-quantity" class="block text-base font-medium text-neutral-800">Quantity</label>
                     <input type="number" id="add-quantity" name="quantity" min="1" required
-                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none tabular-nums">
+                           placeholder="How many do you need?"
+                           class="mt-2 w-full px-4 py-3 border border-neutral-300 rounded-md text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none tabular-nums">
                 </div>
 
                 <div>
