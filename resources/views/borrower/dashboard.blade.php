@@ -5,6 +5,64 @@
 <div class="flex flex-col min-h-screen page-bg">
     <x-ui.page-header eyebrow="Borrower" title="Dashboard">
         <x-slot:actions>
+            {{-- Notifications bell. Read-only feed of the rows written by the
+                 return-reminder job; nothing here creates or mutates them. --}}
+            <div class="relative">
+                <button type="button" id="notif-btn"
+                        class="relative inline-flex items-center justify-center w-11 h-11 bg-white border rounded-md text-neutral-700 border-neutral-300 hover:bg-neutral-50"
+                        aria-haspopup="true" aria-expanded="false"
+                        aria-label="Notifications ({{ $notifications->count() }})">
+                    <i class="text-lg fas fa-bell"></i>
+                    @if($notifications->isNotEmpty())
+                        <span class="absolute -top-2 -right-2">
+                            {{-- No class override: badge merges (not replaces) classes,
+                                 and Tailwind resolves px-2 vs px-3 by CSS order, so an
+                                 override here would silently lose. --}}
+                            <x-ui.badge :status="$notifications->count()" variant="danger" />
+                        </span>
+                    @endif
+                </button>
+
+                <div id="notif-panel"
+                     class="absolute right-0 z-50 hidden w-80 mt-2 overflow-hidden bg-white border rounded-lg shadow-flat border-neutral-200 sm:w-96">
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-200 bg-neutral-50">
+                        <p class="text-base font-semibold text-neutral-900">Notifications</p>
+                        <button type="button" id="notif-close"
+                                class="grid rounded-md w-9 h-9 place-items-center text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900"
+                                aria-label="Close notifications">
+                            <i class="text-base fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    @if($notifications->isEmpty())
+                        <div class="px-4 py-10 text-center">
+                            <i class="block mb-3 text-3xl fas fa-bell-slash text-neutral-400"></i>
+                            <p class="text-base font-semibold text-neutral-700">No notifications yet</p>
+                            <p class="mt-1 text-sm text-neutral-600">Return reminders will show up here.</p>
+                        </div>
+                    @else
+                        <ul class="overflow-y-auto divide-y max-h-80 divide-neutral-200">
+                            @foreach($notifications as $notification)
+                                <li class="px-4 py-3">
+                                    <div class="flex items-start gap-3">
+                                        <span class="grid border rounded-lg w-9 h-9 shrink-0 bg-primary-50 border-primary-100 place-items-center">
+                                            <i class="text-sm fas fa-bell text-primary-600"></i>
+                                        </span>
+                                        <div class="min-w-0">
+                                            <p class="text-sm leading-relaxed text-neutral-800">{{ $notification->message }}</p>
+                                            <p class="mt-1 text-xs text-neutral-600">
+                                                <span class="font-semibold">{{ $notification->notification_type }}</span>
+                                                &middot; {{ \Carbon\Carbon::parse($notification->send_date ?? $notification->created_at)->diffForHumans() }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            </div>
+
             <button id="open-add-modal" type="button"
                     class="inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700">
                 <i class="text-base fas fa-plus"></i> Request Item
@@ -295,6 +353,34 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!wanted || wanted === 'all') return true;
             const row = settings.aoData[dataIndex].nTr;
             return !!row && row.getAttribute('data-status') === wanted;
+        });
+    }
+
+    // Notifications panel — toggle, close button, outside click and Escape.
+    // No stopPropagation: the outside-click check simply ignores the bell itself,
+    // so the page's other document-level click handlers still see every event.
+    const notifBtn = document.getElementById('notif-btn');
+    const notifPanel = document.getElementById('notif-panel');
+    if (notifBtn && notifPanel) {
+        const setNotifOpen = function (open) {
+            notifPanel.classList.toggle('hidden', !open);
+            notifBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+
+        notifBtn.addEventListener('click', function () {
+            setNotifOpen(notifPanel.classList.contains('hidden'));
+        });
+
+        document.getElementById('notif-close')?.addEventListener('click', function () {
+            setNotifOpen(false);
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!notifBtn.contains(e.target) && !notifPanel.contains(e.target)) setNotifOpen(false);
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') setNotifOpen(false);
         });
     }
 

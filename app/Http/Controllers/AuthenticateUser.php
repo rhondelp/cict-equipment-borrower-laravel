@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\ItemRequest;
+use App\Models\Notification;
 use App\Models\ReturnLog;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -30,8 +31,11 @@ class AuthenticateUser extends Controller
         $requests = ItemRequest::where('user_id', $userId)->with('equipment')->get();
         $transactions = BorrowTransaction::where('user_id', $userId)->with('equipment')->get();
         $equipments = Equipment::all();
+        // Read-only feed for the dashboard bell. Rows are written elsewhere by
+        // BorrowTransactionController::sendReturnAlertNotification.
+        $notifications = Notification::where('user_id', $userId)->latest()->take(10)->get();
 
-        return view('borrower.dashboard', compact('requests', 'transactions', 'equipments'));
+        return view('borrower.dashboard', compact('requests', 'transactions', 'equipments', 'notifications'));
     }
 
     public function login(Request $request)
