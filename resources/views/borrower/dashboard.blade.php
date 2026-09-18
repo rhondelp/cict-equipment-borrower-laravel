@@ -61,6 +61,45 @@
             </div>
         </section>
 
+        {{-- Browse what's on the shelf. Each Request button only pre-fills the
+             existing request modal — same form, same submission target. --}}
+        @php $availableEquipment = $equipments->where('status', 'Available')->where('available_quantity', '>', 0); @endphp
+        <section>
+            <h2 class="flex items-center gap-2 mb-3 text-lg font-semibold text-neutral-900">
+                <span class="grid border rounded-lg w-9 h-9 bg-primary-50 border-primary-100 place-items-center">
+                    <i class="text-base fas fa-tools text-primary-600"></i>
+                </span>
+                Browse Equipment
+            </h2>
+            <x-ui.table-card>
+                @if($availableEquipment->isEmpty())
+                    <div class="py-12 text-center">
+                        <i class="block mb-3 text-4xl fas fa-box-open text-neutral-400"></i>
+                        <p class="text-lg font-semibold text-neutral-700">Nothing available right now</p>
+                        <p class="mt-1 text-base text-neutral-600">Check back once items have been returned.</p>
+                    </div>
+                @else
+                    <div class="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach ($availableEquipment as $item)
+                            <div class="flex items-center justify-between gap-3 p-4 border rounded-lg border-neutral-200 bg-neutral-50">
+                                <div class="min-w-0">
+                                    <p class="text-base font-semibold truncate text-neutral-900" title="{{ $item->equipment_name }}">{{ $item->equipment_name }}</p>
+                                    <p class="mt-1 text-sm text-neutral-600">
+                                        Available: <span class="font-semibold tabular-nums">{{ $item->available_quantity }}</span>
+                                    </p>
+                                </div>
+                                <button type="button"
+                                        class="inline-flex items-center gap-1.5 shrink-0 min-h-[40px] px-4 py-2 text-sm font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700"
+                                        data-request-equipment="{{ $item->id }}">
+                                    <i class="text-sm fas fa-plus"></i> Request
+                                </button>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </x-ui.table-card>
+        </section>
+
         <section>
             <h2 class="flex items-center gap-2 mb-3 text-lg font-semibold text-neutral-900">
                 <span class="grid border rounded-lg w-9 h-9 bg-primary-50 border-primary-100 place-items-center">
@@ -167,6 +206,7 @@
                                     <th class="px-4 py-3 font-semibold text-left">Purpose</th>
                                     <th class="px-4 py-3 font-semibold text-left">Status</th>
                                     <th class="px-4 py-3 font-semibold text-left">Remarks</th>
+                                    <th class="px-4 py-3 font-semibold text-left">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-neutral-200">
@@ -189,6 +229,17 @@
                                             <x-ui.badge :status="$tx->status" :variant="$variant" />
                                         </td>
                                         <td class="px-4 py-3 text-neutral-600">{{ $tx->remarks ?? '—' }}</td>
+                                        <td class="px-4 py-3">
+                                            @if ($tx->status === 'Returned' && $tx->equipment)
+                                                <button type="button"
+                                                        class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200"
+                                                        data-request-equipment="{{ $tx->equipment_id }}">
+                                                    <i class="text-sm fas fa-rotate-right"></i> Borrow again
+                                                </button>
+                                            @else
+                                                <span class="text-neutral-600">—</span>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -246,6 +297,28 @@ document.addEventListener('DOMContentLoaded', function () {
             return !!row && row.getAttribute('data-status') === wanted;
         });
     }
+
+    // "Request" (Browse Equipment) and "Borrow again" (Returned rows) both just
+    // pre-select an item in the existing request modal and open it. Nothing about
+    // what the form submits, or where, changes.
+    document.addEventListener('click', function (e) {
+        const trigger = e.target.closest('[data-request-equipment]');
+        if (!trigger) return;
+
+        const id = trigger.getAttribute('data-request-equipment');
+        const select = document.getElementById('add-equipment');
+        if (select) {
+            select.value = id;
+            // If that equipment is no longer an option, fall back to the
+            // placeholder rather than silently selecting the wrong item.
+            if (select.value !== String(id)) select.selectedIndex = 0;
+        }
+        const qty = document.getElementById('add-quantity');
+        if (qty && !qty.value) qty.value = 1;
+
+        const modal = document.getElementById('add-modal');
+        if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+    });
 
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('.status-filter-btn');
