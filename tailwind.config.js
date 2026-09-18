@@ -65,17 +65,19 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
-        display: ['Inter', 'sans-serif'],
+        sans: ['Poppins', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        display: ['Poppins', 'sans-serif'],
       },
       fontSize: {
+        // Tracking is normal from `base` up: tight letter-spacing costs legibility,
+        // and Poppins is already wider than Inter at the same px size.
         xs:   ['12px', { lineHeight: '1.5',   letterSpacing: '0.04em' }],
         sm:   ['13px', { lineHeight: '1.5',   letterSpacing: '0.01em' }],
-        base: ['15px', { lineHeight: '1.6',   letterSpacing: '-0.01em' }],
-        lg:   ['17px', { lineHeight: '1.5',   letterSpacing: '-0.015em' }],
-        xl:   ['20px', { lineHeight: '1.35',  letterSpacing: '-0.02em' }],
-        '2xl':['24px', { lineHeight: '1.25',  letterSpacing: '-0.025em' }],
-        '3xl':['30px', { lineHeight: '1.2',   letterSpacing: '-0.03em' }],
+        base: ['16px', { lineHeight: '1.6',   letterSpacing: 'normal' }],
+        lg:   ['18px', { lineHeight: '1.5',   letterSpacing: 'normal' }],
+        xl:   ['22px', { lineHeight: '1.35',  letterSpacing: 'normal' }],
+        '2xl':['26px', { lineHeight: '1.25',  letterSpacing: 'normal' }],
+        '3xl':['32px', { lineHeight: '1.2',   letterSpacing: 'normal' }],
       },
       spacing: {
         '18': '4.5rem',
