@@ -8,7 +8,7 @@
     'logo'     => 'https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png',
 ])
 
-<div class="min-h-screen bg-neutral-50 flex items-center justify-center px-4 py-12">
+<div class="min-h-[100dvh] bg-neutral-50 flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-md bg-white border border-neutral-200 rounded-xl p-8 shadow-flat">
         <div class="flex items-start gap-3 mb-6">
             <div class="shrink-0 w-12 h-12 rounded-lg bg-neutral-100 border border-neutral-200 flex items-center justify-center overflow-hidden">

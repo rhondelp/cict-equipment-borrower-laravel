@@ -1,6 +1,12 @@
-﻿@extends('components.default')
+@extends('components.default')
 
 @section("title", "Register - CICT Equipment Borrower System")
+
+{{-- These pages render validation errors inline, next to the form.
+     components/alerts.blade.php checks for this section and skips its
+     SweetAlert modal when it is present, so a failed submit no longer
+     reports the same message twice. --}}
+@section("inline-errors", true)
 
 @section("content")
 <div class="lp-root lp-root-register">
@@ -44,7 +50,7 @@
                     </div>
                     <div class="input-wrap">
                         <i class="fa-regular fa-user input-icon"></i>
-                        <input type="text" name="name" id="name" placeholder="John Doe" value="{{ old('name') }}" class="ds-input" required>
+                        <input type="text" name="name" id="name" placeholder="Maria Angeles Bautista" value="{{ old('name') }}" class="ds-input" required>
                     </div>
                 </div>
 
@@ -106,7 +112,7 @@
                 {{-- Terms --}}
                 <label class="lp-remember">
                     <input type="checkbox" required class="ds-checkbox">
-                    <span>I agree to the <a href="#" class="inline-link">Terms &amp; Privacy</a></span>
+                    <span>I agree to the <a href="{{ route('legal.terms') }}" class="inline-link">Terms of Service</a> and <a href="{{ route('legal.privacy') }}" class="inline-link">Privacy Policy</a></span>
                 </label>
 
                 <button type="submit" class="btn-primary lp-submit">
@@ -115,6 +121,10 @@
 
                 <p class="auth-footer">Already have an account? <a href="{{ route('login') }}">Sign in</a></p>
             </form>
+                <nav class="lp-legal" aria-label="Legal">
+                    <a href="{{ route('legal.privacy') }}">Privacy policy</a>
+                    <a href="{{ route('legal.terms') }}">Terms of service</a>
+                </nav>
         </section>
     </div>
 </div>

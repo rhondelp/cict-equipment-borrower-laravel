@@ -2,7 +2,7 @@
 @section('title', 'Instructor - CICT Equipment Borrower System')
 @section('content')
 
-<div class="page-bg min-h-screen flex flex-col">
+<div class="flex flex-col min-h-[100dvh] page-bg">
     <x-ui.page-header logo :menu="false" eyebrow="Instructor" title="Equipment Management">
         <x-slot:actions>
             <button id="open-add-modal" type="button"

@@ -25,6 +25,12 @@ Route::get('/welcome', function () {
     return view('welcome');
 })->name('auth.welcome');
 
+// Legal pages. Closures returning a view, matching the '/' route above: there is
+// no state and no controller worth adding. The register form links to both, and
+// its consent checkbox used to point at href="#".
+Route::view('/privacy', 'legal.privacy')->name('legal.privacy');
+Route::view('/terms', 'legal.terms')->name('legal.terms');
+
 // Password reset — must stay outside the 'auth' group so a locked-out user can reach it.
 Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
 Route::post('/forgot-password', [PasswordResetController::class, 'email'])->name('password.email');

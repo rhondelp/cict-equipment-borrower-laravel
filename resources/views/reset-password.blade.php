@@ -2,6 +2,12 @@
 
 @section("title", "Reset Password - CICT Equipment Borrower System")
 
+{{-- These pages render validation errors inline, next to the form.
+     components/alerts.blade.php checks for this section and skips its
+     SweetAlert modal when it is present, so a failed submit no longer
+     reports the same message twice. --}}
+@section("inline-errors", true)
+
 @section("content")
 <div class="lp-root lp-root-register">
     <div class="lp-grid-overlay" aria-hidden="true"></div>
@@ -72,6 +78,10 @@
 
                 <p class="auth-footer">Back to <a href="{{ route('login') }}">Sign in</a></p>
             </form>
+                <nav class="lp-legal" aria-label="Legal">
+                    <a href="{{ route('legal.privacy') }}">Privacy policy</a>
+                    <a href="{{ route('legal.terms') }}">Terms of service</a>
+                </nav>
         </section>
     </div>
 </div>

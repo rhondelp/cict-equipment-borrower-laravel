@@ -5,6 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield("title", "CICT Equipment Borrower System")</title>
 
+    {{-- Search and link-preview metadata. `description` defaults to the same
+         sentence the landing page leads with; a page can override it with
+         @section("description", "..."). --}}
+    @php
+        $metaDescription = trim(View::yieldContent(
+            'description',
+            'Request, track and return laboratory equipment of the College of Information and Communications Technology, University of Northwestern Mindanao.'
+        ));
+    @endphp
+    <meta name="description" content="{{ $metaDescription }}">
+    {{-- An internal departmental tool; keep it out of search results. --}}
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#f8fafc">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="CICT Equipment Borrower System">
+    <meta property="og:title" content="@yield('title', 'CICT Equipment Borrower System')">
+    <meta property="og:description" content="{{ $metaDescription }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" content="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png">
+    <meta name="twitter:card" content="summary">
+
     <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 
     {{-- Typography: Poppins (primary) --}}

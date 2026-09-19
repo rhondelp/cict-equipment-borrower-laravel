@@ -5,7 +5,14 @@
 @php
     $flashSuccess = session('success') ?: session('welcome');
     $flashError = session('error');
-    $validationErrors = $errors->any() ? $errors->all() : [];
+
+    // The five public pages render each validation message inline beside the
+    // field it belongs to, and declare @section('inline-errors') to say so.
+    // Without this check a failed login drew the message twice: once in the
+    // form's own red bar, and again in a modal thrown on top of it.
+    $validationErrors = (! View::hasSection('inline-errors') && $errors->any())
+        ? $errors->all()
+        : [];
 @endphp
 
 <script>
@@ -35,9 +42,9 @@
                             confirmButton: 'rounded-md',
                         },
                     };
-                    if (t==='success') return window.Swal.fire({...base, icon:'success', title:'Success!', text:isHtml?undefined:msg, html:isHtml?msg:undefined, timer:2600, timerProgressBar:true, showConfirmButton:false, iconColor:'#10b981'});
-                    if (t==='error') return window.Swal.fire({...base, icon:'error', title:'Error!', text:isHtml?undefined:msg, html:isHtml?msg:undefined, confirmButtonColor:'#dc2626', iconColor:'#dc2626'});
-                    if (t==='warning') return window.Swal.fire({...base, icon:'warning', title:'Validation Error', text:isHtml?undefined:msg, html:isHtml?msg:undefined, confirmButtonColor:'#d97706', iconColor:'#d97706'});
+                    if (t==='success') return window.Swal.fire({...base, icon:'success', title:'Saved', text:isHtml?undefined:msg, html:isHtml?msg:undefined, timer:2600, timerProgressBar:true, showConfirmButton:false, iconColor:'#10b981'});
+                    if (t==='error') return window.Swal.fire({...base, icon:'error', title:'Something went wrong', text:isHtml?undefined:msg, html:isHtml?msg:undefined, confirmButtonColor:'#dc2626', iconColor:'#dc2626'});
+                    if (t==='warning') return window.Swal.fire({...base, icon:'warning', title:'Check these fields', text:isHtml?undefined:msg, html:isHtml?msg:undefined, confirmButtonColor:'#d97706', iconColor:'#d97706'});
                     return window.Swal.fire({...base, icon:'info', title:'Notice', text:isHtml?undefined:msg, html:isHtml?msg:undefined});
                 };
             } else {

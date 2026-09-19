@@ -1,6 +1,12 @@
-﻿@extends("components.default")
+@extends("components.default")
 
-@section("title", "CICT Equipment Borrower System â€” College of Information & Communications Technology, UNM")
+@section("title", "CICT Equipment Borrower System — College of Information & Communications Technology, UNM")
+
+{{-- These pages render validation errors inline, next to the form.
+     components/alerts.blade.php checks for this section and skips its
+     SweetAlert modal when it is present, so a failed submit no longer
+     reports the same message twice. --}}
+@section("inline-errors", true)
 
 @section("content")
 <div class="lp-root">
@@ -14,7 +20,7 @@
     {{-- Two-column split hero --}}
     <div class="lp-hero">
 
-        {{-- LEFT â€” Branding panel --}}
+        {{-- LEFT — Branding panel --}}
         <aside class="lp-left">
             <div class="lp-logo-ring">
                 <img src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" alt="CICT logo">
@@ -25,7 +31,7 @@
             <p class="lp-tagline">Request, track and return laboratory equipment in one secure workspace.</p>
         </aside>
 
-        {{-- RIGHT â€” Portal action panel --}}
+        {{-- RIGHT — Portal action panel --}}
         <section class="lp-right">
             <h1 class="lp-title">CICT Equipment<br>Borrower System</h1>
             <p class="lp-sub">Sign in or create an account to get started.</p>
@@ -40,6 +46,10 @@
                 </a>
             </div>
             <p class="lp-note">Authorized access for students and instructors</p>
+                <nav class="lp-legal" aria-label="Legal">
+                    <a href="{{ route('legal.privacy') }}">Privacy policy</a>
+                    <a href="{{ route('legal.terms') }}">Terms of service</a>
+                </nav>
         </section>
 
     </div>

@@ -221,13 +221,8 @@
                         </div>
 
                         @if($transactions->isEmpty())
-                            <div class="px-6 text-center py-14">
-                                <span class="grid w-16 h-16 mx-auto mb-4 border rounded-2xl bg-neutral-50 border-neutral-200 place-items-center">
-                                    <i class="text-2xl fas fa-clock-rotate-left text-neutral-400" aria-hidden="true"></i>
-                                </span>
-                                <p class="text-lg font-semibold text-neutral-800">No transactions yet</p>
-                                <p class="max-w-sm mx-auto mt-1 text-base text-neutral-600">Once an admin approves one of your requests, the borrow record shows up here.</p>
-                            </div>
+                            <x-ui.empty-state icon="fa-clock-rotate-left" title="No transactions yet"
+                                              message="Once an admin approves one of your requests, the borrow record shows up here." />
                         @else
                             {{-- Client-side status filter over the already-rendered rows. --}}
                             <div class="flex flex-wrap items-center gap-2 px-4 pt-4 sm:px-5" role="group" aria-label="Filter transactions by status">
@@ -313,17 +308,14 @@
                         </div>
 
                         @if($requests->isEmpty())
-                            <div class="px-6 text-center py-14">
-                                <span class="grid w-16 h-16 mx-auto mb-4 border rounded-2xl bg-neutral-50 border-neutral-200 place-items-center">
-                                    <i class="text-2xl fas fa-inbox text-neutral-400" aria-hidden="true"></i>
-                                </span>
-                                <p class="text-lg font-semibold text-neutral-800">No requests yet</p>
-                                <p class="max-w-sm mx-auto mt-1 text-base text-neutral-600">Pick something from the equipment list, or start a request from here.</p>
-                                <button type="button"
-                                        class="js-open-add-modal mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-md bg-primary-600 px-5 py-3 text-base font-semibold text-white transition hover:bg-primary-700 active:translate-y-px">
-                                    <i class="text-base fas fa-plus" aria-hidden="true"></i> Request Item
-                                </button>
-                            </div>
+                            <x-ui.empty-state icon="fa-inbox" title="No requests yet"
+                                              message="Pick something from the equipment list, or start a request from here.">
+                                <x-slot:action>
+                                    <button type="button" class="btn-primary js-open-add-modal">
+                                        <i class="text-base fas fa-plus" aria-hidden="true"></i> Request item
+                                    </button>
+                                </x-slot:action>
+                            </x-ui.empty-state>
                         @else
                             {{-- Client-side status filter over the already-rendered rows. --}}
                             <div class="flex flex-wrap items-center gap-2 px-4 pt-4 sm:px-5" role="group" aria-label="Filter requests by status">
@@ -398,13 +390,8 @@
                         </div>
 
                         @if($availableEquipment->isEmpty())
-                            <div class="px-6 text-center py-14">
-                                <span class="grid w-16 h-16 mx-auto mb-4 border rounded-2xl bg-neutral-50 border-neutral-200 place-items-center">
-                                    <i class="text-2xl fas fa-box-open text-neutral-400" aria-hidden="true"></i>
-                                </span>
-                                <p class="text-lg font-semibold text-neutral-800">Nothing available right now</p>
-                                <p class="max-w-sm mx-auto mt-1 text-base text-neutral-600">Check back once items have been returned.</p>
-                            </div>
+                            <x-ui.empty-state icon="fa-box-open" title="Nothing available right now"
+                                              message="Check back once items have been returned." />
                         @else
                             {{-- Two-up while this panel is full width; back to one-up at lg,
                                  where it moves into the narrow secondary column and gets a

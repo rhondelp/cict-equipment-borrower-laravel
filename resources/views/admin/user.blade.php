@@ -3,7 +3,14 @@
 @section('content')
 @include('components.admin.navbar')
 
-<div class="min-h-screen page-bg md:ml-64">
+<div class="min-h-[100dvh] page-bg md:ml-64">
+
+    {{-- Essential for keyboard users: the sidebar is six links deep, so without
+         this every page begins with six tab stops before the content. --}}
+    <a href="#main-content"
+       class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-toast focus:rounded-md focus:border focus:border-primary-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700">
+        Skip to content
+    </a>
     <x-ui.page-header eyebrow="Users" title="Manage accounts & schedules">
         <x-slot:actions>
             <button id="open-add-sched-modal" type="button"
@@ -17,7 +24,7 @@
         </x-slot:actions>
     </x-ui.page-header>
 
-    <main class="p-4 mx-auto space-y-5 sm:p-6 max-w-content">
+    <main id="main-content" class="p-4 mx-auto space-y-5 sm:p-6 max-w-content">
         <x-ui.table-card>
             @if($users->isEmpty())
                 <div class="py-16 text-center">
@@ -29,7 +36,7 @@
                 <div class="p-4 overflow-x-auto">
                     <table id="users-table" class="w-full text-sm display nowrap">
                         <thead>
-                            <tr class="text-xs tracking-wider uppercase text-neutral-500 bg-neutral-50">
+                            <tr class="text-sm tracking-wider uppercase text-neutral-600 bg-neutral-50">
                                 <th class="px-4 py-3 font-semibold text-left">Name</th>
                                 <th class="px-4 py-3 font-semibold text-left">Email</th>
                                 <th class="px-4 py-3 font-semibold text-left">User type</th>

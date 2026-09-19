@@ -35,6 +35,149 @@
   }
 }
 
+@layer components {
+  /* =========================================================
+     Buttons
+
+     `.btn-primary` is applied on its own by the five public pages
+     (welcome, login, register, forgot-password, reset-password) — there
+     it sits next to `.lp-submit` / `.lp-btn-login`, which contribute only
+     box metrics. Nothing in the project ever defined the colour half, so
+     the primary call to action on every public page rendered as bare text.
+     Each variant is therefore self-sufficient rather than requiring a
+     `.btn` base class alongside it.
+     ========================================================= */
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2;
+    /* 44px is the minimum comfortable touch target. */
+    @apply min-h-[44px] px-5 py-3 rounded-btn border;
+    @apply text-base font-semibold no-underline;
+    @apply transition duration-200;
+    cursor: pointer;
+  }
+
+  .btn-primary { @apply text-white bg-primary-600 border-primary-600; }
+  .btn-primary:hover { @apply bg-primary-700 border-primary-700; }
+  /* A 1px drop on press reads as the button physically taking the click. */
+  .btn-primary:active { @apply bg-primary-800 border-primary-800 translate-y-px; }
+
+  .btn-secondary { @apply bg-white text-neutral-700 border-neutral-300; }
+  .btn-secondary:hover { @apply bg-neutral-50 border-neutral-400; }
+  .btn-secondary:active { @apply bg-neutral-100 translate-y-px; }
+
+  .btn-danger { @apply text-white bg-danger-600 border-danger-600; }
+  .btn-danger:hover { @apply bg-danger-700 border-danger-700; }
+  .btn-danger:active { @apply translate-y-px; }
+
+  .btn-primary:disabled,
+  .btn-secondary:disabled,
+  .btn-danger:disabled {
+    @apply opacity-50;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+/* =========================================================
+   NOTE: deliberately outside @layer components.
+
+   Tailwind tree-shakes rules inside a @layer against the scanned content, and
+   DataTables writes every class name below from JavaScript at runtime — so
+   none of them appear in any .blade.php file. Inside the layer, all of this
+   was silently dropped at build time except the two rules whose selector
+   happened to contain `current` and `disabled`, which matched candidates
+   elsewhere in the markup. Plain CSS is never purged.
+   ========================================================= */
+
+/* =========================================================
+   DataTables chrome
+
+   jquery.dataTables.min.css ships from the CDN with browser-default
+   controls, so each admin table drew a raw search box, a raw <select>
+   and the plugin's own gradient pagination buttons inside an otherwise
+   designed card. These rules bring those four controls onto the same
+   palette, radii and focus ring as the rest of the app. Scoped to
+   .dataTables_wrapper so nothing else is touched.
+   ========================================================= */
+.dataTables_wrapper {
+  @apply px-1;
+}
+
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_length {
+  @apply mb-4 text-sm text-neutral-600;
+}
+
+.dataTables_wrapper .dataTables_filter input[type="search"],
+.dataTables_wrapper .dataTables_length select {
+  @apply h-11 px-3 ml-2 bg-white border rounded-input border-neutral-300;
+  @apply text-base text-neutral-900;
+  @apply transition-colors duration-200;
+}
+
+.dataTables_wrapper .dataTables_filter input[type="search"] {
+  @apply w-full sm:w-64;
+}
+
+.dataTables_wrapper .dataTables_filter input[type="search"]::placeholder {
+  @apply text-neutral-400;
+}
+
+.dataTables_wrapper .dataTables_filter input[type="search"]:hover,
+.dataTables_wrapper .dataTables_length select:hover {
+  @apply border-neutral-400;
+}
+
+/* The global *:focus-visible ring in @layer base does not reach these,
+   because DataTables' own stylesheet sets `outline: none` on them. */
+.dataTables_wrapper .dataTables_filter input[type="search"]:focus,
+.dataTables_wrapper .dataTables_length select:focus {
+  @apply outline-none border-primary-500;
+  box-shadow: 0 0 0 3px theme('colors.primary.500 / 20%');
+}
+
+.dataTables_wrapper .dataTables_info {
+  @apply pt-4 text-sm text-neutral-600 tabular-nums;
+}
+
+.dataTables_wrapper .dataTables_paginate {
+  @apply pt-4;
+}
+
+/* DataTables renders each page control as an <a> and restyles it heavily,
+   including on hover, so these need the same specificity to land. */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  @apply inline-flex items-center justify-center min-w-[40px] min-h-[40px] px-3 mx-0.5;
+  @apply text-base font-medium border rounded-btn tabular-nums;
+  @apply bg-white border-neutral-300 !text-neutral-700;
+  @apply transition duration-200;
+  background-image: none;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  @apply bg-neutral-100 border-neutral-400 !text-neutral-900;
+  background-image: none;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+  @apply font-semibold bg-primary-600 border-primary-600 !text-white;
+  background-image: none;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+  @apply bg-white border-neutral-200 !text-neutral-300;
+  cursor: not-allowed;
+  background-image: none;
+}
+
+.dataTables_wrapper .dataTables_empty {
+  @apply py-10 text-base text-center text-neutral-600;
+}
+
 @layer utilities {
   /* Tabular numbers for data-heavy tables */
   .tabular { font-variant-numeric: tabular-nums; }

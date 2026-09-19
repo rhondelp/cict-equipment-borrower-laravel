@@ -3,22 +3,26 @@
 @section('content')
 @include('components.admin.navbar')
 
-<div class="min-h-screen page-bg md:ml-64">
+<div class="min-h-[100dvh] page-bg md:ml-64">
+
+    {{-- Essential for keyboard users: the sidebar is six links deep, so without
+         this every page begins with six tab stops before the content. --}}
+    <a href="#main-content"
+       class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-toast focus:rounded-md focus:border focus:border-primary-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700">
+        Skip to content
+    </a>
     <x-ui.page-header eyebrow="Requests" title="Item requests" />
 
-    <main class="p-4 mx-auto space-y-5 sm:p-6 max-w-content">
+    <main id="main-content" class="p-4 mx-auto space-y-5 sm:p-6 max-w-content">
         <x-ui.table-card>
             @if($requests->isEmpty())
-                <div class="py-16 text-center">
-                    <i class="block mb-3 text-4xl fas fa-clipboard-list text-neutral-300"></i>
-                    <p class="text-lg font-semibold text-neutral-700">No item requests</p>
-                    <p class="mt-1 text-base text-neutral-600">Borrowers haven't submitted anything yet.</p>
-                </div>
+                <x-ui.empty-state icon="fa-clipboard-list" title="No item requests"
+                                  message="Requests from instructors and students land here for approval." />
             @else
                 <div class="p-4 overflow-x-auto">
                     <table id="requestTable" class="w-full text-sm display nowrap">
                         <thead>
-                            <tr class="text-xs tracking-wider uppercase text-neutral-500 bg-neutral-50">
+                            <tr class="text-sm tracking-wider uppercase text-neutral-600 bg-neutral-50">
                                 <th class="px-4 py-3 font-semibold text-left">User</th>
                                 <th class="px-4 py-3 font-semibold text-left">Equipment</th>
                                 <th class="px-4 py-3 font-semibold text-left">Qty</th>

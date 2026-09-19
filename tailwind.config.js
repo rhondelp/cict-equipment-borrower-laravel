@@ -93,7 +93,20 @@ export default {
         btn: '6px',
       },
       boxShadow: {
-        flat: '0 1px 2px rgba(0, 0, 0, 0.05)',
+        // Tinted with the neutral-900 hue (15,23,42) rather than pure black, so a
+        // shadow reads as the page's own grey darkening instead of a grey wash.
+        flat: '0 1px 2px rgba(15, 23, 42, 0.06)',
+        card: '0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.05)',
+        pop:  '0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04)',
+      },
+      // Named scale so nothing has to invent a z-index. Matches what the views
+      // already use: sidebar overlay 40 / sidebar 50, header 30, modal 50.
+      zIndex: {
+        base: '0',
+        sticky: '30',
+        overlay: '40',
+        modal: '50',
+        toast: '60',
       },
     },
   },

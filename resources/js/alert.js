@@ -29,7 +29,7 @@ export function showAlert(type, message, options = {}) {
         return Swal.fire({
             ...base,
             icon: 'success',
-            title: options.title || 'Success!',
+            title: options.title || 'Saved',
             text: isHtml ? undefined : message,
             html: isHtml ? message : undefined,
             timer: options.timer ?? 2600,
@@ -43,7 +43,7 @@ export function showAlert(type, message, options = {}) {
         return Swal.fire({
             ...base,
             icon: 'error',
-            title: options.title || 'Error!',
+            title: options.title || 'Something went wrong',
             text: isHtml ? undefined : message,
             html: isHtml ? message : undefined,
             showConfirmButton: true,
@@ -57,7 +57,7 @@ export function showAlert(type, message, options = {}) {
         return Swal.fire({
             ...base,
             icon: 'warning',
-            title: options.title || 'Validation Error',
+            title: options.title || 'Check these fields',
             text: isHtml ? undefined : message,
             html: isHtml ? message : undefined,
             showConfirmButton: true,

@@ -1,8 +1,8 @@
 <!-- Sidebar Overlay (mobile) -->
-<div class="fixed inset-0 z-40 bg-neutral-900/50 backdrop-blur-sm sidebar-overlay md:hidden" style="display: none;"></div>
+<div class="fixed inset-0 z-overlay bg-neutral-900/50 backdrop-blur-sm sidebar-overlay md:hidden" style="display: none;"></div>
 
 <!-- Sidebar — flat light theme -->
-<aside class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 transition-transform duration-200 transform -translate-x-full bg-white border-r border-neutral-200 text-neutral-900 sidebar md:translate-x-0">
+<aside class="fixed inset-y-0 left-0 z-modal flex flex-col w-64 transition-transform duration-200 transform -translate-x-full bg-white border-r border-neutral-200 text-neutral-900 sidebar md:translate-x-0">
     <!-- Header -->
     <div class="px-6 py-5 border-b border-neutral-200">
         <div class="flex items-center gap-3">
@@ -56,7 +56,7 @@
                 <button id="settingsBtn" class="grid w-10 h-10 transition bg-white border rounded-md place-items-center border-neutral-200 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100" aria-label="Open menu">
                     <i class="text-base fas fa-cog"></i>
                 </button>
-                <div id="logoutDropdown" class="absolute right-0 hidden w-48 mb-2 overflow-hidden bg-white border rounded-lg bottom-full border-neutral-200">
+                <div id="logoutDropdown" class="absolute right-0 hidden w-48 mb-2 overflow-hidden bg-white border rounded-lg bottom-full border-neutral-200 shadow-pop">
                     <form id="logoutForm" method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="button" id="logoutBtn" class="w-full min-h-[44px] px-4 py-3 text-base text-left text-neutral-700 hover:bg-neutral-100 flex items-center gap-2">
@@ -67,13 +67,7 @@
             </div>
         </div>
 
-        {{-- Plainly labelled sign-out, so it no longer hides behind the gear icon.
-             Submits the existing #logoutForm via the existing POST /logout route. --}}
-        {{-- <button type="button" id="sidebarLogoutBtn"
-                class="flex items-center w-full gap-2.5 px-3 py-3.5 mt-3 text-lg font-semibold transition border rounded-lg bg-danger-50 text-danger-700 border-danger-200 hover:bg-danger-100">
-            <i class="w-6 text-lg text-center shrink-0 fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-        </button> --}}
+
     </div>
 </aside>
 
@@ -88,8 +82,7 @@
         if (!btn || !dd) return;
         if (!btn.contains(e.target) && !dd.contains(e.target)) dd.classList.add('hidden');
     });
-    // Shared by the gear-menu item and the sidebar's labelled Logout button, so
-    // both confirm and submit the same #logoutForm. Behaviour is unchanged.
+    // Confirms, then submits the existing #logoutForm via POST /logout.
     var confirmLogout = function (e) {
         e.preventDefault();
         // window.showConfirm is loaded app-wide by resources/js/alert.js,
@@ -105,6 +98,5 @@
         });
     };
     document.getElementById('logoutBtn')?.addEventListener('click', confirmLogout);
-    document.getElementById('sidebarLogoutBtn')?.addEventListener('click', confirmLogout);
 </script>
 @endpush

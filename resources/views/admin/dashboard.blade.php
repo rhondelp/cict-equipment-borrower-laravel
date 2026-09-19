@@ -3,7 +3,14 @@
 @section("content")
 @include('components.admin.navbar')
 
-<div class="page-bg min-h-screen md:ml-64">
+<div class="min-h-[100dvh] page-bg md:ml-64">
+
+    {{-- Essential for keyboard users: the sidebar is six links deep, so without
+         this every page begins with six tab stops before the content. --}}
+    <a href="#main-content"
+       class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-toast focus:rounded-md focus:border focus:border-primary-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700">
+        Skip to content
+    </a>
     <x-ui.page-header eyebrow="Overview" title="Dashboard">
         <x-slot:actions>
             <div class="hidden sm:flex items-center gap-2">
@@ -18,50 +25,107 @@
         </x-slot:actions>
     </x-ui.page-header>
 
-    <main class="p-4 sm:p-6 space-y-6 max-w-content mx-auto">
-        {{-- Quick stats --}}
-        <section>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="bg-white border border-neutral-200 rounded-lg p-5 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-semibold uppercase tracking-wider text-neutral-600">Total Equipment</p>
-                        <p class="text-3xl font-bold text-neutral-900 mt-1 tabular-nums">{{ $equipments->count() }}</p>
-                        <p class="text-sm text-neutral-600 mt-1">Inventory items</p>
+    <main id="main-content" class="p-4 sm:p-6 space-y-6 max-w-content mx-auto">
+        @php
+            // Derived from the collections the controller already passes; no extra
+            // queries. The headline figure on each tile is unchanged — the second
+            // line now says what that number is made of instead of restating it.
+            $pendingRequests = $requests->where('status', 'Pending')->count();
+            $outNow          = $transactions->whereIn('status', ['Borrowed', 'Overdue'])->count();
+            $overdue         = $transactions->where('status', 'Overdue')->count();
+            $unavailable     = $equipments->where('available_quantity', '<=', 0)->count();
+        @endphp
+
+        {{-- Quick stats.
+             Four identical cards in an even grid read as one card repeated, so
+             each tile now carries the accent of what it measures — the treatment
+             the borrower dashboard already uses — and the two that can demand
+             action (pending requests, overdue loans) turn amber or red when they
+             are non-zero rather than staying decorative at all times. --}}
+        <section aria-label="Summary">
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+
+                <article class="relative p-5 overflow-hidden transition-colors bg-white border rounded-xl border-neutral-200 hover:border-primary-200">
+                    <span class="absolute inset-x-0 top-0 h-1 bg-primary-500" aria-hidden="true"></span>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold tracking-wider uppercase text-neutral-600">Equipment</p>
+                            <p class="mt-2 text-3xl font-bold text-neutral-900 tabular-nums">{{ $equipments->count() }}</p>
+                            <p class="mt-1 text-sm text-neutral-600">
+                                @if($unavailable > 0)
+                                    <span class="font-semibold text-danger-700 tabular-nums">{{ $unavailable }}</span> out of stock
+                                @else
+                                    All items in stock
+                                @endif
+                            </p>
+                        </div>
+                        <span class="grid w-12 h-12 border rounded-lg shrink-0 bg-primary-50 border-primary-100 place-items-center">
+                            <i class="text-lg fas fa-toolbox text-primary-600" aria-hidden="true"></i>
+                        </span>
                     </div>
-                    <div class="w-12 h-12 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center shrink-0">
-                        <i class="text-primary-600 fas fa-tools text-lg"></i>
+                </article>
+
+                <article class="relative p-5 overflow-hidden transition-colors bg-white border rounded-xl border-neutral-200 hover:border-neutral-300">
+                    <span class="absolute inset-x-0 top-0 h-1 bg-neutral-300" aria-hidden="true"></span>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold tracking-wider uppercase text-neutral-600">Users</p>
+                            <p class="mt-2 text-3xl font-bold text-neutral-900 tabular-nums">{{ $users->count() }}</p>
+                            <p class="mt-1 text-sm text-neutral-600 tabular-nums">
+                                {{ $users->where('user_type', 'Instructor')->count() }} instructors &middot;
+                                {{ $users->where('user_type', 'Student')->count() }} students
+                            </p>
+                        </div>
+                        <span class="grid w-12 h-12 border rounded-lg shrink-0 bg-neutral-50 border-neutral-200 place-items-center">
+                            <i class="text-lg fas fa-users text-neutral-600" aria-hidden="true"></i>
+                        </span>
                     </div>
-                </div>
-                <div class="bg-white border border-neutral-200 rounded-lg p-5 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-semibold uppercase tracking-wider text-neutral-600">Active Users</p>
-                        <p class="text-3xl font-bold text-neutral-900 mt-1 tabular-nums">{{ $users->count() }}</p>
-                        <p class="text-sm text-neutral-600 mt-1">Registered</p>
+                </article>
+
+                <article class="relative overflow-hidden rounded-xl border p-5 transition-colors {{ $overdue > 0 ? 'border-danger-200 bg-danger-50/60' : 'border-neutral-200 bg-white hover:border-neutral-300' }}">
+                    <span class="absolute inset-x-0 top-0 h-1 {{ $overdue > 0 ? 'bg-danger-500' : 'bg-success-500' }}" aria-hidden="true"></span>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold tracking-wider uppercase text-neutral-600">Out on loan</p>
+                            <p class="mt-2 text-3xl font-bold text-neutral-900 tabular-nums">{{ $outNow }}</p>
+                            <p class="mt-1 text-sm {{ $overdue > 0 ? 'font-semibold text-danger-700' : 'text-neutral-600' }}">
+                                @if($overdue > 0)
+                                    <span class="tabular-nums">{{ $overdue }}</span> overdue
+                                @else
+                                    None overdue
+                                @endif
+                            </p>
+                        </div>
+                        <span class="grid w-12 h-12 border rounded-lg shrink-0 place-items-center {{ $overdue > 0 ? 'bg-danger-100 border-danger-200' : 'bg-success-50 border-success-200' }}">
+                            <i class="text-lg fas {{ $overdue > 0 ? 'fa-triangle-exclamation text-danger-700' : 'fa-right-left text-success-700' }}" aria-hidden="true"></i>
+                        </span>
                     </div>
-                    <div class="w-12 h-12 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center shrink-0">
-                        <i class="text-primary-600 fas fa-users text-lg"></i>
+                </article>
+
+                {{-- The one tile that is a to-do list rather than a readout, so it
+                     is also a link: the count and the place to act on it become
+                     the same control. --}}
+                <a href="{{ route('admin.request') }}"
+                   class="relative block overflow-hidden rounded-xl border p-5 transition-colors active:translate-y-px {{ $pendingRequests > 0 ? 'border-warning-300 bg-warning-50/60 hover:border-warning-400' : 'border-neutral-200 bg-white hover:border-neutral-300' }}">
+                    <span class="absolute inset-x-0 top-0 h-1 {{ $pendingRequests > 0 ? 'bg-warning-400' : 'bg-neutral-300' }}" aria-hidden="true"></span>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold tracking-wider uppercase text-neutral-600">Requests</p>
+                            <p class="mt-2 text-3xl font-bold text-neutral-900 tabular-nums">{{ $requests->count() }}</p>
+                            <p class="mt-1 text-sm {{ $pendingRequests > 0 ? 'font-semibold text-warning-700' : 'text-neutral-600' }}">
+                                @if($pendingRequests > 0)
+                                    <span class="tabular-nums">{{ $pendingRequests }}</span> awaiting review
+                                @else
+                                    Nothing awaiting review
+                                @endif
+                            </p>
+                        </div>
+                        <span class="grid w-12 h-12 border rounded-lg shrink-0 place-items-center {{ $pendingRequests > 0 ? 'bg-warning-100 border-warning-200' : 'bg-neutral-50 border-neutral-200' }}">
+                            <i class="text-lg fas fa-clipboard-list {{ $pendingRequests > 0 ? 'text-warning-700' : 'text-neutral-600' }}" aria-hidden="true"></i>
+                        </span>
                     </div>
-                </div>
-                <div class="bg-white border border-neutral-200 rounded-lg p-5 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-semibold uppercase tracking-wider text-neutral-600">Transactions</p>
-                        <p class="text-3xl font-bold text-neutral-900 mt-1 tabular-nums">{{ $transactions->count() }}</p>
-                        <p class="text-sm text-neutral-600 mt-1">Borrowed</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center shrink-0">
-                        <i class="text-primary-600 fas fa-exchange-alt text-lg"></i>
-                    </div>
-                </div>
-                <div class="bg-white border border-neutral-200 rounded-lg p-5 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-semibold uppercase tracking-wider text-neutral-600">Total Requests</p>
-                        <p class="text-3xl font-bold text-neutral-900 mt-1 tabular-nums">{{ $requests->count() }}</p>
-                        <p class="text-sm text-neutral-600 mt-1">All status</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center shrink-0">
-                        <i class="text-primary-600 fas fa-clipboard-list text-lg"></i>
-                    </div>
-                </div>
+                </a>
+
             </div>
         </section>
 
@@ -80,11 +144,8 @@
                 </div>
 
                 @if($returnLogs->isEmpty())
-                    <div class="py-12 text-center">
-                        <i class="fas fa-inbox text-4xl text-neutral-400 mb-3 block"></i>
-                        <p class="text-lg font-semibold text-neutral-700">No return logs yet</p>
-                        <p class="text-base text-neutral-600 mt-1">When borrowers return equipment, the logs will appear here.</p>
-                    </div>
+                    <x-ui.empty-state icon="fa-inbox" title="No return logs yet"
+                                      message="When borrowers return equipment, the logs appear here." />
                 @else
                     <ul class="divide-y divide-neutral-200">
                         @foreach ($returnLogs as $returnLog)
