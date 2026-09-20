@@ -63,7 +63,14 @@ class DesignRegressionTest extends TestCase
             // .btn-primary went undefined for a long time, leaving every public
             // call to action rendering as bare text.
             $this->assertStringContainsString('btn-primary', $html, "$uri lost its CTA class");
-            $this->assertStringContainsString('lp-legal', $html, "$uri has no legal links");
+
+            // Asserted as links rather than as the `lp-legal` class: the login
+            // page was rebuilt on the app's Tailwind system and no longer
+            // carries auth.css class names, but it still has to carry the two
+            // links, which is what this was ever really checking.
+            $this->assertStringContainsString(route('legal.privacy'), $html, "$uri has no privacy link");
+            $this->assertStringContainsString(route('legal.terms'), $html, "$uri has no terms link");
+
             $this->assertStringNotContainsString('href="#"', $html, "$uri has a dead link");
         }
     }

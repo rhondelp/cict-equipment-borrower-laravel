@@ -2,15 +2,38 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Equipment;
 use App\Models\User as UserModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
+    /**
+     * The sign-in page.
+     *
+     * The two figures on the brand panel are read live rather than written
+     * into the template: a number that says "89 units" while the shelf holds
+     * 40 is decoration, and the point of that panel is to orient someone who
+     * has not signed in yet.
+     *
+     * Wrapped because this is the one page that has to render when the
+     * database does not answer — the sign-in form itself needs nothing from
+     * it, so a failure here drops the line instead of the page.
+     */
     public function index()
     {
-        return view('login');
+        try {
+            $lendable = Equipment::lendable()->get(['quantity']);
+            $inventory = [
+                'units' => (int) $lendable->sum('quantity'),
+                'types' => $lendable->count(),
+            ];
+        } catch (\Throwable $e) {
+            $inventory = null;
+        }
+
+        return view('login', compact('inventory'));
     }
 
     public function adminUser()

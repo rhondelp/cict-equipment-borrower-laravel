@@ -215,11 +215,14 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('CICT Equipment Borrower System')
             ->assertSee('auth.css');
 
-        // Login page
+        // Login page. It was rebuilt on the app's Tailwind bundle and no longer
+        // pulls auth.css — the other three public pages still do, so the
+        // stylesheet stays shared and this asserts the form instead.
         $this->get('/login')
             ->assertStatus(200)
-            ->assertSee('Sign in to')
-            ->assertSee('auth.css');
+            ->assertSee('Sign in')
+            ->assertSee('Students and instructors both sign in here.')
+            ->assertSee(route('login.store'));
 
         // Register page
         $this->get('/register')

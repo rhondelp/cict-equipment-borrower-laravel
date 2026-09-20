@@ -302,7 +302,12 @@ class AuthenticateUser extends Controller
         ]);
 
         try {
-            if (Auth::attempt($credentials)) {
+            // The "keep me signed in" checkbox is passed through rather than
+            // ignored. It was on the form before this and did nothing, which
+            // made it a control that reported a state the session did not have.
+            // The validation rules above are untouched; `remember` is a flag,
+            // not a credential.
+            if (Auth::attempt($credentials, $request->boolean('remember'))) {
                 $user = Auth::user();
 
                 // Deactivating an account has to mean something, or the Remove
