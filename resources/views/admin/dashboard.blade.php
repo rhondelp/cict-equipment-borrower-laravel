@@ -1,7 +1,55 @@
-@extends("components.default")
-@section("title", "Dashboard - CICT Equipment Borrower System")
-@section("content")
+@extends('components.default')
+@section('title', 'Dashboard - CICT Equipment Borrower System')
+@section('content')
 @include('components.admin.navbar')
+
+@php
+    $hour = (int) now()->format('G');
+    $greeting = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
+    $firstName = str(Auth::user()->name)->before(' ');
+
+    $unitsOut = $openLoans->sum('quantity');
+    $totalUnits = $equipments->sum('quantity');
+    $overdueLoans = $openLoans->filter(fn ($loan) => $loan->isOverdue());
+    $pendingRequests = $requests->where('status', 'Pending');
+
+    $typesOut = $openLoans->pluck('equipment_id')->unique()->count();
+
+    // The activity feed: loans out, returns in and requests raised, folded into
+    // one list so the dashboard can answer "what has been happening" without
+    // three separate tables.
+    $activity = collect()
+        ->concat($transactions->map(fn ($loan) => [
+            'tag' => 'Borrowed', 'tone' => 'primary',
+            'item' => ($loan->equipment->equipment_name ?? 'Equipment').($loan->quantity > 1 ? ' ×'.$loan->quantity : ''),
+            'verb' => 'checked out to', 'person' => $loan->user->name ?? 'a deleted user',
+            'at' => $loan->created_at,
+        ]))
+        ->concat($returnLogs->map(fn ($log) => [
+            'tag' => 'Returned', 'tone' => 'success',
+            'item' => $log->equipment->equipment_name ?? 'Equipment',
+            'verb' => 'returned by', 'person' => $log->borrower->name ?? 'a deleted user',
+            'at' => $log->created_at,
+        ]))
+        ->concat($requests->map(fn ($request) => [
+            'tag' => 'Request', 'tone' => 'neutral',
+            'item' => ($request->equipment->equipment_name ?? 'Equipment').($request->quantity > 1 ? ' ×'.$request->quantity : ''),
+            'verb' => $request->status === 'Pending' ? 'requested by' : strtolower($request->status).' for',
+            'person' => $request->user->name ?? 'a deleted user',
+            'at' => $request->decided_at ?? $request->created_at,
+        ]))
+        ->sortByDesc(fn ($event) => $event['at']?->timestamp ?? 0)
+        ->take(6)
+        ->values();
+
+    $tones = [
+        'danger' => ['dot' => 'bg-danger-600', 'chip' => 'bg-danger-50 text-danger-700'],
+        'warning' => ['dot' => 'bg-warning-500', 'chip' => 'bg-warning-50 text-warning-700'],
+        'primary' => ['dot' => 'bg-primary-600', 'chip' => 'bg-primary-50 text-primary-700'],
+        'success' => ['dot' => 'bg-success-600', 'chip' => 'bg-success-50 text-success-700'],
+        'neutral' => ['dot' => 'bg-neutral-400', 'chip' => 'bg-neutral-100 text-neutral-700'],
+    ];
+@endphp
 
 <div class="min-h-[100dvh] page-bg md:ml-64">
 
@@ -11,162 +59,125 @@
        class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-toast focus:rounded-md focus:border focus:border-primary-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700">
         Skip to content
     </a>
-    <x-ui.page-header eyebrow="Overview" title="Dashboard">
+
+    <x-ui.page-header eyebrow="Overview" :title="$greeting.', '.$firstName">
+        {{ now()->format('l, j F') }} ·
+        @if(count($attention) === 0)
+            nothing needs you today
+        @else
+            {{ count($attention) }} {{ str('thing')->plural(count($attention)) }} {{ count($attention) === 1 ? 'needs' : 'need' }} you today
+        @endif
         <x-slot:actions>
-            <div class="hidden sm:flex items-center gap-2">
-                <img class="w-10 h-10 rounded-lg object-cover border border-neutral-200"
-                     src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=2563eb&color=fff&bold=true"
-                     alt="Admin">
-                <div class="leading-none">
-                    <p class="text-base font-semibold text-neutral-900">{{ Auth::user()->name }}</p>
-                    <p class="text-sm text-neutral-600">Administrator</p>
-                </div>
-            </div>
+            <a href="{{ route('admin.transaction') }}"
+               class="inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700">
+                <i class="text-base fas fa-plus" aria-hidden="true"></i> New loan
+            </a>
         </x-slot:actions>
     </x-ui.page-header>
 
-    <main id="main-content" class="p-4 sm:p-6 space-y-6 max-w-content mx-auto">
-        @php
-            // Derived from the collections the controller already passes; no extra
-            // queries. The headline figure on each tile is unchanged — the second
-            // line now says what that number is made of instead of restating it.
-            $pendingRequests = $requests->where('status', 'Pending')->count();
-            $outNow          = $transactions->whereIn('status', ['Borrowed', 'Overdue'])->count();
-            $overdue         = $transactions->where('status', 'Overdue')->count();
-            $unavailable     = $equipments->where('available_quantity', '<=', 0)->count();
-        @endphp
+    <main id="main-content" class="p-4 mx-auto space-y-5 sm:p-6 max-w-content">
 
-        {{-- Quick stats.
-             Four identical cards in an even grid read as one card repeated, so
-             each tile now carries the accent of what it measures — the treatment
-             the borrower dashboard already uses — and the two that can demand
-             action (pending requests, overdue loans) turn amber or red when they
-             are non-zero rather than staying decorative at all times. --}}
-        <section aria-label="Summary">
-            <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-
-                <article class="relative p-5 overflow-hidden transition-colors bg-white border rounded-xl border-neutral-200 hover:border-primary-200">
-                    <span class="absolute inset-x-0 top-0 h-1 bg-primary-500" aria-hidden="true"></span>
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <p class="text-sm font-semibold tracking-wider uppercase text-neutral-600">Equipment</p>
-                            <p class="mt-2 text-3xl font-bold text-neutral-900 tabular-nums">{{ $equipments->count() }}</p>
-                            <p class="mt-1 text-sm text-neutral-600">
-                                @if($unavailable > 0)
-                                    <span class="font-semibold text-danger-700 tabular-nums">{{ $unavailable }}</span> out of stock
-                                @else
-                                    All items in stock
-                                @endif
-                            </p>
-                        </div>
-                        <span class="grid w-12 h-12 border rounded-lg shrink-0 bg-primary-50 border-primary-100 place-items-center">
-                            <i class="text-lg fas fa-toolbox text-primary-600" aria-hidden="true"></i>
+        {{-- What needs doing leads. The counters below it are context for these
+             decisions, not the point of the page: a dashboard that opens with
+             four tiles reading zero has told its reader nothing. --}}
+        <section aria-labelledby="attention-heading" class="anim-rise">
+            <x-ui.panel>
+                <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-neutral-200">
+                    <h2 id="attention-heading" class="text-lg font-semibold text-neutral-900">Needs your attention</h2>
+                    @if(count($attention) > 0)
+                        <span class="rounded-full bg-danger-50 px-2.5 py-1 text-sm font-semibold text-danger-700 tabular-nums">
+                            {{ count($attention) }}
                         </span>
-                    </div>
-                </article>
-
-                <article class="relative p-5 overflow-hidden transition-colors bg-white border rounded-xl border-neutral-200 hover:border-neutral-300">
-                    <span class="absolute inset-x-0 top-0 h-1 bg-neutral-300" aria-hidden="true"></span>
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <p class="text-sm font-semibold tracking-wider uppercase text-neutral-600">Users</p>
-                            <p class="mt-2 text-3xl font-bold text-neutral-900 tabular-nums">{{ $users->count() }}</p>
-                            <p class="mt-1 text-sm text-neutral-600 tabular-nums">
-                                {{ $users->where('user_type', 'Instructor')->count() }} instructors &middot;
-                                {{ $users->where('user_type', 'Student')->count() }} students
-                            </p>
-                        </div>
-                        <span class="grid w-12 h-12 border rounded-lg shrink-0 bg-neutral-50 border-neutral-200 place-items-center">
-                            <i class="text-lg fas fa-users text-neutral-600" aria-hidden="true"></i>
-                        </span>
-                    </div>
-                </article>
-
-                <article class="relative overflow-hidden rounded-xl border p-5 transition-colors {{ $overdue > 0 ? 'border-danger-200 bg-danger-50/60' : 'border-neutral-200 bg-white hover:border-neutral-300' }}">
-                    <span class="absolute inset-x-0 top-0 h-1 {{ $overdue > 0 ? 'bg-danger-500' : 'bg-success-500' }}" aria-hidden="true"></span>
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <p class="text-sm font-semibold tracking-wider uppercase text-neutral-600">Out on loan</p>
-                            <p class="mt-2 text-3xl font-bold text-neutral-900 tabular-nums">{{ $outNow }}</p>
-                            <p class="mt-1 text-sm {{ $overdue > 0 ? 'font-semibold text-danger-700' : 'text-neutral-600' }}">
-                                @if($overdue > 0)
-                                    <span class="tabular-nums">{{ $overdue }}</span> overdue
-                                @else
-                                    None overdue
-                                @endif
-                            </p>
-                        </div>
-                        <span class="grid w-12 h-12 border rounded-lg shrink-0 place-items-center {{ $overdue > 0 ? 'bg-danger-100 border-danger-200' : 'bg-success-50 border-success-200' }}">
-                            <i class="text-lg fas {{ $overdue > 0 ? 'fa-triangle-exclamation text-danger-700' : 'fa-right-left text-success-700' }}" aria-hidden="true"></i>
-                        </span>
-                    </div>
-                </article>
-
-                {{-- The one tile that is a to-do list rather than a readout, so it
-                     is also a link: the count and the place to act on it become
-                     the same control. --}}
-                <a href="{{ route('admin.request') }}"
-                   class="relative block overflow-hidden rounded-xl border p-5 transition-colors active:translate-y-px {{ $pendingRequests > 0 ? 'border-warning-300 bg-warning-50/60 hover:border-warning-400' : 'border-neutral-200 bg-white hover:border-neutral-300' }}">
-                    <span class="absolute inset-x-0 top-0 h-1 {{ $pendingRequests > 0 ? 'bg-warning-400' : 'bg-neutral-300' }}" aria-hidden="true"></span>
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <p class="text-sm font-semibold tracking-wider uppercase text-neutral-600">Requests</p>
-                            <p class="mt-2 text-3xl font-bold text-neutral-900 tabular-nums">{{ $requests->count() }}</p>
-                            <p class="mt-1 text-sm {{ $pendingRequests > 0 ? 'font-semibold text-warning-700' : 'text-neutral-600' }}">
-                                @if($pendingRequests > 0)
-                                    <span class="tabular-nums">{{ $pendingRequests }}</span> awaiting review
-                                @else
-                                    Nothing awaiting review
-                                @endif
-                            </p>
-                        </div>
-                        <span class="grid w-12 h-12 border rounded-lg shrink-0 place-items-center {{ $pendingRequests > 0 ? 'bg-warning-100 border-warning-200' : 'bg-neutral-50 border-neutral-200' }}">
-                            <i class="text-lg fas fa-clipboard-list {{ $pendingRequests > 0 ? 'text-warning-700' : 'text-neutral-600' }}" aria-hidden="true"></i>
-                        </span>
-                    </div>
-                </a>
-
-            </div>
-        </section>
-
-        {{-- Recent return logs --}}
-        <section>
-            <x-ui.table-card>
-                <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-                    <div>
-                        <h3 class="text-lg font-semibold text-neutral-900">Recent Return Logs</h3>
-                        <p class="text-sm text-neutral-600 mt-0.5">Latest equipment returns</p>
-                    </div>
-                    <a href="{{ route('admin.logs') }}"
-                       class="inline-flex items-center gap-2 min-h-[40px] px-3 -mr-3 rounded-md text-base font-semibold text-primary-700 hover:text-primary-800 hover:bg-primary-50">
-                        View All <i class="fas fa-arrow-right text-sm"></i>
-                    </a>
+                    @endif
                 </div>
 
-                @if($returnLogs->isEmpty())
-                    <x-ui.empty-state icon="fa-inbox" title="No return logs yet"
-                                      message="When borrowers return equipment, the logs appear here." />
-                @else
-                    <ul class="divide-y divide-neutral-200">
-                        @foreach ($returnLogs as $returnLog)
-                            <li class="flex items-start gap-4 px-6 py-4">
-                                <div class="w-11 h-11 rounded-lg bg-primary-50 border border-primary-100 grid place-items-center shrink-0 mt-0.5">
-                                    <i class="text-primary-600 fas fa-undo text-base"></i>
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-base font-semibold text-neutral-900 truncate">{{ $returnLog->equipment->equipment_name ?? 'N/A' }}</p>
-                                    <p class="text-base text-neutral-600 mt-1 leading-relaxed">
-                                        Borrowed by: <span class="text-neutral-900 font-semibold">{{ $returnLog->borrower->name ?? 'N/A' }}</span> ·
-                                        Received by: <span class="text-neutral-900 font-semibold">{{ $returnLog->receiver->name ?? 'N/A' }}</span> ·
-                                        <span>{{ $returnLog->created_at->diffForHumans() }}</span>
-                                    </p>
-                                </div>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-            </x-ui.table-card>
+                @forelse($attention as $item)
+                    <div class="flex flex-wrap items-center gap-4 px-5 py-4 border-b border-neutral-100 last:border-b-0">
+                        <span class="w-2.5 h-2.5 rounded-full shrink-0 {{ $tones[$item['tone']]['dot'] }}" aria-hidden="true"></span>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-base font-semibold text-neutral-900">{{ $item['title'] }}</p>
+                            <p class="mt-0.5 text-sm text-neutral-600 text-pretty">{{ $item['detail'] }}</p>
+                        </div>
+                        <a href="{{ $item['url'] }}"
+                           class="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-primary-300 hover:text-primary-700">
+                            {{ $item['action'] }} <i class="text-xs fas fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                @empty
+                    <x-ui.empty-state icon="fa-check" title="Nothing outstanding"
+                                      message="No overdue loans, nothing due back today, and every request has been decided." />
+                @endforelse
+            </x-ui.panel>
         </section>
+
+        <x-ui.stat-strip class="anim-rise [animation-delay:70ms]" :stats="[
+            ['label' => 'Units out on loan', 'value' => $unitsOut, 'unit' => 'of '.$totalUnits, 'sub' => 'Across '.$typesOut.' item '.str('type')->plural($typesOut), 'url' => route('admin.transaction')],
+            ['label' => 'Overdue', 'value' => $overdueLoans->count(), 'unit' => str('loan')->plural($overdueLoans->count()), 'sub' => $overdueLoans->isEmpty() ? 'Nothing past its due date' : 'Longest: '.$overdueLoans->max(fn ($loan) => $loan->daysLate()).' days late', 'tone' => $overdueLoans->isEmpty() ? 'neutral' : 'danger', 'url' => route('admin.transaction')],
+            ['label' => 'Pending requests', 'value' => $pendingRequests->count(), 'unit' => '', 'sub' => $pendingRequests->isEmpty() ? 'Queue is clear' : 'Waiting on a decision', 'tone' => $pendingRequests->isEmpty() ? 'neutral' : 'warning', 'url' => route('admin.request')],
+            ['label' => 'Returned this week', 'value' => $returnedThisWeek, 'unit' => str('loan')->plural($returnedThisWeek), 'sub' => 'Checked back in and logged', 'tone' => 'success', 'url' => route('admin.logs')],
+        ]" />
+
+        <div class="grid gap-5 lg:grid-cols-2 anim-rise [animation-delay:140ms]">
+
+            {{-- Currently out, soonest due first: the one list that answers
+                 "who has what" without a search. --}}
+            <section aria-labelledby="out-heading">
+                <x-ui.panel>
+                    <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-neutral-200">
+                        <h2 id="out-heading" class="text-lg font-semibold text-neutral-900">Currently out</h2>
+                        <a href="{{ route('admin.transaction') }}" class="text-sm font-semibold text-primary-700 hover:text-primary-800">
+                            All loans
+                        </a>
+                    </div>
+
+                    @forelse($openLoans->take(6) as $loan)
+                        <div class="flex items-center gap-3 px-5 py-3 border-b border-neutral-100 last:border-b-0">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-base font-semibold truncate text-neutral-900">
+                                    {{ $loan->equipment->equipment_name ?? 'Deleted equipment' }}@if($loan->quantity > 1) <span class="text-neutral-600">×{{ $loan->quantity }}</span>@endif
+                                </p>
+                                <p class="text-sm truncate text-neutral-600">{{ $loan->user->name ?? 'Deleted user' }}</p>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <p class="text-sm font-semibold {{ $loan->isOverdue() ? 'text-danger-700' : 'text-neutral-700' }}">
+                                    {{ $loan->timingLabel() }}
+                                </p>
+                                <p class="text-sm text-neutral-600 tabular-nums">{{ $loan->dateRangeLabel() }}</p>
+                            </div>
+                        </div>
+                    @empty
+                        <x-ui.empty-state icon="fa-boxes-stacked" title="Everything is on the shelf"
+                                          message="No equipment is out with a borrower right now." />
+                    @endforelse
+                </x-ui.panel>
+            </section>
+
+            <section aria-labelledby="activity-heading">
+                <x-ui.panel>
+                    <div class="px-5 py-4 border-b border-neutral-200">
+                        <h2 id="activity-heading" class="text-lg font-semibold text-neutral-900">Activity</h2>
+                        <p class="mt-0.5 text-sm text-neutral-600">Loans, returns and requests across the department</p>
+                    </div>
+
+                    @forelse($activity as $event)
+                        <div class="flex items-center gap-3 px-5 py-3 border-b border-neutral-100 last:border-b-0">
+                            <span class="w-20 shrink-0 rounded px-2 py-1 text-center text-xs font-semibold uppercase tracking-wider {{ $tones[$event['tone']]['chip'] }}">
+                                {{ $event['tag'] }}
+                            </span>
+                            <p class="flex-1 min-w-0 text-sm text-neutral-700 text-pretty">
+                                <span class="font-semibold text-neutral-900">{{ $event['item'] }}</span>
+                                {{ $event['verb'] }}
+                                <span class="font-medium text-neutral-900">{{ $event['person'] }}</span>
+                            </p>
+                            <span class="text-sm shrink-0 text-neutral-600">{{ $event['at']?->diffForHumans(null, true) ?? '—' }}</span>
+                        </div>
+                    @empty
+                        <x-ui.empty-state icon="fa-clock-rotate-left" title="Nothing has happened yet"
+                                          message="Loans, returns and requests will appear here as they are recorded." />
+                    @endforelse
+                </x-ui.panel>
+            </section>
+        </div>
     </main>
 </div>
 @endsection

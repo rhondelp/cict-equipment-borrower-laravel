@@ -98,32 +98,39 @@ class DesignRegressionTest extends TestCase
         }
     }
 
-    public function test_datatables_theme_survives_the_tailwind_build(): void
+    /**
+     * The DataTables theme block used to live here as plain CSS so Tailwind
+     * would not purge it. DataTables itself is gone — with jQuery, which was
+     * loaded on every page for it alone — so what has to be pinned now is the
+     * absence, plus the one rule the replacement list filter depends on.
+     */
+    public function test_the_datatables_stack_stays_out_of_the_build(): void
     {
-        // DataTables writes these class names from JavaScript, so they appear in
-        // no .blade.php file. Inside @layer components Tailwind tree-shook the
-        // whole block away at build time; it has to stay as plain CSS.
         $manifest = json_decode(file_get_contents(public_path('build/manifest.json')), true);
-        $cssFile  = $manifest['resources/css/app.css']['file'] ?? null;
+        $cssFile = $manifest['resources/css/app.css']['file'] ?? null;
 
         $this->assertNotNull($cssFile, 'No compiled CSS in the Vite manifest');
 
-        $css = file_get_contents(public_path('build/' . $cssFile));
+        $css = file_get_contents(public_path('build/'.$cssFile));
 
-        // Matched loosely: the minifier groups selectors, so assert on the
-        // distinctive fragment rather than a whole selector list.
-        foreach ([
-            '.dataTables_wrapper .dataTables_filter',
-            '.dataTables_wrapper .dataTables_length',
-            '.dataTables_wrapper .dataTables_info',
-            '.dataTables_wrapper .dataTables_empty',
-            '.dataTables_wrapper .dataTables_paginate .paginate_button{',
-        ] as $selector) {
-            $this->assertStringContainsString(
-                $selector,
-                $css,
-                "DataTables rule was purged from the build: $selector"
-            );
-        }
+        $this->assertStringNotContainsString('.dataTables_wrapper', $css, 'DataTables styling is back in the build');
+
+        // resources/js/ui.js filters by setting row.hidden, and a filtered row
+        // usually carries a display utility that beats preflight's [hidden]
+        // rule. This override has to survive, and has to stay outside @layer.
+        $this->assertStringContainsString('[hidden]', $css, 'The hidden-row override was purged from the build');
+    }
+
+    /** The borrower dashboard gets the same chrome as the admin pages. */
+    public function test_borrower_dashboard_keeps_its_accessibility_chrome(): void
+    {
+        $borrower = User::factory()->create(['user_type' => 'Student']);
+
+        $html = $this->actingAs($borrower)->get('/borrower/dashboard')->assertOk()->getContent();
+
+        $this->assertStringContainsString('Skip to content', $html);
+        $this->assertStringContainsString('id="main-content"', $html);
+        $this->assertStringContainsString('min-h-[100dvh]', $html);
+        $this->assertStringNotContainsString('min-h-screen', $html);
     }
 }

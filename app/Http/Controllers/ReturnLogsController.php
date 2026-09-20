@@ -8,8 +8,9 @@ class ReturnLogsController extends Controller
 {
     public function index()
     {
-        $logs = ReturnLog::with(['borrower', 'receiver', 'equipment'])
-            ->orderBy('created_at', 'desc')
+        $logs = ReturnLog::with(['borrower', 'receiver', 'equipment', 'borrowTransaction'])
+            ->orderBy('return_date', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         return view('admin.logs', compact('logs'));

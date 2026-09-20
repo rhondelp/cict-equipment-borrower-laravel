@@ -19,9 +19,13 @@ class BorrowTransactionController extends Controller
 {
     public function index()
     {
-        $transactions = BorrowTransaction::with(['user', 'equipment', 'classSchedule'])->get();
-        $users = User::with('borrowTransactions')->get();
-        $equipment = Equipment::with('borrowTransactions')->get();
+        $transactions = BorrowTransaction::with(['user', 'equipment', 'classSchedule.instructor', 'returnLog'])
+            ->orderByDesc('borrow_date')
+            ->orderByDesc('id')
+            ->get();
+
+        $users = User::whereNull('deactivated_at')->orderBy('name')->get();
+        $equipment = Equipment::lendable()->orderBy('equipment_name')->get();
         $classSchedules = ClassSchedule::with('instructor')
             ->whereHas('instructor', function ($query) {
                 $query->where('user_type', 'Instructor');
@@ -48,55 +52,65 @@ class BorrowTransactionController extends Controller
         return view('borrower.receipt', compact('transaction'));
     }
 
-    public function inlineUpdate(Request $request)
+    /**
+     * Check a loan back in. This replaced the inline status dropdown: an admin
+     * no longer picks a status from a list — they record the physical event of
+     * equipment coming back, and the status follows from that.
+     *
+     * Only one direction exists. A returned loan is history; lending the same
+     * item again is a new loan, not an edit of the old one.
+     */
+    public function checkIn(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'id' => 'required|exists:borrow_transactions,id',
-            'status' => 'required|in:Borrowed,Returned,Overdue',
-            'condition' => 'nullable|string|max:50',
-            'remarks' => 'nullable|string|max:255',
+            'condition' => 'required|in:Good,Damaged,Missing parts',
+            // Anything other than Good is an incident, and an incident nobody
+            // described is useless to whoever reads the log next.
+            'remarks' => 'required_unless:condition,Good|nullable|string|max:255',
+        ], [
+            'remarks.required_unless' => 'Describe the problem so the return log says what is wrong.',
         ]);
 
         try {
-            $result = DB::transaction(function () use ($request) {
-                $transaction = BorrowTransaction::findOrFail($request->id);
-                // Lock equipment row to prevent concurrent race on available_quantity
-                $equipment = Equipment::where('id', $transaction->equipment_id)->lockForUpdate()->firstOrFail();
+            $transaction = DB::transaction(function () use ($validated) {
+                $transaction = BorrowTransaction::where('id', $validated['id'])->lockForUpdate()->firstOrFail();
 
-                $oldStatus = $transaction->status;
-                $newStatus = $request->status;
-                $oldOut = in_array($oldStatus, ['Borrowed', 'Overdue']);
-                $newOut = in_array($newStatus, ['Borrowed', 'Overdue']);
-
-                if ($oldStatus !== $newStatus) {
-                    if ($oldOut && ! $newOut) {
-                        // Returning: add back stock (Borrowed/Overdue -> Returned)
-                        $equipment->releaseStock($transaction->quantity);
-
-                        ReturnLog::create([
-                            'borrow_transaction_id' => $transaction->id,
-                            'return_date' => now(),
-                            'condition' => $request->condition ?? 'Good',
-                            'remarks' => $request->remarks ?? 'Auto logged from inline update',
-                            'user_id' => auth()->id(),
-                        ]);
-                    } elseif (! $oldOut && $newOut) {
-                        // Re-borrowing: deduct stock (Returned -> Borrowed/Overdue)
-                        $equipment->reserveStock($transaction->quantity);
-                    }
-                    // Borrowed <-> Overdue : no stock change (both are "out")
+                if ($transaction->isVoided()) {
+                    throw ValidationException::withMessages(['id' => 'This loan was voided and cannot be checked in.']);
+                }
+                if ($transaction->isReturned()) {
+                    throw ValidationException::withMessages(['id' => 'This loan is already checked in.']);
                 }
 
-                $transaction->status = $newStatus;
+                // Lock equipment row to prevent concurrent race on available_quantity
+                $equipment = Equipment::where('id', $transaction->equipment_id)->lockForUpdate()->firstOrFail();
+                $equipment->releaseStock($transaction->quantity);
+
+                ReturnLog::create([
+                    'borrow_transaction_id' => $transaction->id,
+                    'return_date' => now(),
+                    'condition' => $validated['condition'],
+                    'remarks' => ($validated['remarks'] ?? null) ?: null,
+                    'user_id' => auth()->id(),
+                ]);
+
+                $transaction->status = 'Returned';
                 $transaction->save();
 
                 return $transaction;
             });
-
-            return response()->json(['message' => 'Status updated successfully!']);
         } catch (ValidationException $e) {
-            return response()->json(['message' => $e->errors()['quantity'][0] ?? 'Not enough equipment available'], 422);
+            return redirect()->back()->withErrors($e->errors());
         }
+
+        $transaction->loadMissing('equipment');
+        $late = $transaction->return_date && $transaction->return_date->startOfDay()->lt(now()->startOfDay())
+            ? ' Logged as '.(int) $transaction->return_date->startOfDay()->diffInDays(now()->startOfDay()).' days late.'
+            : '';
+
+        return redirect()->back()->with('success', 'Checked in — '.$transaction->quantity.' × '
+            .($transaction->equipment->equipment_name ?? 'item').' back on the shelf.'.$late);
     }
 
     public function store(Request $request)
@@ -111,7 +125,9 @@ class BorrowTransactionController extends Controller
             $request->merge(['quantities' => $filteredQty]);
         }
 
-        // Validate the input
+        // No `status` field: handing equipment over is the only thing this form
+        // does, so the loan is created out. Whether it later reads Out or
+        // Overdue is a question the due date answers.
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'equipment' => 'required|array|min:1',
@@ -121,7 +137,6 @@ class BorrowTransactionController extends Controller
             'borrow_date' => 'required|date',
             'return_date' => 'required|date|after_or_equal:borrow_date',
             'purpose' => 'required|string|max:255',
-            'status' => 'required|in:Borrowed,Returned,Overdue',
             'remarks' => 'nullable|string',
             'class_schedule_id' => 'nullable|exists:class_schedules,id',
         ]);
@@ -129,17 +144,16 @@ class BorrowTransactionController extends Controller
         $userId = $validated['user_id'];
         $borrowDate = $validated['borrow_date'];
         $returnDate = $validated['return_date'];
-        $status = $validated['status'];
         $remarks = $validated['remarks'] ?? null;
         $classScheduleId = $validated['class_schedule_id'] ?? null;
         $purpose = $validated['purpose'];
 
-        // FIX: wrap multi-equipment loop in a transaction with row locking to prevent race
-        // and to avoid partial writes when one item lacks stock. Also handle Overdue as "out" like Borrowed.
-        $isOut = in_array($status, ['Borrowed', 'Overdue']);
-
+        // The multi-equipment loop runs inside one transaction with row locking
+        // to prevent a race and to avoid partial writes when one item is short.
         try {
-            DB::transaction(function () use ($validated, $userId, $borrowDate, $returnDate, $status, $remarks, $classScheduleId, $purpose, $isOut) {
+            $created = DB::transaction(function () use ($validated, $userId, $borrowDate, $returnDate, $remarks, $classScheduleId, $purpose) {
+                $units = 0;
+
                 foreach ($validated['equipment'] as $equipmentId) {
                     // quantities may be keyed as string numeric; handle missing key gracefully
                     if (! isset($validated['quantities'][$equipmentId])) {
@@ -149,12 +163,16 @@ class BorrowTransactionController extends Controller
 
                     $equipment = Equipment::where('id', $equipmentId)->lockForUpdate()->firstOrFail();
 
-                    if ($isOut) {
-                        $equipment->reserveStock(
-                            $quantity,
-                            "Not enough {$equipment->equipment_name} available (have {$equipment->available_quantity}, need {$quantity})."
-                        );
+                    if ($equipment->isRetired()) {
+                        throw ValidationException::withMessages([
+                            'quantity' => $equipment->equipment_name.' has been retired and can no longer be lent out.',
+                        ]);
                     }
+
+                    $equipment->reserveStock(
+                        $quantity,
+                        "Only {$equipment->available_quantity} of {$equipment->equipment_name} available — this loan needs {$quantity}."
+                    );
 
                     BorrowTransaction::create([
                         'user_id' => $userId,
@@ -163,17 +181,24 @@ class BorrowTransactionController extends Controller
                         'return_date' => $returnDate,
                         'quantity' => $quantity,
                         'purpose' => $purpose,
-                        'status' => $status,
+                        'status' => 'Borrowed',
                         'remarks' => $remarks,
                         'class_schedule_id' => $classScheduleId,
                     ]);
+
+                    $units += $quantity;
                 }
+
+                return $units;
             });
         } catch (ValidationException $e) {
             return redirect()->back()->withErrors($e->errors())->withInput();
         }
 
-        return redirect()->back()->with('success', 'Transaction created successfully.');
+        $due = Carbon::parse($returnDate)->format('M j');
+
+        return redirect()->back()->with('success', 'Loan recorded — '.$created.' '
+            .str('unit')->plural($created).' out, due back '.$due.'.');
     }
 
     public function sendManualEmail(Request $request, $id)
@@ -193,7 +218,7 @@ class BorrowTransactionController extends Controller
 
         $details = $type === 'custom'
             ? ['title' => 'Message from Admin', 'body' => $message]
-            : ['title' => 'Return Reminder', 'body' => "Hello {$transaction->user->name}, please return the equipment you borrowed ({$transaction->equipment->equipment_name})."];
+            : ['title' => $transaction->isOverdue() ? 'Overdue notice' : 'Return Reminder', 'body' => $this->reminderBody($transaction)];
 
         // Kept inline (not extracted to safe()) because the user-facing JSON
         // response embeds $e->getMessage() — centralizing the catch would lose that.
@@ -205,21 +230,24 @@ class BorrowTransactionController extends Controller
             return response()->json(['message' => 'Failed to send email: '.$e->getMessage()], 500);
         }
 
-        return response()->json(['message' => 'Email sent successfully!']);
+        return response()->json(['message' => 'Email sent to '.$transaction->user->email.'.']);
     }
 
     public function sendReturnAlertNotification()
     {
         $today = Carbon::today()->toDateString();
 
-        // FIX: Automatically mark overdue transactions (previously commented out — Overdue was never written).
-        // Do this atomically before sending today's reminders.
+        // Keep the stored enum in step with the calendar so the reminder queries
+        // below can find their targets. The screens no longer depend on this
+        // running — they read Overdue off the due date — but the mail does.
         BorrowTransaction::where('status', 'Borrowed')
+            ->whereNull('voided_at')
             ->whereDate('return_date', '<', $today)
             ->update(['status' => 'Overdue']);
 
         // Find all borrow transactions with return_date == today and status still "Borrowed"
         $transactions = BorrowTransaction::with(['user', 'equipment'])
+            ->whereNull('voided_at')
             ->whereDate('return_date', $today)
             ->where('status', 'Borrowed')
             ->get();
@@ -230,8 +258,7 @@ class BorrowTransactionController extends Controller
             if ($transaction->user && $transaction->user->email) {
                 $details = [
                     'title' => 'Return Reminder',
-                    'body' => "Hello {$transaction->user->name}, please return the equipment you borrowed ({$transaction->equipment->equipment_name}) today ("
-                    .Carbon::parse($transaction->return_date)->format('F j, Y').').',
+                    'body' => $this->reminderBody($transaction),
                 ];
 
                 // Skip users who already received a return notice today
@@ -279,6 +306,13 @@ class BorrowTransactionController extends Controller
         return $sent.' return notifications sent and logged for today.';
     }
 
+    /**
+     * Edit an open loan. `status` is gone from the payload: it is derived from
+     * the due date and from whether the equipment has come back, so there is no
+     * longer a control that could set it to something the data contradicts.
+     *
+     * Returned and voided loans are not editable — they are the audit trail.
+     */
     public function update(Request $request)
     {
         $validated = $request->validate([
@@ -286,10 +320,9 @@ class BorrowTransactionController extends Controller
             'user_id' => 'required|exists:users,id',
             'equipment_id' => 'required|exists:equipment,id',
             'borrow_date' => 'required|date',
-            'return_date' => 'nullable|date|after_or_equal:borrow_date',
+            'return_date' => 'required|date|after_or_equal:borrow_date',
             'quantity' => 'required|integer|min:1',
             'purpose' => 'required|string|max:255',
-            'status' => 'required|in:Borrowed,Returned,Overdue',
             'remarks' => 'nullable|string',
             'class_schedule_id' => 'nullable|exists:class_schedules,id',
         ]);
@@ -298,15 +331,16 @@ class BorrowTransactionController extends Controller
             DB::transaction(function () use ($validated) {
                 $transaction = BorrowTransaction::where('id', $validated['id'])->lockForUpdate()->firstOrFail();
 
+                if ($transaction->isVoided() || $transaction->isReturned()) {
+                    throw ValidationException::withMessages([
+                        'id' => 'This loan is closed. Closed loans are the return history and cannot be edited.',
+                    ]);
+                }
+
                 $oldEquipmentId = $transaction->equipment_id;
                 $newEquipmentId = $validated['equipment_id'];
-                $oldStatus = $transaction->status;
-                $newStatus = $validated['status'];
                 $oldQty = $transaction->quantity;
                 $newQty = $validated['quantity'];
-
-                $oldOut = in_array($oldStatus, ['Borrowed', 'Overdue']);
-                $newOut = in_array($newStatus, ['Borrowed', 'Overdue']);
 
                 if ($oldEquipmentId != $newEquipmentId) {
                     // Lock both equipment rows in consistent order to avoid deadlock
@@ -315,34 +349,23 @@ class BorrowTransactionController extends Controller
                     $oldEquipment = $locked[$oldEquipmentId];
                     $equipment = $locked[$newEquipmentId];
 
-                    if ($oldOut) {
-                        $oldEquipment->releaseStock($oldQty);
-                    }
-                    if ($newOut) {
-                        $equipment->reserveStock($newQty);
-                    }
+                    $oldEquipment->releaseStock($oldQty);
+                    $equipment->reserveStock(
+                        $newQty,
+                        "Only {$equipment->available_quantity} of {$equipment->equipment_name} available — this loan needs {$newQty}."
+                    );
                 } else {
                     $equipment = Equipment::where('id', $oldEquipmentId)->lockForUpdate()->firstOrFail();
 
-                    if ($oldOut && ! $newOut) {
-                        // Out -> Returned: restore old quantity
-                        $equipment->releaseStock($oldQty);
-                    } elseif (! $oldOut && $newOut) {
-                        // Returned -> Out: deduct new quantity
-                        $equipment->reserveStock($newQty);
-                    } elseif ($oldOut && $newOut) {
-                        // Out -> Out with possible quantity change
-                        $diff = $newQty - $oldQty; // positive means need more stock
-                        if ($diff > 0) {
-                            $equipment->reserveStock($diff);
-                        } else {
-                            // Negative diff returns stock; a zero diff still resaves, as before.
-                            $equipment->releaseStock(-$diff);
-                        }
+                    // The loan is open both before and after, so only the delta moves.
+                    $diff = $newQty - $oldQty;
+                    if ($diff > 0) {
+                        $equipment->reserveStock(
+                            $diff,
+                            "Only {$equipment->available_quantity} more of {$equipment->equipment_name} available."
+                        );
                     } else {
-                        // Returned -> Returned : no stock change even if quantity changed,
-                        // but the status is still recomputed and saved, as it was before.
-                        $equipment->releaseStock(0);
+                        $equipment->releaseStock(-$diff);
                     }
                 }
 
@@ -352,22 +375,88 @@ class BorrowTransactionController extends Controller
             return redirect()->back()->withErrors($e->errors())->withInput();
         }
 
-        return redirect()->back()->with('success', 'Transaction updated successfully.');
+        return redirect()->back()->with('success', 'Loan updated.');
     }
 
-    public function destroy($id)
+    /**
+     * The non-destructive default offered by the remove dialog: the record
+     * stays visible and marked as an error, and any units it was holding go
+     * back on the shelf.
+     */
+    public function void(Request $request, $id)
     {
-        DB::transaction(function () use ($id) {
+        $validated = $request->validate([
+            'void_reason' => 'required|string|min:5|max:500',
+        ], [
+            'void_reason.required' => 'Say why this record is being voided — it stays in the log.',
+        ]);
+
+        $transaction = DB::transaction(function () use ($id, $validated) {
             $transaction = BorrowTransaction::where('id', $id)->lockForUpdate()->firstOrFail();
-            $equipment = Equipment::where('id', $transaction->equipment_id)->lockForUpdate()->firstOrFail();
-            // Both Borrowed and Overdue are "out" and should restore stock on delete
-            if (in_array($transaction->status, ['Borrowed', 'Overdue'])) {
+
+            if ($transaction->isVoided()) {
+                return $transaction;
+            }
+
+            if ($transaction->isOut()) {
+                $equipment = Equipment::where('id', $transaction->equipment_id)->lockForUpdate()->firstOrFail();
                 $equipment->releaseStock($transaction->quantity);
             }
-            $transaction->delete();
+
+            $transaction->voided_at = now();
+            $transaction->void_reason = $validated['void_reason'];
+            $transaction->save();
+
+            return $transaction;
         });
 
-        return redirect()->back()->with('success', 'Transaction deleted successfully.');
+        return redirect()->back()->with('success', 'Loan #'.$transaction->id
+            .' voided. It stays in the log, and its units are back in stock.');
+    }
+
+    /**
+     * Hard delete, refused while the record is part of the history: an open
+     * loan is tracking units that are physically elsewhere, and a returned one
+     * is the return log's reason for existing.
+     */
+    public function destroy($id)
+    {
+        $transaction = BorrowTransaction::with('returnLog')->findOrFail($id);
+
+        if ($transaction->isOut()) {
+            return redirect()->back()->with('error',
+                'Cannot delete loan #'.$transaction->id.' — it is still open and '.$transaction->quantity.' '
+                .str('unit')->plural($transaction->quantity).' are out. Check it in or void it instead.');
+        }
+
+        if ($transaction->returnLog) {
+            return redirect()->back()->with('error',
+                'Cannot delete loan #'.$transaction->id.' — it is part of the return history. Void it instead.');
+        }
+
+        $reference = $transaction->id;
+        $transaction->delete();
+
+        return redirect()->back()->with('success', 'Loan #'.$reference.' deleted. Nothing referenced it.');
+    }
+
+    /** One wording for the reminder mail, used by both the job and the manual send. */
+    private function reminderBody(BorrowTransaction $transaction): string
+    {
+        $name = $transaction->user->name ?? 'there';
+        $item = $transaction->equipment->equipment_name ?? 'the equipment you borrowed';
+        $qty = $transaction->quantity > 1 ? ' ×'.$transaction->quantity : '';
+        $due = $transaction->return_date?->format('M j') ?? 'the agreed date';
+
+        if ($transaction->isOverdue()) {
+            $late = $transaction->daysLate();
+
+            return "Hello {$name}, {$item}{$qty} was due on {$due} and is now {$late} "
+                .str('day')->plural($late).' late. Please return it to the CICT equipment room today.';
+        }
+
+        return "Hello {$name}, this is a reminder that {$item}{$qty} is due back on {$due}. "
+            .'You can return it to the CICT equipment room during office hours.';
     }
 
     /**

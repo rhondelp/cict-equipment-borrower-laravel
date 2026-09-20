@@ -3,6 +3,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{-- The two fetch-based actions (the loan email, and anything added later)
+         read the token from here; without it they fell back to scraping a
+         hidden input out of whichever form happened to be on the page. --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield("title", "CICT Equipment Borrower System")</title>
 
     {{-- Search and link-preview metadata. `description` defaults to the same
@@ -26,8 +30,6 @@
     <meta property="og:image" content="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png">
     <meta name="twitter:card" content="summary">
 
-    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-
     {{-- Typography: Poppins (primary) --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,11 +37,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="shortcut icon" href="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" type="image/x-icon">
 
-    {{-- DataTables (Responsive for mobile-friendly tables) --}}
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
-    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    {{-- No DataTables, and so no jQuery either: both were loaded on every page
+         to give eight-row tables a search box, a "Show 10 entries" select, a
+         pager for a single page of data and a sort arrow on every column. The
+         search survives in resources/js/ui.js; the rest is gone. --}}
 
     {{-- SweetAlert2 (modals + toasts) --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

@@ -1,7 +1,17 @@
 @extends('components.default')
-@section('title', 'Borrow Transactions - CICT Equipment Borrower System')
+@section('title', 'Loans - CICT Equipment Borrower System')
 @section('content')
 @include('components.admin.navbar')
+
+@php
+    $live = $transactions->reject(fn ($tx) => $tx->isVoided());
+    $open = $live->filter(fn ($tx) => $tx->isOut());
+    $overdue = $open->filter(fn ($tx) => $tx->isOverdue());
+    $returned = $live->filter(fn ($tx) => $tx->isReturned());
+    $voided = $transactions->filter(fn ($tx) => $tx->isVoided());
+    $unitsOut = $open->sum('quantity');
+    $dueToday = $open->filter(fn ($tx) => $tx->daysUntilDue() === 0)->count();
+@endphp
 
 <div class="min-h-[100dvh] page-bg md:ml-64">
 
@@ -11,401 +21,596 @@
        class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-toast focus:rounded-md focus:border focus:border-primary-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700">
         Skip to content
     </a>
-    <x-ui.page-header eyebrow="Transactions" title="Borrow & returns">
+
+    <x-ui.page-header eyebrow="Circulation" title="Loans">
+        {{ $unitsOut }} {{ str('unit')->plural($unitsOut) }} out · {{ $overdue->count() }} overdue
         <x-slot:actions>
-            <button id="open-add-modal" type="button"
+            <button type="button" data-modal-open="new-loan-modal"
                     class="inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700">
-                <i class="text-base fas fa-plus"></i> Add Transaction
+                <i class="text-base fas fa-plus" aria-hidden="true"></i> New loan
             </button>
         </x-slot:actions>
     </x-ui.page-header>
 
     <main id="main-content" class="p-4 mx-auto space-y-5 sm:p-6 max-w-content">
-        <x-ui.table-card>
+
+        @if($transactions->isNotEmpty())
+            <x-ui.stat-strip :stats="[
+                ['label' => 'Units out on loan', 'value' => $unitsOut, 'unit' => 'across '.$open->count().' '.str('loan')->plural($open->count()), 'sub' => $open->isEmpty() ? 'Everything is on the shelf' : 'Tracked until each comes back'],
+                ['label' => 'Overdue', 'value' => $overdue->count(), 'unit' => '', 'sub' => $overdue->isEmpty() ? 'Nothing past its due date' : 'Longest: '.$overdue->max(fn ($tx) => $tx->daysLate()).' days late', 'tone' => $overdue->isEmpty() ? 'neutral' : 'danger'],
+                ['label' => 'Due back today', 'value' => $dueToday, 'unit' => '', 'sub' => $dueToday > 0 ? 'Reminders go out at 08:00' : 'Nothing due today', 'tone' => $dueToday > 0 ? 'warning' : 'neutral'],
+                ['label' => 'Returned', 'value' => $returned->count(), 'unit' => str('loan')->plural($returned->count()), 'sub' => 'Logged in Return Logs', 'tone' => 'success', 'url' => route('admin.logs')],
+            ]" />
+        @endif
+
+        @php
+            // Opening on "Active" is right while anything is out, and wrong the
+            // moment nothing is: a first screen that reads "no loans match that
+            // filter" over a full archive is a filter fighting its own page.
+            $defaultChip = $open->isNotEmpty() ? 'active' : 'all';
+        @endphp
+        <x-ui.panel data-list data-active-chip="{{ $defaultChip }}">
             @if($transactions->isEmpty())
-                <x-ui.empty-state icon="fa-right-left" title="No transactions yet"
-                                  message="Approving a request creates one automatically, or log a borrow by hand.">
+                <x-ui.empty-state icon="fa-right-left" title="No loans yet"
+                                  message="Approving a request creates one automatically, or record a handover by hand.">
                     <x-slot:action>
-                        <button type="button" class="btn-primary js-open-add-modal">
-                            <i class="text-base fas fa-plus" aria-hidden="true"></i> Add transaction
+                        <button type="button" class="btn-primary" data-modal-open="new-loan-modal">
+                            <i class="text-base fas fa-plus" aria-hidden="true"></i> New loan
                         </button>
                     </x-slot:action>
                 </x-ui.empty-state>
             @else
-                <div class="p-4 overflow-x-auto">
-                    <table id="transactions-table" class="w-full text-sm display nowrap">
-                        <thead>
-                            <tr class="text-sm tracking-wider uppercase text-neutral-600 bg-neutral-50">
-                                <th class="px-4 py-3 font-semibold text-left">User</th>
-                                <th class="px-4 py-3 font-semibold text-left">Equipment</th>
-                                <th class="px-4 py-3 font-semibold text-left">Borrow date</th>
-                                <th class="px-4 py-3 font-semibold text-left">Return date</th>
-                                <th class="px-4 py-3 font-semibold text-left">Qty</th>
-                                <th class="px-4 py-3 font-semibold text-left">Purpose</th>
-                                <th class="px-4 py-3 font-semibold text-left">Status</th>
-                                <th class="px-4 py-3 font-semibold text-left">Remarks</th>
-                                <th class="px-4 py-3 font-semibold text-left">Class sched</th>
-                                <th class="px-4 py-3 font-semibold text-left">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-neutral-200">
-                            @foreach ($transactions as $tx)
-                                @php
-                                    $returnDate = $tx->return_date ? \Carbon\Carbon::parse($tx->return_date)->format('Y-m-d') : null;
-                                    $isDueToday = $returnDate === now()->format('Y-m-d');
-                                @endphp
-                                <tr class="hover:bg-neutral-50">
-                                    <td class="px-4 py-3 font-medium text-neutral-900">{{ $tx->user->name ?? 'Deleted User' }}</td>
-                                    <td class="px-4 py-3 text-neutral-700">{{ $tx->equipment->equipment_name ?? 'Deleted Equipment' }}</td>
-                                    <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}</td>
-                                    <td class="px-4 py-3 text-neutral-700 tabular-nums {{ $isDueToday ? 'text-danger-700 font-semibold' : '' }}">{{ $returnDate ?? '—' }}</td>
-                                    <td class="px-4 py-3 text-neutral-700 tabular-nums">{{ $tx->quantity }}</td>
-                                    <td class="px-4 py-3 max-w-[14rem] truncate text-neutral-600" title="{{ $tx->purpose }}">{{ $tx->purpose }}</td>
-                                    <td class="px-4 py-3">
-                                        <select class="status-dropdown inline-flex px-4 py-2 text-sm font-semibold rounded-md border focus:outline-none focus:ring-2 focus:ring-primary-500/30
-                                            @if($tx->status === 'Borrowed') bg-warning-50 text-warning-700 border-warning-200 @endif
-                                            @if($tx->status === 'Returned') bg-success-50 text-success-700 border-success-200 @endif
-                                            @if($tx->status === 'Overdue') bg-danger-50 text-danger-700 border-danger-200 @endif"
-                                                data-id="{{ $tx->id }}">
-                                            <option value="Borrowed" {{ $tx->status === 'Borrowed' ? 'selected' : '' }}>Borrowed</option>
-                                            <option value="Returned" {{ $tx->status === 'Returned' ? 'selected' : '' }}>Returned</option>
-                                            <option value="Overdue" {{ $tx->status === 'Overdue' ? 'selected' : '' }}>Overdue</option>
-                                        </select>
-                                    </td>
-                                    <td class="px-4 py-3 text-neutral-600 max-w-[14rem] truncate" title="{{ $tx->remarks }}">{{ $tx->remarks ?? '—' }}</td>
-                                    <td class="px-4 py-3 text-sm text-neutral-700">
-                                        @if ($tx->classSchedule)
-                                            {{ $tx->classSchedule->schedule_time }} - {{ $tx->classSchedule->instructor?->name ?? 'No Instructor' }} - {{ $tx->classSchedule->room }}
+                <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b sm:px-5 border-neutral-200">
+                    <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter loans">
+                        @php
+                            $chips = [
+                                'active' => 'Active '.$open->count(),
+                                'overdue' => 'Overdue '.$overdue->count(),
+                                'returned' => 'Returned '.$returned->count(),
+                                'all' => 'All '.$transactions->count(),
+                            ];
+                            if ($voided->isNotEmpty()) {
+                                $chips['void'] = 'Void '.$voided->count();
+                            }
+                        @endphp
+                        @foreach($chips as $value => $label)
+                            <button type="button" data-list-chip="{{ $value }}"
+                                    aria-pressed="{{ $value === $defaultChip ? 'true' : 'false' }}"
+                                    class="inline-flex min-h-[36px] items-center rounded-full border px-3.5 py-1.5 text-sm font-semibold transition
+                                           {{ $value === $defaultChip ? 'border-primary-300 bg-primary-50 text-primary-700' : 'border-neutral-300 bg-white text-neutral-700' }}">
+                                {{ $label }}
+                            </button>
+                        @endforeach
+                    </div>
+                    <label class="relative flex-1 min-w-[12rem] max-w-xs">
+                        <span class="sr-only">Search loans</span>
+                        <i class="absolute text-sm -translate-y-1/2 pointer-events-none fas fa-search left-4 top-1/2 text-neutral-500" aria-hidden="true"></i>
+                        <input type="search" data-list-search autocomplete="off" placeholder="Search person or item"
+                               class="w-full min-h-[40px] rounded-md border border-neutral-300 py-2 pl-10 pr-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                    </label>
+                </div>
+
+                {{-- Four columns where there were ten. Purpose, remarks and the
+                     class schedule were the same 14rem of truncated text on
+                     every row; they now live in the row's detail panel, which is
+                     where anyone who actually wants them goes looking. --}}
+                <div class="hidden gap-4 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-50 border-b border-neutral-200 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_8rem_10rem]">
+                    <div>Loan</div>
+                    <div>Dates</div>
+                    <div>Status</div>
+                    <div class="text-right">Actions</div>
+                </div>
+
+                <div class="divide-y divide-neutral-200">
+                    @foreach ($transactions as $tx)
+                        @php
+                            $status = $tx->derivedStatus();
+                            $chipKeys = match ($status) {
+                                'Overdue' => 'all active overdue',
+                                'Out' => 'all active',
+                                'Returned' => 'all returned',
+                                default => 'all void',
+                            };
+                            $isOpen = $tx->isOut();
+                            $log = $tx->returnLog;
+                            $blocked = $isOpen
+                                ? "Can't delete — the loan is still open"
+                                : ($log ? "Can't delete — it is part of the return history" : '');
+                        @endphp
+                        <div data-list-row data-chip="{{ $chipKeys }}"
+                             data-search="{{ strtolower(($tx->user->name ?? '').' '.($tx->equipment->equipment_name ?? '').' '.$tx->purpose) }}"
+                             class="{{ $tx->isOverdue() ? 'bg-danger-50/40' : '' }}">
+
+                            <div class="grid gap-3 px-4 py-3 sm:px-5 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_8rem_10rem] md:items-center md:gap-4">
+                                <div class="flex items-center min-w-0 gap-2">
+                                    <button type="button" data-loan-toggle="loan-details-{{ $tx->id }}"
+                                            aria-expanded="false" aria-controls="loan-details-{{ $tx->id }}"
+                                            class="grid w-8 h-8 rounded-md shrink-0 place-items-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800">
+                                        <i class="text-xs fas fa-chevron-right" aria-hidden="true"></i>
+                                        <span class="sr-only">Show details</span>
+                                    </button>
+                                    <div class="min-w-0">
+                                        <p class="text-base font-semibold truncate text-neutral-900">
+                                            {{ $tx->equipment->equipment_name ?? 'Deleted equipment' }}@if($tx->quantity > 1) <span class="text-neutral-600">×{{ $tx->quantity }}</span>@endif
+                                        </p>
+                                        <p class="text-sm truncate text-neutral-600">{{ $tx->user->name ?? 'Deleted user' }}</p>
+                                    </div>
+                                </div>
+
+                                {{-- "Sep 10 → Sep 17 · 3 days late". Never a raw
+                                     ISO date, and never a bare due date with no
+                                     sense of whether it has passed. --}}
+                                <div class="min-w-0">
+                                    <p class="text-sm truncate text-neutral-700 tabular-nums">{{ $tx->dateRangeLabel() }}</p>
+                                    <p class="text-sm truncate {{ $tx->isOverdue() ? 'font-semibold text-danger-700' : 'text-neutral-600' }}">
+                                        {{ $tx->timingLabel() }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <x-ui.status :label="$status" :tone="$tx->statusTone()" />
+                                </div>
+
+                                <div class="flex items-center gap-2 md:justify-end">
+                                    @if($isOpen)
+                                        <button type="button"
+                                                class="grid w-10 h-10 border rounded-md place-items-center border-success-200 bg-success-50 text-success-700 hover:bg-success-100"
+                                                title="Check in" aria-label="Check in this loan"
+                                                data-checkin-trigger
+                                                data-id="{{ $tx->id }}"
+                                                data-summary="{{ ($tx->equipment->equipment_name ?? 'Equipment').($tx->quantity > 1 ? ' ×'.$tx->quantity : '').' · '.($tx->user->name ?? 'Deleted user') }}"
+                                                data-timing="{{ $tx->isOverdue() ? $tx->timingLabel().' — due '.($tx->return_date?->format('M j')) : 'Due '.($tx->return_date?->format('M j') ?? '—').' · on time' }}"
+                                                data-late="{{ $tx->isOverdue() ? '1' : '0' }}">
+                                            <i class="text-base fas fa-check" aria-hidden="true"></i>
+                                        </button>
+                                    @endif
+
+                                    @if($tx->user)
+                                        <button type="button"
+                                                class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-700 hover:border-primary-300 hover:text-primary-700"
+                                                title="Email borrower" aria-label="Email the borrower"
+                                                data-email-trigger data-id="{{ $tx->id }}" data-email="{{ $tx->user->email }}">
+                                            <i class="text-base fas fa-envelope" aria-hidden="true"></i>
+                                        </button>
+                                    @endif
+
+                                    @if($isOpen)
+                                        <button type="button"
+                                                class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-700 hover:border-primary-300 hover:text-primary-700"
+                                                title="Edit loan" aria-label="Edit this loan"
+                                                data-loan-edit
+                                                data-id="{{ $tx->id }}"
+                                                data-user="{{ $tx->user_id }}"
+                                                data-equipment="{{ $tx->equipment_id }}"
+                                                data-borrow="{{ $tx->borrow_date?->toDateString() }}"
+                                                data-return="{{ $tx->return_date?->toDateString() }}"
+                                                data-quantity="{{ $tx->quantity }}"
+                                                data-purpose="{{ $tx->purpose }}"
+                                                data-remarks="{{ $tx->remarks }}"
+                                                data-class="{{ $tx->class_schedule_id }}"
+                                                data-summary="{{ ($tx->equipment->equipment_name ?? 'Equipment').' · '.($tx->user->name ?? 'Deleted user') }}">
+                                            <i class="text-base fas fa-pen" aria-hidden="true"></i>
+                                        </button>
+                                    @endif
+
+                                    @unless($tx->isVoided())
+                                        <button type="button"
+                                                class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-600 hover:border-danger-300 hover:bg-danger-50 hover:text-danger-700"
+                                                title="Remove record" aria-label="Remove this loan record"
+                                                data-remove-trigger data-dialog="remove-dialog"
+                                                data-title="Remove loan #{{ $tx->id }}?"
+                                                data-body="{{ $isOpen
+                                                    ? 'This loan is still open — the equipment is with the borrower. Voiding puts its units back in stock and keeps the record visible, marked as an error.'
+                                                    : 'Returned loans are the department\'s audit trail. Voiding keeps the record and marks it as an error; deleting erases it from the logs and the return history.' }}"
+                                                data-fact-a="{{ $tx->user->name ?? 'Deleted user' }}"
+                                                data-fact-b="{{ $tx->quantity }}" data-fact-b-alert="{{ $isOpen ? '1' : '0' }}"
+                                                data-fact-c="{{ $status }}"
+                                                data-blocked="{{ $blocked }}"
+                                                data-delete-url="{{ route('admin.transaction.destroy', $tx->id) }}"
+                                                data-safe-url="{{ route('admin.transaction.void', $tx->id) }}">
+                                            <i class="text-base fas fa-trash" aria-hidden="true"></i>
+                                        </button>
+                                    @endunless
+                                </div>
+                            </div>
+
+                            <div id="loan-details-{{ $tx->id }}" hidden
+                                 class="grid gap-4 px-4 pb-4 sm:px-5 sm:pl-14 md:grid-cols-2 lg:grid-cols-4 bg-neutral-50/60">
+                                <div>
+                                    <p class="text-xs font-semibold tracking-wider uppercase text-neutral-600">Purpose</p>
+                                    <p class="mt-1 text-sm text-neutral-800 text-pretty">{{ $tx->purpose ?: 'Not stated' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold tracking-wider uppercase text-neutral-600">Remarks</p>
+                                    <p class="mt-1 text-sm text-pretty {{ $tx->remarks ? 'text-neutral-800' : 'text-neutral-500' }}">
+                                        {{ $tx->remarks ?: 'None recorded' }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold tracking-wider uppercase text-neutral-600">Class schedule</p>
+                                    <p class="mt-1 text-sm {{ $tx->classSchedule ? 'text-neutral-800' : 'text-neutral-500' }}">
+                                        @if($tx->classSchedule)
+                                            {{ $tx->classSchedule->subject_code }} · {{ $tx->classSchedule->schedule_time }} ·
+                                            {{ $tx->classSchedule->room }}
                                         @else
-                                            <span class="text-neutral-500">No Schedule</span>
+                                            Not tied to a class
                                         @endif
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex items-center gap-1.5">
-                                            <button type="button"
-                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 edit-btn"
-                                                    data-id="{{ $tx->id }}" data-user="{{ $tx->user->id ?? '' }}"
-                                                    data-equipment="{{ $tx->equipment->id ?? '' }}"
-                                                    data-borrow="{{ \Carbon\Carbon::parse($tx->borrow_date)->format('Y-m-d') }}"
-                                                    data-return="{{ $returnDate }}" data-quantity="{{ $tx->quantity }}"
-                                                    data-purpose="{{ $tx->purpose }}" data-status="{{ $tx->status }}"
-                                                    data-remarks="{{ $tx->remarks ?? '' }}"
-                                                    data-class="{{ $tx->classSchedule->id ?? '' }}">
-                                                <i class="fas fa-edit text-sm"></i> Edit
-                                            </button>
-                                            <button type="button"
-                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200 hover:bg-neutral-200 send-email-btn"
-                                                    data-id="{{ $tx->id }}" data-user-email="{{ $tx->user->email ?? '' }}">
-                                                <i class="fas fa-envelope text-sm"></i> Email
-                                            </button>
-                                            <button type="button"
-                                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-md bg-danger-50 text-danger-700 border border-danger-100 hover:bg-danger-100 delete-btn"
-                                                    data-id="{{ $tx->id }}" data-name="transaction #{{ $tx->id }}">
-                                                <i class="fas fa-trash text-sm"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold tracking-wider uppercase text-neutral-600">
+                                        {{ $tx->isVoided() ? 'Voided' : 'Returned' }}
+                                    </p>
+                                    <p class="mt-1 text-sm text-pretty {{ $tx->isVoided() || $log ? 'text-neutral-800' : 'text-neutral-500' }}">
+                                        @if($tx->isVoided())
+                                            {{ $tx->voided_at->format('M j') }} — {{ $tx->void_reason }}
+                                        @elseif($log)
+                                            {{ $log->timingLine() }} · {{ $log->condition }}
+                                            @if($log->receiver) · received by {{ $log->receiver->name }} @endif
+                                        @else
+                                            Still out
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <p data-list-empty hidden class="px-5 py-12 text-base text-center text-neutral-600">
+                    No loans match that filter.
+                </p>
+
+                <div class="px-5 py-3 text-sm border-t text-neutral-600 border-neutral-200">
+                    <span data-list-count data-total="{{ $transactions->count() }}" data-noun="loans"></span>
                 </div>
             @endif
-        </x-ui.table-card>
+        </x-ui.panel>
     </main>
 </div>
 
-@include('components.admin.transaction.email-modal')
-@include('components.admin.transaction.add-modal')
+@include('components.admin.transaction.new-loan-modal')
 @include('components.admin.transaction.edit-modal')
-@include('components.admin.transaction.delete-modal')
-@include('components.admin.transaction.returnlog-modal')
+@include('components.admin.transaction.checkin-modal')
+@include('components.admin.transaction.email-modal')
+
+<x-ui.remove-dialog
+    id="remove-dialog"
+    safe-label="Void loan"
+    safe-icon="fa-ban"
+    cancel-label="Keep record"
+    delete-label="Delete permanently"
+    :facts="['Borrower', 'Units involved', 'Status']"
+    ready-hint="The record stays in the log, marked as voided."
+    blocked-hint="Say why this record is being voided — it stays in the log.">
+    <x-slot:safeFields>
+        <label for="void-reason" class="block text-base font-medium text-neutral-800">Reason for voiding</label>
+        <textarea id="void-reason" name="void_reason" rows="2" minlength="5" maxlength="500" required
+                  data-requires-reason data-autofocus placeholder="e.g. Recorded against the wrong borrower"
+                  class="w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"></textarea>
+    </x-slot:safeFields>
+</x-ui.remove-dialog>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // DataTable
-    const tableEl = document.getElementById('transactions-table');
-    if (tableEl && window.initAppTable) {
-        try {
-            window.initAppTable('#transactions-table', {
-                responsive: true,
-                columnDefs: [{ responsivePriority: 1, targets: 0 }, { responsivePriority: 2, targets: -1 }],
-                language: { search: '', searchPlaceholder: 'Search transactions...' }
-            });
-        } catch (e) { console.error('DataTable init failed (transactions-table)', e); }
-    }
 
-    // Equipment picker for the add modal: searchable checklist, with a quantity
-    // field revealed per ticked row. The quantity inputs already carry their
-    // quantities[<id>] name in the markup and are disabled until ticked, so the
-    // submitted payload is identical to the old multi-select.
-    const equipmentList = document.getElementById('equipment-list');
-    if (equipmentList) {
-        const setQtyMessage = function (qtyInput, text) {
-            const wrap = qtyInput.closest('.equipment-qty-wrap');
-            const msg = wrap ? wrap.querySelector('.equipment-qty-msg') : null;
-            if (!msg) return;
-            msg.textContent = text || '';
-            msg.classList.toggle('hidden', !text);
-            qtyInput.classList.toggle('border-danger-300', !!text);
+    /* ---- row detail panels ------------------------------------------- */
+    document.addEventListener('click', function (event) {
+        const toggle = event.target.closest('[data-loan-toggle]');
+        if (!toggle) return;
+        const panel = document.getElementById(toggle.getAttribute('data-loan-toggle'));
+        if (!panel) return;
+        const open = panel.hidden;
+        panel.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.querySelector('i').className = open ? 'fas fa-chevron-down text-xs' : 'fas fa-chevron-right text-xs';
+    });
+
+    /* ---- new loan ---------------------------------------------------- */
+    const loanForm = document.getElementById('new-loan-form');
+    if (loanForm) {
+        const list = document.getElementById('loan-equipment-list');
+        const submit = loanForm.querySelector('[data-loan-submit]');
+        const hint = loanForm.querySelector('[data-loan-hint]');
+        const previewText = loanForm.querySelector('[data-loan-preview-text]');
+        const previewDot = loanForm.querySelector('[data-loan-preview-dot]');
+        const who = document.getElementById('loan-user');
+        const from = document.getElementById('loan-borrow-date');
+        const until = document.getElementById('loan-return-date');
+        const purpose = document.getElementById('loan-purpose');
+
+        const dayGap = function (a, b) {
+            if (!a || !b) return NaN;
+            return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000);
         };
 
-        // Advisory only — BorrowTransactionController::store re-checks stock
-        // under a row lock and remains the source of truth.
-        const validateQty = function (qtyInput) {
-            const max = parseInt(qtyInput.getAttribute('max'), 10);
-            const val = parseInt(qtyInput.value, 10);
-            if (!isNaN(max) && !isNaN(val) && val > max) {
-                setQtyMessage(qtyInput, 'Only ' + max + ' available right now — please lower the quantity.');
-            } else {
-                setQtyMessage(qtyInput, '');
-            }
-        };
-
-        const syncRow = function (checkbox) {
+        // Advisory only — store() re-checks stock under a row lock and stays
+        // the source of truth. What this buys is being told before the round
+        // trip, next to the field that is wrong.
+        function syncRow(checkbox) {
             const row = checkbox.closest('.equipment-option');
-            if (!row) return;
-            const wrap = row.querySelector('.equipment-qty-wrap');
-            const qty = row.querySelector('.equipment-qty');
+            const wrap = row?.querySelector('.equipment-qty-wrap');
+            const qty = row?.querySelector('.equipment-qty');
             if (!wrap || !qty) return;
-            if (checkbox.checked) {
-                wrap.classList.remove('hidden');
-                qty.disabled = false;
-                if (!qty.value) qty.value = 1;
-                validateQty(qty);
-            } else {
-                wrap.classList.add('hidden');
-                qty.disabled = true;
-                setQtyMessage(qty, '');
+            wrap.classList.toggle('hidden', !checkbox.checked);
+            qty.disabled = !checkbox.checked;
+            if (checkbox.checked && !qty.value) qty.value = 1;
+        }
+
+        function validateQty(qty) {
+            const max = parseInt(qty.getAttribute('max'), 10);
+            const value = parseInt(qty.value, 10);
+            const msg = qty.closest('.equipment-qty-wrap')?.querySelector('.equipment-qty-msg');
+            const over = !isNaN(max) && !isNaN(value) && value > max;
+            if (msg) {
+                msg.textContent = over ? 'Only ' + max + ' available right now — lower the quantity.' : '';
+                msg.classList.toggle('hidden', !over);
             }
-        };
+            qty.classList.toggle('border-danger-300', over);
+            return !over && !isNaN(value) && value >= 1;
+        }
 
-        equipmentList.addEventListener('change', function (e) {
-            const cb = e.target.closest('.equipment-checkbox');
-            if (cb) syncRow(cb);
+        function sync() {
+            const picked = Array.from(list?.querySelectorAll('.equipment-checkbox:checked') || []);
+            const quantities = picked.map(function (box) {
+                return box.closest('.equipment-option').querySelector('.equipment-qty');
+            });
+            const quantitiesOk = quantities.every(validateQty);
+            const units = quantities.reduce(function (sum, qty) {
+                return sum + (parseInt(qty.value, 10) || 0);
+            }, 0);
+            const days = dayGap(from.value, until.value);
+            const datesOk = !isNaN(days) && days >= 0;
+            const ok = !!who.value && picked.length > 0 && quantitiesOk && datesOk && purpose.value.trim().length > 2;
 
-            const qty = e.target.closest('.equipment-qty');
+            if (picked.length === 0) {
+                previewText.textContent = 'Tick the items being handed over';
+                previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-neutral-400';
+            } else if (!datesOk) {
+                previewText.textContent = 'The due date must fall on or after the day it is taken out';
+                previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-danger-600';
+            } else if (!quantitiesOk) {
+                previewText.textContent = 'One of the quantities is more than the shelf has';
+                previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-danger-600';
+            } else {
+                previewText.textContent = units + ' ' + (units === 1 ? 'unit' : 'units') + ' across '
+                    + picked.length + ' ' + (picked.length === 1 ? 'item' : 'items')
+                    + ' · out for ' + days + ' ' + (days === 1 ? 'day' : 'days');
+                previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-success-600';
+            }
+
+            submit.disabled = !ok;
+            hint.textContent = !who.value ? 'Pick who is borrowing'
+                : picked.length === 0 ? 'Pick at least one item'
+                : !quantitiesOk ? 'Lower the highlighted quantity'
+                : !datesOk ? 'Check the dates'
+                : purpose.value.trim().length <= 2 ? 'Say what it is for'
+                : 'Marked as out the moment you save';
+            hint.classList.toggle('text-danger-700', !ok);
+            hint.classList.toggle('text-neutral-600', ok);
+        }
+
+        list?.addEventListener('change', function (event) {
+            const box = event.target.closest('.equipment-checkbox');
+            if (box) syncRow(box);
+            const qty = event.target.closest('.equipment-qty');
             if (qty) {
                 // Clamp once the value is committed, so typing is never fought.
                 const max = parseInt(qty.getAttribute('max'), 10);
-                const val = parseInt(qty.value, 10);
-                if (!isNaN(max) && !isNaN(val) && val > max) qty.value = max;
-                validateQty(qty);
+                const value = parseInt(qty.value, 10);
+                if (!isNaN(max) && !isNaN(value) && value > max) qty.value = max;
             }
+            sync();
+        });
+        list?.addEventListener('input', sync);
+        [who, from, until, purpose].forEach(function (field) {
+            field?.addEventListener('input', sync);
+            field?.addEventListener('change', sync);
         });
 
-        equipmentList.addEventListener('input', function (e) {
-            const qty = e.target.closest('.equipment-qty');
-            if (qty) validateQty(qty);
-        });
-
-        // Client-side search filter only — no request is made.
-        const equipmentSearch = document.getElementById('equipment-search');
-        const noMatch = document.getElementById('equipment-no-match');
-        if (equipmentSearch) {
-            equipmentSearch.addEventListener('input', function () {
-                const term = this.value.trim().toLowerCase();
-                let matched = 0;
-                equipmentList.querySelectorAll('.equipment-option').forEach(function (row) {
-                    const matches = !term || (row.dataset.name || '').indexOf(term) !== -1;
-                    const ticked = !!row.querySelector('.equipment-checkbox:checked');
-                    // Ticked rows stay visible so nothing is submitted while hidden.
-                    row.classList.toggle('hidden', !(matches || ticked));
-                    if (matches) matched++;
-                });
-                // Counts matches, not visible rows: a ticked row that is being kept
-                // on screen should not suppress the "nothing found" notice.
-                if (noMatch) noMatch.classList.toggle('hidden', matched > 0);
+        const search = document.getElementById('loan-equipment-search');
+        const noMatch = document.getElementById('loan-equipment-no-match');
+        search?.addEventListener('input', function () {
+            const term = this.value.trim().toLowerCase();
+            let matched = 0;
+            list.querySelectorAll('.equipment-option').forEach(function (row) {
+                const matches = !term || (row.dataset.name || '').indexOf(term) !== -1;
+                const ticked = !!row.querySelector('.equipment-checkbox:checked');
+                // Ticked rows stay visible so nothing is submitted while hidden.
+                row.classList.toggle('hidden', !(matches || ticked));
+                if (matches) matched++;
             });
-        }
-    }
-
-    // Edit / Delete / Add modal open/close
-    document.addEventListener('click', function (e) {
-        const editBtn = e.target.closest('.edit-btn');
-        if (editBtn) {
-            const d = editBtn.dataset;
-            const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-            set('edit-id', d.id);
-            set('edit-user', d.user);
-            set('edit-equipment', d.equipment);
-            set('edit-borrow', d.borrow);
-            set('edit-return', d.return);
-            set('edit-quantity', d.quantity);
-            set('edit-purpose', d.purpose);
-            set('edit-status', d.status);
-            set('edit-remarks', d.remarks);
-            set('edit-class', d.class);
-            const m = document.getElementById('edit-modal');
-            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
-        }
-
-        const deleteBtn = e.target.closest('.delete-btn');
-        if (deleteBtn) {
-            const d = deleteBtn.dataset;
-            const nameEl = document.getElementById('delete-item-name');
-            const form = document.getElementById('delete-form');
-            if (nameEl) nameEl.textContent = d.name;
-            if (form) form.action = '/admin/transaction/' + d.id;
-            const m = document.getElementById('delete-modal');
-            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
-        }
-
-        if (e.target.closest('#open-add-modal') || e.target.closest('.js-open-add-modal')) {
-            const m = document.getElementById('add-modal');
-            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
-        }
-        if (e.target.closest('.cancel-add') || e.target.closest('#cancel-add')) {
-            const m = document.getElementById('add-modal');
-            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
-        }
-        if (e.target.closest('.cancel-edit') || e.target.closest('#cancel-edit')) {
-            const m = document.getElementById('edit-modal');
-            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
-        }
-        if (e.target.closest('#cancel-delete')) {
-            const m = document.getElementById('delete-modal');
-            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
-        }
-        if (e.target.closest('#cancelReturn') || e.target.closest('#cancelReturn-x')) {
-            const m = document.getElementById('returnLogModal');
-            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
-        }
-        if (e.target.closest('#closeEmailModal') || e.target.closest('#closeEmailModal-x')) {
-            const m = document.getElementById('emailModal');
-            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
-        }
-    });
-
-    // Confirm delete -> showConfirm() then submit
-    const transactionDeleteForm = document.getElementById('delete-form');
-    if (transactionDeleteForm) {
-        transactionDeleteForm.addEventListener('submit', function (e) {
-            // Native submit; SweetAlert2 isn't used here because the user
-            // already clicked Cancel or Delete inside the modal.
+            if (noMatch) noMatch.classList.toggle('hidden', matched > 0);
         });
+
+        sync();
     }
 
-    // Status dropdown -> return-log modal or AJAX update
-    document.addEventListener('change', function (e) {
-        if (e.target.classList && e.target.classList.contains('status-dropdown')) {
-            const status = e.target.value;
-            const id = e.target.dataset.id;
-            if (status === 'Returned') {
-                const idEl = document.getElementById('return-transaction-id');
-                if (idEl) idEl.value = id;
-                const m = document.getElementById('returnLogModal');
-                if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+    /* ---- edit loan --------------------------------------------------- */
+    const editForm = document.getElementById('edit-loan-form');
+    if (editForm) {
+        const equipmentSelect = document.getElementById('edit-loan-equipment');
+        const qtyField = document.getElementById('edit-loan-quantity');
+        const maxNote = editForm.querySelector('[data-edit-quantity-max]');
+        const borrow = document.getElementById('edit-loan-borrow');
+        const due = document.getElementById('edit-loan-return');
+        const submit = editForm.querySelector('[data-edit-submit]');
+        const hint = editForm.querySelector('[data-edit-hint]');
+        const previewText = editForm.querySelector('[data-edit-preview-text]');
+        const previewDot = editForm.querySelector('[data-edit-preview-dot]');
+        let originalEquipment = null;
+        let originalQty = 0;
+
+        // The ceiling is what the shelf can actually cover: whatever is free of
+        // the chosen item, plus the units this loan is already holding when the
+        // item has not changed.
+        function ceiling() {
+            const option = equipmentSelect.selectedOptions[0];
+            const available = parseInt(option?.dataset.available || '0', 10) || 0;
+            const sameItem = String(equipmentSelect.value) === String(originalEquipment);
+            return available + (sameItem ? originalQty : 0);
+        }
+
+        function sync() {
+            const max = ceiling();
+            const qty = parseInt(qtyField.value, 10);
+            qtyField.max = max;
+            maxNote.textContent = '(max ' + max + ')';
+
+            const qtyOk = !isNaN(qty) && qty >= 1 && qty <= max;
+            const days = (borrow.value && due.value)
+                ? Math.round((new Date(due.value + 'T00:00:00') - new Date(borrow.value + 'T00:00:00')) / 86400000)
+                : NaN;
+            const datesOk = !isNaN(days) && days >= 0;
+            const ok = qtyOk && datesOk;
+
+            if (!qtyOk) {
+                previewText.textContent = 'Only ' + max + ' ' + (max === 1 ? 'unit is' : 'units are') + ' coverable for this item';
+                previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-danger-600';
+            } else if (!datesOk) {
+                previewText.textContent = 'The due date must fall on or after the day it was taken out';
+                previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-danger-600';
             } else {
-                updateStatus(id, status);
+                previewText.textContent = qty + ' ' + (qty === 1 ? 'unit' : 'units') + ' out for ' + days
+                    + ' ' + (days === 1 ? 'day' : 'days');
+                previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-success-600';
             }
-        }
-    });
 
-    // Return-log form submit
-    const returnLogForm = document.getElementById('returnLogForm');
-    if (returnLogForm) {
-        returnLogForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            const id = document.getElementById('return-transaction-id').value;
-            const condition = document.getElementById('return-condition').value;
-            const remarks = document.getElementById('return-remarks').value;
-            updateStatus(id, 'Returned', condition, remarks);
-            const m = document.getElementById('returnLogModal');
-            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+            submit.disabled = !ok;
+            hint.textContent = ok ? 'Stock adjusts to match' : 'Fix the highlighted detail';
+            hint.classList.toggle('text-danger-700', !ok);
+            hint.classList.toggle('text-neutral-600', ok);
+        }
+
+        [equipmentSelect, qtyField, borrow, due].forEach(function (field) {
+            field.addEventListener('input', sync);
+            field.addEventListener('change', sync);
+        });
+
+        document.addEventListener('click', function (event) {
+            const trigger = event.target.closest('[data-loan-edit]');
+            if (!trigger) return;
+            const d = trigger.dataset;
+            originalEquipment = d.equipment;
+            originalQty = parseInt(d.quantity, 10) || 0;
+
+            document.getElementById('edit-loan-id').value = d.id;
+            document.getElementById('edit-loan-user').value = d.user || '';
+            equipmentSelect.value = d.equipment || '';
+            borrow.value = d.borrow || '';
+            due.value = d.return || '';
+            qtyField.value = d.quantity || 1;
+            document.getElementById('edit-loan-purpose').value = d.purpose || '';
+            document.getElementById('edit-loan-remarks').value = d.remarks || '';
+            document.getElementById('edit-loan-class').value = d.class || '';
+            editForm.querySelector('[data-edit-summary]').textContent = d.summary || '';
+
+            sync();
+            window.appUI.openModal('edit-loan-modal');
         });
     }
 
-    function updateStatus(id, status, condition, remarks) {
+    /* ---- check in ---------------------------------------------------- */
+    const checkinForm = document.getElementById('checkin-form');
+    if (checkinForm) {
+        const conditionField = document.getElementById('checkin-condition');
+        const remarks = document.getElementById('checkin-remarks');
+        const submit = checkinForm.querySelector('[data-checkin-submit]');
+        const hint = checkinForm.querySelector('[data-checkin-hint]');
+        const remarksNote = checkinForm.querySelector('[data-checkin-remarks-note]');
+
+        function sync() {
+            const needsNote = conditionField.value !== 'Good';
+            const ok = !needsNote || remarks.value.trim().length > 2;
+
+            remarksNote.textContent = needsNote ? 'required' : 'optional';
+            remarksNote.classList.toggle('text-danger-700', needsNote && !ok);
+            submit.disabled = !ok;
+            hint.textContent = ok
+                ? 'Writes a dated entry in Return Logs'
+                : 'Describe the problem for the log';
+            hint.classList.toggle('text-danger-700', !ok);
+            hint.classList.toggle('text-neutral-600', ok);
+        }
+
+        checkinForm.addEventListener('click', function (event) {
+            const chip = event.target.closest('[data-condition]');
+            if (!chip) return;
+            conditionField.value = chip.dataset.condition;
+            checkinForm.querySelectorAll('[data-condition]').forEach(function (other) {
+                const on = other === chip;
+                other.setAttribute('aria-pressed', on ? 'true' : 'false');
+                other.classList.toggle('border-primary-300', on);
+                other.classList.toggle('bg-primary-50', on);
+                other.classList.toggle('text-primary-700', on);
+                other.classList.toggle('border-neutral-300', !on);
+                other.classList.toggle('bg-white', !on);
+                other.classList.toggle('text-neutral-700', !on);
+            });
+            sync();
+        });
+
+        remarks.addEventListener('input', sync);
+
+        document.addEventListener('click', function (event) {
+            const trigger = event.target.closest('[data-checkin-trigger]');
+            if (!trigger) return;
+            document.getElementById('checkin-id').value = trigger.dataset.id;
+            checkinForm.querySelector('[data-checkin-summary]').textContent = trigger.dataset.summary || '';
+            const timing = checkinForm.querySelector('[data-checkin-timing]');
+            timing.textContent = trigger.dataset.timing || '';
+            timing.classList.toggle('text-danger-700', trigger.dataset.late === '1');
+            timing.classList.toggle('text-neutral-600', trigger.dataset.late !== '1');
+            remarks.value = '';
+            checkinForm.querySelector('[data-condition="Good"]').click();
+            window.appUI.openModal('checkin-modal');
+        });
+
+        sync();
+    }
+
+    /* ---- email ------------------------------------------------------- */
+    let emailTransactionId = null;
+    document.addEventListener('click', function (event) {
+        const trigger = event.target.closest('[data-email-trigger]');
+        if (!trigger) return;
+        emailTransactionId = trigger.dataset.id;
+        const to = document.getElementById('modalEmail');
+        const message = document.getElementById('modalMessage');
+        if (to) to.value = trigger.dataset.email || '';
+        if (message) message.value = '';
+        window.appUI.openModal('emailModal');
+    });
+
+    document.getElementById('emailType')?.addEventListener('change', function () {
+        document.getElementById('customMessageBox')?.classList.toggle('hidden', this.value !== 'custom');
+    });
+
+    document.getElementById('sendEmailConfirm')?.addEventListener('click', function () {
+        const type = document.getElementById('emailType').value;
+        const message = document.getElementById('modalMessage').value;
         const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
             || document.querySelector('input[name="_token"]')?.value;
-        const body = new URLSearchParams();
-        body.set('id', id);
-        body.set('status', status);
-        if (condition) body.set('condition', condition);
-        if (remarks !== undefined && remarks !== null) body.set('remarks', remarks);
 
-        fetch('{{ route('transactions.inlineUpdate') }}', {
+        fetch('/send-email/' + emailTransactionId, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrf || '',
                 'Accept': 'application/json',
             },
-            body: body.toString(),
+            body: JSON.stringify({ type: type, message: message }),
             credentials: 'same-origin',
         })
-        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
-        .then(function (res) {
-            if (!res.ok) throw new Error((res.data && res.data.message) || 'Update failed');
-            if (window.showAlert) {
-                window.showAlert('success', (res.data && res.data.message) || 'Status updated successfully!');
-            }
-            setTimeout(function () { location.reload(); }, 900);
+        .then(function (response) { return response.json().then(function (data) { return { ok: response.ok, data: data }; }); })
+        .then(function (result) {
+            if (!result.ok) throw new Error((result.data && result.data.message) || 'Failed to send email');
+            window.appUI.closeModal('emailModal');
+            if (window.showAlert) window.showAlert('success', result.data.message, { title: 'Email sent' });
         })
-        .catch(function (err) {
-            if (window.showAlert) window.showAlert('error', err.message || 'Something went wrong.');
+        .catch(function (error) {
+            if (window.showAlert) window.showAlert('error', error.message || 'Failed to send email');
         });
-    }
-
-    // Email modal
-    let selectedTransactionId = null;
-    document.addEventListener('click', function (e) {
-        const btn = e.target.closest('.send-email-btn');
-        if (btn) {
-            selectedTransactionId = btn.getAttribute('data-id');
-            const userEmail = btn.getAttribute('data-user-email');
-            const modalEmail = document.getElementById('modalEmail');
-            const modalMessage = document.getElementById('modalMessage');
-            if (modalEmail) modalEmail.value = userEmail || '';
-            if (modalMessage) modalMessage.value = '';
-            const m = document.getElementById('emailModal');
-            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
-        }
-    });
-
-    const emailType = document.getElementById('emailType');
-    if (emailType) {
-        emailType.addEventListener('change', function () {
-            const box = document.getElementById('customMessageBox');
-            if (box) box.classList.toggle('hidden', this.value !== 'custom');
-        });
-    }
-
-    const sendEmailConfirm = document.getElementById('sendEmailConfirm');
-    if (sendEmailConfirm) {
-        sendEmailConfirm.addEventListener('click', function () {
-            const type = document.getElementById('emailType').value;
-            const message = document.getElementById('modalMessage').value;
-            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-                || document.querySelector('input[name="_token"]')?.value;
-            fetch('/send-email/' + selectedTransactionId, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrf || '',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({ type: type, message: message }),
-                credentials: 'same-origin',
-            })
-            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
-            .then(function (res) {
-                if (!res.ok) throw new Error((res.data && res.data.message) || 'Failed to send email');
-                if (window.showAlert) window.showAlert('success', (res.data && res.data.message) || 'Email sent successfully!');
-                const m = document.getElementById('emailModal');
-                if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
-            })
-            .catch(function (err) {
-                if (window.showAlert) window.showAlert('error', err.message || 'Failed to send email');
-            });
-        });
-    }
-
-    // Backdrop click closes any modal
-    ['add-modal', 'edit-modal', 'delete-modal', 'emailModal', 'returnLogModal'].forEach(function (id) {
-        const m = document.getElementById(id);
-        if (m) m.addEventListener('click', function (e) { if (e.target === m) { m.classList.add('hidden'); m.classList.remove('flex'); } });
     });
 });
 </script>

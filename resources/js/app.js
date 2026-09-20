@@ -1,3 +1,3 @@
 import './bootstrap';
 import './alert';
-import './tables';
+import './ui';

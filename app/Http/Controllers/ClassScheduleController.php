@@ -43,14 +43,26 @@ class ClassScheduleController extends Controller
         return redirect()->back()->with('success', 'Class schedule updated successfully.');
     }
 
+    /**
+     * borrow_transactions.class_schedule_id is onDelete('set null'), so a
+     * delete here does not destroy a loan — but it does silently erase which
+     * class each of those loans was for. That is history, so the delete is
+     * refused while any loan still points here.
+     */
     public function destroy($id)
     {
-        $schedule = ClassSchedule::findOrFail($id);
+        $schedule = ClassSchedule::withCount('borrowTransactions')->findOrFail($id);
 
-        // borrow_transactions.class_schedule_id is onDelete('set null'), so any
-        // transaction pointing here keeps its row and simply loses the link.
+        if ($schedule->borrow_transactions_count > 0) {
+            return redirect()->back()->with('error',
+                'Cannot delete '.$schedule->subject_code.' — '.$schedule->borrow_transactions_count.' '
+                .str('loan')->plural($schedule->borrow_transactions_count).' '
+                .($schedule->borrow_transactions_count === 1 ? 'is' : 'are').' recorded against it.');
+        }
+
+        $label = $schedule->subject_code.' — '.$schedule->subject_name;
         $schedule->delete();
 
-        return redirect()->back()->with('success', 'Class schedule deleted successfully.');
+        return redirect()->back()->with('success', $label.' removed. No loans referenced it.');
     }
 }

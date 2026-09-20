@@ -15,8 +15,23 @@ class UserController extends Controller
 
     public function adminUser()
     {
-        $users = UserModel::with('classSchedules')->get();
-        $instructors = UserModel::where('user_type', 'Instructor')->get();
+        // The aggregates the rows and the remove dialog quote — loaded once for
+        // the whole list rather than three queries per row.
+        $users = UserModel::with(['classSchedules' => fn ($query) => $query->withCount('borrowTransactions')])
+            ->withCount(['borrowTransactions', 'itemRequests', 'classSchedules'])
+            ->withSum([
+                'borrowTransactions as units_out' => fn ($query) => $query->whereNull('voided_at')
+                    ->whereIn('status', ['Borrowed', 'Overdue']),
+            ], 'quantity')
+            ->withCount([
+                'borrowTransactions as overdue_count' => fn ($query) => $query->whereNull('voided_at')
+                    ->whereIn('status', ['Borrowed', 'Overdue'])
+                    ->whereDate('return_date', '<', now()->toDateString()),
+            ])
+            ->orderBy('name')
+            ->get();
+
+        $instructors = UserModel::where('user_type', 'Instructor')->orderBy('name')->get();
 
         return view('admin.user', compact('users', 'instructors'));
     }
@@ -47,9 +62,51 @@ class UserController extends Controller
 
         $user->save();
 
-        return redirect()->back()->with('success', 'User updated successfully');
+        return redirect()->back()->with('success', $user->name.' updated.');
     }
 
+    /**
+     * The non-destructive default offered by the remove dialog. The account
+     * stops working at the login screen; every loan, request and return log
+     * that names this person is untouched.
+     */
+    public function deactivate(string $id)
+    {
+        if ((int) $id === (int) auth()->id()) {
+            return redirect()->back()->with('error', 'You cannot deactivate your own account.');
+        }
+
+        $user = UserModel::findOrFail($id);
+
+        if ($user->isDeactivated()) {
+            return redirect()->back()->with('error', $user->name.' is already deactivated.');
+        }
+
+        $out = $user->unitsOut();
+        $user->deactivated_at = now();
+        $user->save();
+
+        $note = $out > 0
+            ? ' '.$out.' '.str('unit')->plural($out).' still with them — those loans stay tracked.'
+            : '';
+
+        return redirect()->back()->with('success', $user->name.' deactivated and can no longer sign in.'.$note);
+    }
+
+    public function reactivate(string $id)
+    {
+        $user = UserModel::findOrFail($id);
+        $user->deactivated_at = null;
+        $user->save();
+
+        return redirect()->back()->with('success', $user->name.' can sign in again.');
+    }
+
+    /**
+     * Hard delete, refused while anything points at the row. The FKs cascade,
+     * so deleting a person with history would silently take their loans and
+     * requests — and the stock those loans account for — with them.
+     */
     public function destroy(string $id)
     {
         // Prevent an admin from deleting their own account while logged in.
@@ -58,8 +115,24 @@ class UserController extends Controller
         }
 
         $user = UserModel::findOrFail($id);
+        $out = $user->unitsOut();
+
+        if ($out > 0) {
+            return redirect()->back()->with('error',
+                'Cannot delete '.$user->name.' — '.$out.' '.str('unit')->plural($out).' '
+                .($out === 1 ? 'is' : 'are').' still out with them. Deactivate the account instead.');
+        }
+
+        $references = $user->historyCount();
+        if ($references > 0) {
+            return redirect()->back()->with('error',
+                'Cannot delete '.$user->name.' — '.$references.' '.str('record')->plural($references)
+                .' reference them. Deactivate the account instead to keep the history.');
+        }
+
+        $name = $user->name;
         $user->delete();
 
-        return redirect()->back()->with('success', 'User deleted successfully.');
+        return redirect()->back()->with('success', $name.' deleted. They had no borrowing history.');
     }
 }

@@ -43,6 +43,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/equipment', [EquipmentController::class, 'index'])->name('admin.equipment');
         Route::post('/admin/equipment', [EquipmentController::class, 'store'])->name('admin.equipment.store');
         Route::post('/admin/equipment/update', [EquipmentController::class, 'update'])->name('admin.equipment.update');
+        // Retire is the safe half of the remove dialog; destroy is refused
+        // while any loan or request still references the item.
+        Route::post('/admin/equipment/{id}/retire', [EquipmentController::class, 'retire'])->name('admin.equipment.retire');
+        Route::post('/admin/equipment/{id}/restore', [EquipmentController::class, 'restore'])->name('admin.equipment.restore');
         Route::delete('/admin/equipment/{id}', [EquipmentController::class, 'destroy'])->name('admin.equipment.destroy');
         Route::get('/admin/users', [UserController::class, 'adminUser'])->name('admin.users');
         Route::post('admin/users', [AuthenticateUser::class, 'register'])->name('admin.user.register');
@@ -50,12 +54,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/users/add-sched', [ClassScheduleController::class, 'store'])->name('admin.add-sched');
         Route::post('/admin/users/sched/update', [ClassScheduleController::class, 'update'])->name('admin.sched.update');
         Route::delete('/admin/users/sched/{id}', [ClassScheduleController::class, 'destroy'])->name('admin.sched.destroy');
+        Route::post('/admin/users/{id}/deactivate', [UserController::class, 'deactivate'])->name('admin.users.deactivate');
+        Route::post('/admin/users/{id}/reactivate', [UserController::class, 'reactivate'])->name('admin.users.reactivate');
         Route::delete('/admin/users/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
         Route::get('/admin/transaction', [BorrowTransactionController::class, 'index'])->name('admin.transaction');
         Route::post('/admin/transaction', [BorrowTransactionController::class, 'store'])->name('admin.transaction.store');
         Route::post('/admin/transaction/update', [BorrowTransactionController::class, 'update'])->name('admin.transaction.update');
+        Route::post('/admin/transaction/{id}/void', [BorrowTransactionController::class, 'void'])->name('admin.transaction.void');
         Route::delete('/admin/transaction/{id}', [BorrowTransactionController::class, 'destroy'])->name('admin.transaction.destroy');
-        Route::post('/admin/transaction/inline-update', [BorrowTransactionController::class, 'inlineUpdate'])->name('transactions.inlineUpdate');
+        // Records equipment physically coming back. Replaces the old
+        // inline status dropdown, which let an admin type any status at all.
+        Route::post('/admin/transaction/check-in', [BorrowTransactionController::class, 'checkIn'])->name('admin.transaction.checkin');
         Route::post('/send-email/{id}', [BorrowTransactionController::class, 'sendManualEmail']);
         Route::get('/admin/notifications', [NotificationController::class, 'index'])->name('admin.notifications');
         Route::get('/admin/request', [ItemRequestController::class, 'index'])->name('admin.request');

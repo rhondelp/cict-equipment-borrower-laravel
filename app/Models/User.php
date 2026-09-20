@@ -25,6 +25,7 @@ class User extends Authenticatable
         'email',
         'password',
         'contact_number',
+        'deactivated_at',
     ];
 
     /**
@@ -46,8 +47,50 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'deactivated_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Deactivating is the non-destructive half of the Remove dialog: the
+     * account stops working, every loan and log that names this person stays
+     * exactly where it is. AuthenticateUser::login refuses a deactivated
+     * account, so the flag is not cosmetic.
+     */
+    public function isDeactivated(): bool
+    {
+        return $this->deactivated_at !== null;
+    }
+
+    /** Units this person is holding right now. */
+    public function unitsOut(): int
+    {
+        return (int) $this->borrowTransactions()
+            ->whereNull('voided_at')
+            ->whereIn('status', ['Borrowed', 'Overdue'])
+            ->sum('quantity');
+    }
+
+    /** Loans and requests that a hard delete would cascade away. */
+    public function historyCount(): int
+    {
+        return $this->borrowTransactions()->count() + $this->itemRequests()->count();
+    }
+
+    /** Same two figures, preferring the aggregates the users index loads. */
+    public function outNow(): int
+    {
+        return isset($this->attributes['units_out']) ? (int) $this->attributes['units_out'] : $this->unitsOut();
+    }
+
+    public function referencesCount(): int
+    {
+        if (isset($this->attributes['borrow_transactions_count'], $this->attributes['item_requests_count'])) {
+            return (int) $this->attributes['borrow_transactions_count'] + (int) $this->attributes['item_requests_count'];
+        }
+
+        return $this->historyCount();
     }
 
     public function borrowTransactions()
