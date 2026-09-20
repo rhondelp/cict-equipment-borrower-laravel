@@ -35,9 +35,13 @@ always sit inside the `auth` middleware group.
 - **Admin** — full CRUD on equipment, users, class schedules and borrow transactions; approves/declines item requests; views notifications and return logs. Lands on `/admin/dashboard`.
 - **Instructor** / **Student** — collectively "borrowers". Same routes and same dashboard view; they create, update and delete only their *own* item requests (ownership enforced by `ItemRequestController::assertOwner`). Land on `/borrower/dashboard`. Instructors additionally own `ClassSchedule` rows that Admins attach to transactions.
 
-Registration (`/register`) only allows `Instructor` or `Student`; Admins are created via
-`/admin/users`, which reuses `AuthenticateUser::register`, so that form is likewise capped at
-Instructor/Student — creating an Admin requires a DB/seed/tinker action.
+`user_type` is capped at `Instructor` or `Student` on **both** registration routes, and this is
+deliberate. `POST /admin/users` reuses `AuthenticateUser::register`, so it inherits the same
+`in:Instructor,Student` rule: an admin uses that form to add borrowers, not staff. Posting
+`Admin` to either route is **rejected** (a `user_type` validation error, no row written) rather
+than downgraded — an earlier revision silently coerced it to `Student`, which is no longer the
+behaviour. Creating an Admin is a deliberate DB/seed/tinker action with no web path.
+Both properties are pinned by `tests/Feature/SecurityRegressionTest`.
 
 ## Data model
 

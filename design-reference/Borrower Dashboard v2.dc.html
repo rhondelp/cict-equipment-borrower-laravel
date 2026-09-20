@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: oklch(0.975 0.004 258); font-family: Poppins, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: oklch(0.5 0.17 258); text-decoration: none; }
+  a:hover { color: oklch(0.42 0.17 258); }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; color: oklch(0.26 0.012 258);">
+
+  <header style="background: #fff; border-bottom: 1px solid oklch(0.92 0.006 258); position: sticky; top: 0; z-index: 20;">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+      <div style="display: flex; align-items: center; gap: 11px; min-width: 0;">
+        <span style="width: 31px; height: 31px; flex: none; border-radius: 9px; background: oklch(0.55 0.17 258); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 12px;">CE</span>
+        <span style="font-size: 13.5px; font-weight: 600; white-space: nowrap;">CICT Equipment</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 9px; flex: none;">
+        <div style="position: relative;">
+          <button onClick="{{ toggleBell }}" aria-label="Notifications" style="width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid oklch(0.92 0.006 258); background: #fff; border-radius: 9px; color: oklch(0.42 0.012 258); cursor: pointer; position: relative;" style-hover="background: oklch(0.975 0.004 258)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2.2a3.8 3.8 0 0 0-3.8 3.8c0 3-1.2 4-1.2 4h10s-1.2-1-1.2-4A3.8 3.8 0 0 0 8 2.2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path><path d="M6.8 12.4a1.4 1.4 0 0 0 2.4 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg>
+            <sc-if value="{{ hasAlerts }}" hint-placeholder-val="{{ true }}">
+              <span style="position: absolute; top: 5px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: oklch(0.58 0.18 25); border: 2px solid #fff;"></span>
+            </sc-if>
+          </button>
+          <sc-if value="{{ bellOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; top: 44px; right: 0; width: 322px; background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 13px; box-shadow: 0 18px 44px oklch(0.25 0.03 258 / 0.16); overflow: hidden; z-index: 30;">
+              <div style="padding: 11px 15px; border-bottom: 1px solid oklch(0.94 0.006 258); font-size: 13px; font-weight: 600;">Notifications</div>
+              <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="3">
+                <div style="display: flex; align-items: flex-start; gap: 10px; padding: 11px 15px; border-bottom: 1px solid oklch(0.96 0.004 258);">
+                  <span style="width: 7px; height: 7px; border-radius: 50%; flex: none; margin-top: 6px; background: {{ a.color }};"></span>
+                  <div style="min-width: 0;">
+                    <div style="font-size: 12.5px; line-height: 1.5; text-wrap: pretty;">{{ a.text }}</div>
+                    <div style="font-size: 11px; color: oklch(0.6 0.012 258); margin-top: 2px;">{{ a.when }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+        <button onClick="{{ noop }}" style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 9px; border: 1px solid oklch(0.92 0.006 258); background: #fff; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 500; color: oklch(0.35 0.012 258); cursor: pointer; white-space: nowrap;" style-hover="background: oklch(0.975 0.004 258)">
+          <span style="width: 22px; height: 22px; border-radius: 50%; background: oklch(0.93 0.035 258); color: oklch(0.45 0.15 258); display: grid; place-items: center; font-size: 10px; font-weight: 600;">JR</span>
+          Jose
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div style="max-width: 1120px; margin: 0 auto; padding: 24px 28px 64px; display: flex; flex-direction: column; gap: 22px;">
+
+    <section style="background: oklch(0.32 0.09 262); border-radius: 16px; padding: 26px 28px; color: #fff; display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; flex-wrap: wrap;">
+      <div style="min-width: 0; display: flex; flex-direction: column; gap: 7px;">
+        <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.09em; color: oklch(1 0 0 / 0.55);">YOUR STANDING</span>
+        <h1 style="margin: 0; font-size: 29px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; text-wrap: pretty;">{{ headline }}</h1>
+        <p style="margin: 0; font-size: 14px; color: {{ subColor }}; text-wrap: pretty;">{{ subline }}</p>
+      </div>
+      <div style="display: flex; align-items: stretch; gap: 0; flex: none; border-radius: 12px; overflow: hidden; background: oklch(1 0 0 / 0.1);">
+        <sc-for list="{{ standing }}" as="st" hint-placeholder-count="3">
+          <div style="padding: 12px 18px; display: flex; flex-direction: column; gap: 2px; border-left: 1px solid oklch(1 0 0 / 0.12); min-width: 104px;">
+            <span style="font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; color: {{ st.color }};">{{ st.value }}</span>
+            <span style="font-size: 11.5px; color: oklch(1 0 0 / 0.66); white-space: nowrap;">{{ st.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 22px; align-items: start;">
+
+      <main style="min-width: 0; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 14px;">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600;">What needs doing</h2>
+          <span style="font-size: 12.5px; color: oklch(0.58 0.012 258);">{{ agendaSummary }}</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column;">
+          <sc-for list="{{ agenda }}" as="a" hint-placeholder-count="4">
+            <div style="display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 16px; align-items: stretch;">
+              <div style="display: flex; flex-direction: column; align-items: center; padding-top: 18px;">
+                <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; color: oklch(0.62 0.012 258);">{{ a.mon }}</span>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 19px; font-weight: 600; line-height: 1.1; color: {{ a.dateColor }};">{{ a.day }}</span>
+                <span style="flex: 1; width: 2px; margin-top: 10px; background: oklch(0.93 0.006 258); border-radius: 2px;"></span>
+              </div>
+
+              <div style="padding-bottom: 12px;">
+                <div style="background: #fff; border: 1px solid {{ a.border }}; border-radius: 13px; padding: 15px 17px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+                  <div style="min-width: 0; flex: 1 1 220px; display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.07em; padding: 3px 8px; border-radius: 6px; background: {{ a.tagBg }}; color: {{ a.tagColor }}; white-space: nowrap;">{{ a.tag }}</span>
+                      <span style="font-size: 12.5px; color: oklch(0.58 0.012 258);">{{ a.when }}</span>
+                    </div>
+                    <div style="font-size: 15px; font-weight: 600; letter-spacing: -0.005em; text-wrap: pretty;">{{ a.title }}</div>
+                    <div style="font-size: 13px; line-height: 1.55; color: oklch(0.48 0.012 258); text-wrap: pretty;">{{ a.detail }}</div>
+                  </div>
+                  <sc-if value="{{ a.hasAction }}" hint-placeholder-val="{{ true }}">
+                    <button onClick="{{ a.onAction }}" style="flex: none; height: 34px; padding: 0 14px; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; border: 1px solid {{ a.btnBorder }}; background: {{ a.btnBg }}; color: {{ a.btnColor }};">{{ a.action }}</button>
+                  </sc-if>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+
+          <sc-if value="{{ agendaEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="background: #fff; border: 1px dashed oklch(0.9 0.006 258); border-radius: 13px; padding: 34px 20px; text-align: center; font-size: 13.5px; color: oklch(0.55 0.012 258); text-wrap: pretty;">Nothing outstanding. Request something from the shelf when you need it.</div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ hasHistory }}" hint-placeholder-val="{{ true }}">
+          <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 9px;">
+            <button onClick="{{ toggleHistory }}" style="display: flex; align-items: center; gap: 8px; border: 0; background: none; padding: 0; font-family: inherit; font-size: 13px; font-weight: 500; color: oklch(0.5 0.012 258); cursor: pointer;">
+              <span style="font-size: 10px;">{{ historyCaret }}</span>
+              {{ historyLabel }}
+            </button>
+            <sc-if value="{{ historyOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="background: #fff; border: 1px solid oklch(0.93 0.006 258); border-radius: 12px; overflow: hidden;">
+                <sc-for list="{{ history }}" as="h" hint-placeholder-count="3">
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid oklch(0.96 0.004 258);">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; flex: none; background: {{ h.color }};"></span>
+                    <span style="font-size: 13.5px; font-weight: 500; min-width: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ h.title }}</span>
+                    <span style="font-size: 12.5px; color: oklch(0.55 0.012 258); flex: none;">{{ h.note }}</span>
+                    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: oklch(0.62 0.012 258); flex: none;">{{ h.when }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+      </main>
+
+      <aside style="display: flex; flex-direction: column; gap: 14px; position: sticky; top: 84px; min-width: 0;">
+        <button onClick="{{ openRequest }}" style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 46px; border: 0; border-radius: 12px; background: oklch(0.55 0.17 258); color: #fff; font-family: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer;" style-hover="background: oklch(0.48 0.17 258)">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+          Request equipment
+        </button>
+
+        <div style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 13px; overflow: hidden;">
+          <div style="padding: 13px 15px 11px; border-bottom: 1px solid oklch(0.95 0.006 258); display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+            <span style="font-size: 13.5px; font-weight: 600;">On the shelf now</span>
+            <span style="font-size: 11.5px; color: oklch(0.6 0.012 258);">{{ shelfCount }}</span>
+          </div>
+          <sc-for list="{{ shelf }}" as="s" hint-placeholder-count="6">
+            <button onClick="{{ s.onRequest }}" disabled="{{ s.blocked }}" style="width: 100%; display: flex; align-items: center; gap: 11px; padding: 10px 15px; border: 0; border-bottom: 1px solid oklch(0.965 0.004 258); background: #fff; font-family: inherit; text-align: left; cursor: {{ s.cursor }};" style-hover="background: oklch(0.982 0.003 258)">
+              <span style="min-width: 0; flex: 1;">
+                <span style="display: block; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: {{ s.nameColor }};">{{ s.name }}</span>
+                <span style="display: block; font-size: 11.5px; margin-top: 1px; color: {{ s.availColor }};">{{ s.availLine }}</span>
+              </span>
+              <span style="flex: none; width: 42px; height: 4px; border-radius: 3px; background: oklch(0.94 0.006 258); overflow: hidden;">
+                <span style="display: block; height: 100%; border-radius: 3px; width: {{ s.pct }}; background: {{ s.availColor }};"></span>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+
+        <div style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 13px; padding: 14px 15px; display: flex; flex-direction: column; gap: 7px;">
+          <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: oklch(0.55 0.012 258);">EQUIPMENT ROOM</span>
+          <span style="font-size: 13.5px; font-weight: 500;">Open 8:00 AM – 5:00 PM, Mon–Sat</span>
+          <span style="font-size: 12.5px; color: oklch(0.55 0.012 258); overflow-wrap: anywhere;">cict.equipment@nmsc.edu.ph</span>
+          <a href="./Legal.dc.html" style="font-size: 12.5px; margin-top: 2px;">Borrowing rules →</a>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeModal }}" style="position: fixed; inset: 0; background: oklch(0.25 0.012 258 / 0.42); display: flex; align-items: flex-start; justify-content: center; padding: 56px 20px; z-index: 40; overflow-y: auto;">
+      <div onClick="{{ stop }}" role="dialog" aria-modal="true" style="width: 100%; max-width: 480px; background: #fff; border-radius: 16px; box-shadow: 0 24px 60px oklch(0.25 0.03 258 / 0.22); overflow: hidden;">
+
+        <sc-if value="{{ requestSent }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 24px 22px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: oklch(0.95 0.04 158); color: oklch(0.42 0.13 158); display: grid; place-items: center;">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M3.4 8.4 6.4 11.4l6.2-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <h2 style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.01em;">Request sent</h2>
+              <p style="margin: 0; font-size: 13.5px; line-height: 1.6; color: oklch(0.45 0.012 258); text-wrap: pretty;">It has been added to your agenda on the date you asked for. The office reviews requests within one working day.</p>
+            </div>
+            <div style="padding: 11px 13px; border-radius: 10px; background: oklch(0.978 0.003 258); font-size: 12.5px; color: oklch(0.5 0.012 258); text-wrap: pretty;">Nothing is held for you yet — stock is only set aside once an administrator approves.</div>
+            <button onClick="{{ closeModal }}" style="height: 42px; border: 0; border-radius: 10px; background: oklch(0.55 0.17 258); color: #fff; font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;">Done</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ requestForm }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px 12px;">
+            <div style="min-width: 0;">
+              <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em;">Request equipment</h2>
+              <p style="margin: 3px 0 0; font-size: 12.5px; color: oklch(0.58 0.012 258); text-wrap: pretty;">An administrator reviews this before anything is set aside.</p>
+            </div>
+            <button onClick="{{ closeModal }}" aria-label="Close" style="flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid oklch(0.93 0.006 258); background: #fff; border-radius: 8px; color: oklch(0.5 0.012 258); cursor: pointer;" style-hover="background: oklch(0.975 0.004 258)">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>
+            </button>
+          </div>
+
+          <div style="padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; flex-direction: column; gap: 7px;">
+              <span style="font-size: 12.5px; font-weight: 500;">Equipment</span>
+              <div style="display: flex; flex-direction: column; gap: 6px; max-height: 196px; overflow-y: auto; padding-right: 2px;">
+                <sc-for list="{{ pickList }}" as="p" hint-placeholder-count="5">
+                  <div onClick="{{ p.onPick }}" style="display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 10px; border: 1px solid {{ p.border }}; background: {{ p.bg }}; cursor: {{ p.cursor }};">
+                    <span style="width: 15px; height: 15px; flex: none; border-radius: 50%; border: 1px solid {{ p.dotBorder }}; background: {{ p.dotBg }}; display: grid; place-items: center;">
+                      <span style="width: 6px; height: 6px; border-radius: 50%; background: {{ p.dotInner }};"></span>
+                    </span>
+                    <span style="min-width: 0; flex: 1; font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: {{ p.nameColor }};">{{ p.name }}</span>
+                    <span style="flex: none; font-size: 11.5px; font-weight: 500; color: {{ p.availColor }};">{{ p.availLine }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+              <label style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+                <span style="font-size: 12.5px; font-weight: 500;">How many</span>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <button onClick="{{ decQty }}" aria-label="Fewer" style="width: 34px; height: 40px; flex: none; border: 1px solid oklch(0.9 0.006 258); background: #fff; border-radius: 9px; font-family: inherit; font-size: 15px; color: oklch(0.45 0.012 258); cursor: pointer;">−</button>
+                  <span style="flex: 1; min-width: 0; height: 40px; border: 1px solid oklch(0.9 0.006 258); border-radius: 9px; display: grid; place-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 14px;">{{ qty }}</span>
+                  <button onClick="{{ incQty }}" aria-label="More" style="width: 34px; height: 40px; flex: none; border: 1px solid oklch(0.9 0.006 258); background: #fff; border-radius: 9px; font-family: inherit; font-size: 15px; color: oklch(0.45 0.012 258); cursor: pointer;">+</button>
+                </div>
+              </label>
+              <label style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+                <span style="font-size: 12.5px; font-weight: 500;">Needed from</span>
+                <input type="date" value="{{ from }}" onChange="{{ onFrom }}" style="height: 40px; padding: 0 10px; border: 1px solid oklch(0.9 0.006 258); border-radius: 9px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: inherit; outline: none; min-width: 0;" style-focus="border-color: oklch(0.6 0.13 258)" />
+              </label>
+              <label style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+                <span style="font-size: 12.5px; font-weight: 500;">Until</span>
+                <input type="date" value="{{ to }}" onChange="{{ onTo }}" style="height: 40px; padding: 0 10px; border: 1px solid oklch(0.9 0.006 258); border-radius: 9px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: inherit; outline: none; min-width: 0;" style-focus="border-color: oklch(0.6 0.13 258)" />
+              </label>
+            </div>
+
+            <label style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 12.5px; font-weight: 500;">What is it for?</span>
+              <textarea rows="2" value="{{ purpose }}" onChange="{{ onPurpose }}" placeholder="e.g. Capstone presentation dry run in AVR 2" style="padding: 9px 12px; border: 1px solid oklch(0.9 0.006 258); border-radius: 9px; font-family: inherit; font-size: 13.5px; color: inherit; outline: none; resize: vertical; min-height: 62px;" style-focus="border-color: oklch(0.6 0.13 258)"></textarea>
+            </label>
+
+            <div style="display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 10px; font-size: 12.5px; text-wrap: pretty; background: {{ previewBg }}; color: {{ previewColor }};">
+              <span style="width: 6px; height: 6px; border-radius: 50%; flex: none; background: {{ previewDot }};"></span>
+              {{ preview }}
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-top: 1px solid oklch(0.94 0.006 258); background: oklch(0.985 0.003 258);">
+            <span style="font-size: 12px; color: {{ hintColor }}; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ hint }}</span>
+            <div style="display: flex; align-items: center; gap: 8px; flex: none;">
+              <button onClick="{{ closeModal }}" style="height: 38px; padding: 0 14px; border: 1px solid oklch(0.92 0.006 258); background: #fff; border-radius: 9px; font-family: inherit; font-size: 13.5px; font-weight: 500; color: oklch(0.4 0.012 258); cursor: pointer; white-space: nowrap; flex: none;" style-hover="background: oklch(0.97 0.004 258)">Cancel</button>
+              <button onClick="{{ submitRequest }}" disabled="{{ submitDisabled }}" style="height: 38px; padding: 0 16px; border: 0; border-radius: 9px; font-family: inherit; font-size: 13.5px; font-weight: 600; color: #fff; white-space: nowrap; flex: none; background: {{ submitBg }}; cursor: {{ submitCursor }};">Send request</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const RED = "oklch(0.55 0.18 25)";
+const AMBER = "oklch(0.6 0.15 62)";
+const GREEN = "oklch(0.45 0.13 158)";
+const ACC = "oklch(0.5 0.17 258)";
+const MUTED = "oklch(0.58 0.012 258)";
+
+const SHELF = [
+  { id: 1, name: "Laptop (Dell Latitude)", avail: 3, total: 10 },
+  { id: 2, name: "Projector (Epson)", avail: 2, total: 4 },
+  { id: 3, name: "HDMI Cable", avail: 14, total: 20 },
+  { id: 4, name: "Wireless Presenter", avail: 8, total: 8 },
+  { id: 5, name: "Extension Cord", avail: 9, total: 12 },
+  { id: 6, name: "Document Camera", avail: 2, total: 2 },
+  { id: 7, name: "Microphone Set", avail: 0, total: 3 },
+  { id: 8, name: "Whiteboard Markers", avail: 30, total: 30 }
+];
+
+const TODAY = "2026-09-20";
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+const addDays = (iso, n) => {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  const p = x => String(x).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+};
+const gap = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 86400000);
+const parts = iso => { const [y, m, d] = iso.split("-").map(Number); return { mon: MONTHS[m - 1], day: String(d).padStart(2, "0") }; };
+const pretty = iso => { const p = parts(iso); return p.mon.charAt(0) + p.mon.slice(1).toLowerCase() + " " + p.day; };
+
+class Component extends DCLogic {
+  state = {
+    bellOpen: false, historyOpen: false,
+    modalOpen: false, requestSent: false,
+    pickId: null, qty: 1, from: TODAY, to: addDays(TODAY, 7), purpose: "",
+    items: [
+      { id: 1, kind: "loan", name: "HDMI Cable", qty: 2, date: "2026-09-18", note: "Accreditation visit setup" },
+      { id: 2, kind: "loan", name: "Projector (Epson)", qty: 1, date: "2026-09-21", note: "Weekly lecture in AVR 2" },
+      { id: 3, kind: "approved", name: "Microphone Set", qty: 1, date: "2026-09-22", note: "Approved yesterday by the equipment office" },
+      { id: 4, kind: "pending", name: "Laptop (Dell Latitude)", qty: 4, date: "2026-09-21", note: "Sent 4 hours ago · needed Sep 21 to Oct 02" }
+    ],
+    history: [
+      { id: 91, name: "HDMI Cable ×1", state: "declined", note: "A cable came with your projector loan", when: "Sep 19" },
+      { id: 92, name: "Document Camera ×2", state: "returned", note: "Returned in good condition", when: "Sep 09" },
+      { id: 93, name: "Microphone Set ×1", state: "returned", note: "Returned in good condition", when: "Sep 14" }
+    ]
+  };
+
+  componentDidMount() {
+    this._esc = e => { if (e.key === "Escape") this.setState({ modalOpen: false, bellOpen: false }); };
+    document.addEventListener("keydown", this._esc);
+  }
+  componentWillUnmount() { document.removeEventListener("keydown", this._esc); }
+
+  open(id) { this.setState({ modalOpen: true, requestSent: false, pickId: id, qty: 1, from: TODAY, to: addDays(TODAY, 7), purpose: "" }); }
+
+  renderVals() {
+    const s = this.state;
+
+    const shaped = s.items.map(it => {
+      const left = gap(TODAY, it.date);
+      const label = it.qty > 1 ? it.name + " ×" + it.qty : it.name;
+      const p = parts(it.date);
+      let o;
+      if (it.kind === "loan" && left < 0) {
+        o = { rank: 0, tag: "OVERDUE", tagBg: "oklch(0.965 0.025 25)", tagColor: RED, border: "oklch(0.88 0.06 25)", dateColor: RED,
+          when: Math.abs(left) + " days late", title: "Return " + label,
+          detail: it.note + ". Bring it to the equipment room today — you cannot borrow anything else until it is back.",
+          action: "How to return", btnBg: RED, btnColor: "#fff", btnBorder: RED };
+      } else if (it.kind === "approved") {
+        o = { rank: 1, tag: "READY", tagBg: "oklch(0.96 0.03 158)", tagColor: GREEN, border: "oklch(0.88 0.05 158)", dateColor: GREEN,
+          when: "collect by " + pretty(it.date), title: "Collect " + label,
+          detail: it.note + ". Unclaimed items go back on the shelf after the collection date.",
+          action: "Directions", btnBg: "#fff", btnColor: GREEN, btnBorder: "oklch(0.85 0.05 158)" };
+      } else if (it.kind === "loan") {
+        const soon = left <= 1;
+        o = { rank: soon ? 2 : 4, tag: soon ? "DUE SOON" : "ON LOAN", tagBg: soon ? "oklch(0.97 0.03 62)" : "oklch(0.96 0.02 258)",
+          tagColor: soon ? "oklch(0.48 0.13 62)" : ACC, border: soon ? "oklch(0.9 0.05 62)" : "oklch(0.92 0.006 258)",
+          dateColor: soon ? AMBER : "oklch(0.35 0.012 258)",
+          when: left === 0 ? "due today" : left === 1 ? "due tomorrow" : "due in " + left + " days",
+          title: "Return " + label, detail: it.note + ".",
+          action: "Ask for more time", btnBg: "#fff", btnColor: "oklch(0.4 0.012 258)", btnBorder: "oklch(0.92 0.006 258)" };
+      } else {
+        o = { rank: 3, tag: "WAITING", tagBg: "oklch(0.97 0.03 62)", tagColor: "oklch(0.48 0.13 62)", border: "oklch(0.92 0.006 258)",
+          dateColor: "oklch(0.35 0.012 258)", when: "decision expected today", title: label + " requested",
+          detail: it.note + ". Nothing is held for you until it is approved.",
+          action: "Withdraw", btnBg: "#fff", btnColor: "oklch(0.45 0.012 258)", btnBorder: "oklch(0.92 0.006 258)",
+          withdraw: true };
+      }
+      return { ...it, ...o, mon: p.mon, day: p.day, hasAction: true,
+        onAction: () => { if (o.withdraw) this.setState(st => ({ items: st.items.filter(x => x.id !== it.id) })); } };
+    }).sort((a, b) => gap(TODAY, a.date) - gap(TODAY, b.date) || a.rank - b.rank);
+
+    const overdue = s.items.filter(i => i.kind === "loan" && gap(TODAY, i.date) < 0).length;
+    const onLoan = s.items.filter(i => i.kind === "loan").reduce((n, i) => n + i.qty, 0);
+    const waiting = s.items.filter(i => i.kind === "pending").length;
+    const ready = s.items.filter(i => i.kind === "approved").length;
+
+    const shelf = SHELF.map(i => {
+      const out = i.avail === 0;
+      const low = !out && i.avail / i.total <= 0.3;
+      const color = out ? RED : low ? AMBER : GREEN;
+      return { ...i, availLine: out ? "None left" : i.avail + " of " + i.total + " free", availColor: color,
+        nameColor: out ? "oklch(0.68 0.012 258)" : "oklch(0.28 0.012 258)",
+        pct: Math.round((i.avail / i.total) * 100) + "%", blocked: out, cursor: out ? "not-allowed" : "pointer",
+        onRequest: () => { if (!out) this.open(i.id); } };
+    });
+
+    const picked = SHELF.find(i => i.id === s.pickId) || null;
+    const pickList = SHELF.map(i => {
+      const on = i.id === s.pickId, out = i.avail === 0;
+      return { name: i.name, availLine: out ? "None left" : i.avail + " available",
+        availColor: out ? RED : MUTED, nameColor: out ? "oklch(0.7 0.012 258)" : "oklch(0.28 0.012 258)",
+        border: on ? "oklch(0.8 0.07 258)" : "oklch(0.93 0.006 258)", bg: on ? "oklch(0.985 0.012 258)" : "#fff",
+        dotBorder: on ? ACC : "oklch(0.85 0.006 258)", dotBg: on ? ACC : "#fff", dotInner: on ? "#fff" : "transparent",
+        cursor: out ? "not-allowed" : "pointer",
+        onPick: () => { if (!out) this.setState({ pickId: i.id, qty: 1 }); } };
+    });
+
+    const datesOk = gap(s.from, s.to) >= 1;
+    const qtyOk = picked ? s.qty <= picked.avail : false;
+    const purposeOk = s.purpose.trim().length > 3;
+    const ok = !!picked && datesOk && qtyOk && purposeOk;
+
+    return {
+      noop: () => {},
+      stop: e => e.stopPropagation(),
+
+      headline: overdue > 0 ? "One thing is overdue" : ready > 0 ? "Something is ready to collect" : onLoan > 0 ? "You are all square" : "Nothing checked out",
+      subline: overdue > 0
+        ? "Borrowing is paused until the overdue item is back on the shelf."
+        : ready > 0 ? "Pick it up before the collection date or it goes back on the shelf."
+        : onLoan > 0 ? "Everything you hold is still inside its return date." : "Request something from the shelf when you need it.",
+      subColor: overdue > 0 ? "oklch(0.82 0.11 25)" : "oklch(1 0 0 / 0.72)",
+      standing: [
+        { value: onLoan, label: "units held", color: "#fff" },
+        { value: overdue, label: "overdue", color: overdue > 0 ? "oklch(0.78 0.14 25)" : "oklch(1 0 0 / 0.5)" },
+        { value: waiting, label: "awaiting reply", color: waiting > 0 ? "oklch(0.86 0.13 85)" : "oklch(1 0 0 / 0.5)" }
+      ],
+
+      bellOpen: s.bellOpen,
+      toggleBell: () => this.setState(st => ({ bellOpen: !st.bellOpen })),
+      hasAlerts: overdue + ready > 0,
+      alerts: shaped.slice(0, 3).map(a => ({ text: a.title + " — " + a.when, when: a.tag.charAt(0) + a.tag.slice(1).toLowerCase(), color: a.tagColor })),
+
+      agenda: shaped,
+      agendaEmpty: shaped.length === 0,
+      agendaSummary: shaped.length + (shaped.length === 1 ? " open item" : " open items"),
+
+      hasHistory: s.history.length > 0,
+      historyOpen: s.historyOpen,
+      toggleHistory: () => this.setState(st => ({ historyOpen: !st.historyOpen })),
+      historyCaret: s.historyOpen ? "▼" : "▶",
+      historyLabel: (s.historyOpen ? "Hide" : "Show") + " earlier activity (" + s.history.length + ")",
+      history: s.history.map(h => ({ ...h, title: h.name, color: h.state === "declined" ? RED : GREEN })),
+
+      shelf,
+      shelfCount: SHELF.filter(i => i.avail > 0).length + " of " + SHELF.length + " types",
+
+      modalOpen: s.modalOpen,
+      requestSent: s.requestSent,
+      requestForm: !s.requestSent,
+      openRequest: () => this.open(null),
+      closeModal: () => this.setState({ modalOpen: false }),
+      pickList, qty: s.qty, from: s.from, to: s.to, purpose: s.purpose,
+      onFrom: e => this.setState({ from: e.target.value }),
+      onTo: e => this.setState({ to: e.target.value }),
+      onPurpose: e => this.setState({ purpose: e.target.value }),
+      incQty: () => this.setState(st => ({ qty: Math.min(picked ? picked.avail : 1, st.qty + 1) })),
+      decQty: () => this.setState(st => ({ qty: Math.max(1, st.qty - 1) })),
+      preview: !picked ? "Pick an item from the list"
+        : !datesOk ? "The end date must come after the start date"
+        : "Asking for " + s.qty + " of " + picked.avail + " available · " + pretty(s.from) + " to " + pretty(s.to) + " (" + gap(s.from, s.to) + " days)",
+      previewBg: picked && !datesOk ? "oklch(0.97 0.02 25)" : "oklch(0.978 0.003 258)",
+      previewColor: picked && !datesOk ? "oklch(0.48 0.18 25)" : "oklch(0.45 0.012 258)",
+      previewDot: picked && !datesOk ? RED : GREEN,
+      hint: !picked ? "Choose what you need" : !purposeOk ? "Say what it is for" : !datesOk ? "Check the dates" : "Reviewed within one working day",
+      hintColor: ok ? MUTED : RED,
+      submitDisabled: !ok,
+      submitBg: ok ? "oklch(0.55 0.17 258)" : "oklch(0.85 0.01 258)",
+      submitCursor: ok ? "pointer" : "not-allowed",
+      submitRequest: () => {
+        if (!ok) return;
+        this.setState(st => ({
+          requestSent: true,
+          items: st.items.concat({ id: Date.now(), kind: "pending", name: picked.name, qty: st.qty, date: st.from,
+            note: "Sent just now · needed " + pretty(st.from) + " to " + pretty(st.to) })
+        }));
+      }
+    };
+  }
+}
+
+</script>
+</body>
+</html>

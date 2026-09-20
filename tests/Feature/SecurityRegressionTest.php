@@ -11,6 +11,16 @@ class SecurityRegressionTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * `Admin` is not an assignable role on either registration route: the shared
+     * validation in AuthenticateUser::register caps user_type at
+     * Instructor/Student, so the request is rejected outright rather than being
+     * quietly rewritten to a lesser role.
+     *
+     * An earlier revision coerced the value to Student instead of rejecting it;
+     * this asserts the property that matters either way — no Admin account can
+     * come from a web request.
+     */
     public function test_public_registration_cannot_create_admin_account(): void
     {
         $response = $this->post('/register', [
@@ -21,18 +31,40 @@ class SecurityRegressionTest extends TestCase
             'password_confirmation' => 'secret123',
         ]);
 
-        $this->assertDatabaseHas('users', [
-            'email'    => 'evil@example.com',
-            'user_type' => 'Student',
-        ]);
+        $response->assertSessionHasErrors('user_type');
 
-        $this->assertDatabaseMissing('users', [
-            'email'    => 'evil@example.com',
-            'user_type' => 'Admin',
-        ]);
+        // Rejected, not downgraded: no account is created at all.
+        $this->assertDatabaseMissing('users', ['email' => 'evil@example.com']);
     }
 
-    public function test_admin_can_still_create_admin_accounts(): void
+    /** Public signup deliberately offers both borrower roles. */
+    public function test_public_registration_allows_both_borrower_roles(): void
+    {
+        foreach (['Instructor', 'Student'] as $role) {
+            $email = strtolower($role).'@example.com';
+
+            $this->post('/register', [
+                'user_type' => $role,
+                'name'      => "Public $role",
+                'email'     => $email,
+                'password'  => 'secret123',
+                'password_confirmation' => 'secret123',
+            ]);
+
+            $this->assertDatabaseHas('users', [
+                'email'     => $email,
+                'user_type' => $role,
+            ]);
+        }
+    }
+
+    /**
+     * POST /admin/users reuses AuthenticateUser::register, so it is capped at the
+     * same two roles. Admin accounts are made directly in the database (seed or
+     * tinker) by design — see AGENT_CONTEXT.md. This pins that decision so the
+     * cap is not widened by accident.
+     */
+    public function test_admin_users_form_cannot_create_admin_accounts(): void
     {
         $admin = User::factory()->create(['user_type' => 'Admin']);
 
@@ -44,9 +76,26 @@ class SecurityRegressionTest extends TestCase
             'password_confirmation' => 'secret123',
         ]);
 
+        $response->assertSessionHasErrors('user_type');
+        $this->assertDatabaseMissing('users', ['email' => 'new-admin@example.com']);
+    }
+
+    /** The same form does create the two roles it is meant to. */
+    public function test_admin_users_form_creates_borrower_accounts(): void
+    {
+        $admin = User::factory()->create(['user_type' => 'Admin']);
+
+        $this->actingAs($admin)->post('/admin/users', [
+            'user_type' => 'Instructor',
+            'name'      => 'New Instructor',
+            'email'     => 'new-instructor@example.com',
+            'password'  => 'secret123',
+            'password_confirmation' => 'secret123',
+        ]);
+
         $this->assertDatabaseHas('users', [
-            'email'     => 'new-admin@example.com',
-            'user_type' => 'Admin',
+            'email'     => 'new-instructor@example.com',
+            'user_type' => 'Instructor',
         ]);
     }
 

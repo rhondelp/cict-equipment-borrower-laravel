@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="./image-slot.js"></script>
+<style>
+  body { margin: 0; background: #fff; font-family: Poppins, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: oklch(0.55 0.17 258); text-decoration: none; }
+  a:hover { color: oklch(0.45 0.17 258); }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+
+<div style="display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr); min-height: 100vh; color: oklch(0.28 0.012 258);">
+
+  <aside style="background: oklch(0.32 0.09 262); color: #fff; padding: 44px 44px 36px; display: flex; flex-direction: column; justify-content: space-between; gap: 40px; min-width: 0;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 40px; height: 40px; flex: none; border-radius: 10px; background: oklch(1 0 0 / 0.14); color: #fff; display: grid; place-items: center; font-size: 14px; font-weight: 700; letter-spacing: 0.02em;">CE</div>
+      <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+        <div style="font-size: 13.5px; font-weight: 600; line-height: 1.2;">CICT Equipment</div>
+        <div style="font-size: 11.5px; line-height: 1.2; color: oklch(1 0 0 / 0.62);">University of Northwestern Mindanao</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 22px; max-width: 420px;">
+      <h1 style="margin: 0; font-size: 34px; font-weight: 600; line-height: 1.16; letter-spacing: -0.02em; text-wrap: pretty;">Borrow lab equipment without the paper logbook.</h1>
+      <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: oklch(1 0 0 / 0.72); text-wrap: pretty;">Request an item, see what is still on the shelf, and get a reminder before it is due back.</p>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 6px;">
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: oklch(1 0 0 / 0.8);">
+          <span style="width: 5px; height: 5px; border-radius: 50%; flex: none; background: oklch(0.8 0.14 158);"></span>
+          89 units tracked across 8 item types
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: oklch(1 0 0 / 0.8);">
+          <span style="width: 5px; height: 5px; border-radius: 50%; flex: none; background: oklch(0.8 0.14 158);"></span>
+          Open 8:00 AM – 5:00 PM, Monday to Saturday
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 16px; font-size: 12px; color: oklch(1 0 0 / 0.5); flex-wrap: wrap;">
+      <span>College of Information &amp; Communications Technology</span>
+    </div>
+  </aside>
+
+  <main style="display: flex; align-items: center; justify-content: center; padding: 48px 32px; min-width: 0;">
+    <div style="width: 100%; max-width: 392px; display: flex; flex-direction: column; gap: 22px;">
+
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <h2 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.015em;">Sign in</h2>
+        <p style="margin: 0; font-size: 13.5px; color: oklch(0.55 0.012 258);">Use your school account. Students and instructors both sign in here.</p>
+      </div>
+
+      <sc-if value="{{ showError }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px; border-radius: 10px; background: oklch(0.965 0.025 25); font-size: 13px; color: oklch(0.45 0.18 25); text-wrap: pretty;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; flex: none; margin-top: 6px; background: oklch(0.55 0.18 25);"></span>
+          {{ errorText }}
+        </div>
+      </sc-if>
+
+      <div style="display: flex; flex-direction: column; gap: 15px;">
+        <label style="display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 12.5px; font-weight: 500;">School email</span>
+          <input type="email" autocomplete="username" value="{{ email }}" onChange="{{ onEmail }}" onKeyDown="{{ onKey }}" placeholder="name@nmsc.edu.ph" style="height: 44px; padding: 0 13px; border: 1px solid {{ emailBorder }}; border-radius: 10px; font-family: inherit; font-size: 14px; color: inherit; outline: none;" style-focus="border-color: oklch(0.6 0.13 258)" />
+          <sc-if value="{{ emailBad }}" hint-placeholder-val="{{ false }}">
+            <span style="font-size: 12px; color: oklch(0.52 0.18 25);">{{ emailMsg }}</span>
+          </sc-if>
+        </label>
+
+        <label style="display: flex; flex-direction: column; gap: 6px;">
+          <span style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 12.5px; font-weight: 500;">
+            Password
+            <a href="#" style="font-size: 12.5px; font-weight: 500;">Forgot password?</a>
+          </span>
+          <span style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 6px 0 13px; border: 1px solid {{ passBorder }}; border-radius: 10px;" style-focus-within="border-color: oklch(0.6 0.13 258)">
+            <input type="{{ passType }}" autocomplete="current-password" value="{{ password }}" onChange="{{ onPass }}" onKeyDown="{{ onKey }}" placeholder="••••••••" style="flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 14px; color: inherit;" />
+            <button onClick="{{ toggleReveal }}" type="button" style="flex: none; height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; font-size: 12.5px; font-weight: 500; color: oklch(0.5 0.012 258); cursor: pointer;" style-hover="background: oklch(0.96 0.004 258)">{{ revealLabel }}</button>
+          </span>
+        </label>
+
+        <label style="display: flex; align-items: center; gap: 9px; cursor: pointer; font-size: 13px; color: oklch(0.45 0.012 258);">
+          <input type="checkbox" checked="{{ remember }}" onChange="{{ onRemember }}" style="width: 15px; height: 15px; accent-color: oklch(0.55 0.17 258); cursor: pointer;" />
+          Keep me signed in on this computer
+        </label>
+
+        <button onClick="{{ submit }}" disabled="{{ busy }}" style="height: 46px; border: 0; border-radius: 10px; font-family: inherit; font-size: 14.5px; font-weight: 600; color: #fff; background: {{ ctaBg }}; cursor: {{ ctaCursor }};" style-hover="background: oklch(0.48 0.17 258)">{{ ctaLabel }}</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="height: 1px; flex: 1; background: oklch(0.92 0.006 258);"></span>
+        <span style="font-size: 11.5px; color: oklch(0.65 0.012 258);">OR</span>
+        <span style="height: 1px; flex: 1; background: oklch(0.92 0.006 258);"></span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <p style="margin: 0; font-size: 13px; color: oklch(0.5 0.012 258); text-wrap: pretty;">No account yet? Students and instructors can request one — the equipment office approves it before the first borrow.</p>
+        <a href="#" style="display: flex; align-items: center; justify-content: center; height: 44px; border: 1px solid oklch(0.91 0.006 258); border-radius: 10px; font-size: 14px; font-weight: 600; color: oklch(0.35 0.012 258);" style-hover="background: oklch(0.975 0.004 258); color: oklch(0.35 0.012 258)">Request an account</a>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 14px; font-size: 12px; color: oklch(0.62 0.012 258); flex-wrap: wrap;">
+        <a href="#" style="font-size: 12px; color: oklch(0.55 0.012 258);">Privacy policy</a>
+        <a href="#" style="font-size: 12px; color: oklch(0.55 0.012 258);">Terms of service</a>
+        <span style="margin-left: auto;">Need help? cict.equipment@nmsc.edu.ph</span>
+      </div>
+    </div>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { email: "", password: "", reveal: false, remember: true, busy: false, touched: false, error: "" };
+
+  submit = () => {
+    const email = this.state.email.trim();
+    const okMail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!okMail || this.state.password.length < 1) {
+      this.setState({ touched: true, error: !okMail ? "" : "Enter your password to continue." });
+      return;
+    }
+    this.setState({ busy: true, error: "" });
+    this._t = setTimeout(() => this.setState({ busy: false, error: "That email and password do not match an account. Check for typos, or reset your password." }), 900);
+  };
+
+  componentWillUnmount() { clearTimeout(this._t); }
+
+  renderVals() {
+    const { email, password, reveal, remember, busy, touched, error } = this.state;
+    const okMail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    const emailBad = touched && !okMail;
+    const RED = "oklch(0.72 0.14 25)";
+
+    return {
+      email, password, remember, busy,
+      passType: reveal ? "text" : "password",
+      revealLabel: reveal ? "Hide" : "Show",
+      toggleReveal: () => this.setState(s => ({ reveal: !s.reveal })),
+      onEmail: e => this.setState({ email: e.target.value }),
+      onPass: e => this.setState({ password: e.target.value }),
+      onRemember: e => this.setState({ remember: e.target.checked }),
+      onKey: e => { if (e.key === "Enter") this.submit(); },
+      submit: this.submit,
+      emailBad,
+      emailMsg: email.trim() === "" ? "Enter your school email address." : "That does not look like a complete email address.",
+      emailBorder: emailBad ? RED : "oklch(0.9 0.006 258)",
+      passBorder: touched && password.length === 0 ? RED : "oklch(0.9 0.006 258)",
+      showError: !!error,
+      errorText: error,
+      ctaLabel: busy ? "Signing in…" : "Sign in",
+      ctaBg: busy ? "oklch(0.72 0.08 258)" : "oklch(0.55 0.17 258)",
+      ctaCursor: busy ? "progress" : "pointer"
+    };
+  }
+}
+
+</script>
+</body>
+</html>

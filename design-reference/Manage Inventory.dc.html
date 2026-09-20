@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: oklch(0.975 0.004 258); font-family: Poppins, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: oklch(0.55 0.17 258); text-decoration: none; }
+  a:hover { color: oklch(0.45 0.17 258); }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+
+<div style="display: grid; grid-template-columns: 244px minmax(0, 1fr); min-height: 100vh; color: oklch(0.28 0.012 258);">
+
+  <aside style="background: #fff; border-right: 1px solid oklch(0.92 0.006 258); display: flex; flex-direction: column; padding: 18px 14px; gap: 22px; position: sticky; top: 0; height: 100vh;">
+    <div style="display: flex; align-items: center; gap: 11px; padding: 4px 6px;">
+      <div style="width: 34px; height: 34px; border-radius: 9px; background: oklch(0.55 0.17 258); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; letter-spacing: 0.02em;">CE</div>
+      <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+        <div style="font-size: 13.5px; font-weight: 600; line-height: 1.15;">CICT Equipment</div>
+        <div style="font-size: 11px; color: oklch(0.58 0.012 258); line-height: 1.15;">Management System</div>
+      </div>
+    </div>
+
+    <nav style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: oklch(0.65 0.012 258); padding: 0 10px 6px;">OVERVIEW</div>
+      <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.4"></rect><rect x="9" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.4"></rect><rect x="1.5" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.4"></rect><rect x="9" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.4"></rect></svg>
+        Dashboard
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: oklch(0.45 0.17 258); background: oklch(0.955 0.022 258); position: relative;">
+        <span style="position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: oklch(0.55 0.17 258);"></span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.6" y="4.2" width="12.8" height="9.2" rx="1.6" stroke="currentColor" stroke-width="1.4"></rect><path d="M5.4 4.2V3a1.4 1.4 0 0 1 1.4-1.4h2.4A1.4 1.4 0 0 1 10.6 3v1.2" stroke="currentColor" stroke-width="1.4"></path></svg>
+        Equipment
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5.4" r="2.6" stroke="currentColor" stroke-width="1.4"></circle><path d="M1.8 13.4c0-2.2 1.9-3.6 4.2-3.6s4.2 1.4 4.2 3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path><path d="M11.4 9.9c1.7.2 2.8 1.5 2.8 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg>
+        Users
+      </a>
+      <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: oklch(0.65 0.012 258); padding: 16px 10px 6px;">CIRCULATION</div>
+      <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 5.2h11M10.4 2.6 13 5.2l-2.6 2.6M14 10.8H3M5.6 8.2 3 10.8l2.6 2.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        Borrow Transactions
+      </a>
+      <a href="#" style="display: flex; align-items: center; justify-content: space-between; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <span style="display: flex; align-items: center; gap: 11px;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12.4" rx="1.6" stroke="currentColor" stroke-width="1.4"></rect><path d="M5.8 6h4.4M5.8 9h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg>
+          Requests
+        </span>
+        <span style="background: oklch(0.58 0.18 25); color: #fff; font-size: 10.5px; font-weight: 600; line-height: 1; padding: 4px 6px; border-radius: 20px;">4</span>
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2.2" y="3" width="11.6" height="10.4" rx="1.6" stroke="currentColor" stroke-width="1.4"></rect><path d="M2.2 6.4h11.6" stroke="currentColor" stroke-width="1.4"></path></svg>
+        Return Logs
+      </a>
+    </nav>
+
+    <div style="margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 9px; border-radius: 10px; border: 1px solid oklch(0.93 0.006 258); cursor: pointer;" style-hover="background: oklch(0.975 0.004 258)">
+      <div style="width: 30px; height: 30px; border-radius: 50%; background: oklch(0.9 0.03 258); color: oklch(0.45 0.12 258); display: grid; place-items: center; font-size: 12px; font-weight: 600;">QJ</div>
+      <div style="min-width: 0; flex: 1;">
+        <div style="font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Quincy Jane O.</div>
+        <div style="font-size: 10.5px; color: oklch(0.6 0.012 258);">Administrator</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="color: oklch(0.65 0.012 258);"><circle cx="8" cy="3" r="1.3" fill="currentColor"></circle><circle cx="8" cy="8" r="1.3" fill="currentColor"></circle><circle cx="8" cy="13" r="1.3" fill="currentColor"></circle></svg>
+    </div>
+  </aside>
+
+  <main style="display: flex; flex-direction: column; min-width: 0;">
+    <header style="display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px 32px; background: #fff; border-bottom: 1px solid oklch(0.92 0.006 258); position: sticky; top: 0; z-index: 5;">
+      <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 0 1 auto; overflow: hidden;">
+        <h1 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap;">Equipment</h1>
+        <span style="font-size: 12.5px; color: oklch(0.6 0.012 258); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ summaryLine }}</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 auto; justify-content: flex-end; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 8px; background: oklch(0.975 0.004 258); border: 1px solid oklch(0.92 0.006 258); border-radius: 9px; padding: 0 11px; height: 38px; flex: 0 1 260px; min-width: 0;">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="color: oklch(0.62 0.012 258); flex: none;"><circle cx="7" cy="7" r="4.6" stroke="currentColor" stroke-width="1.5"></circle><path d="m10.6 10.6 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+          <input type="text" placeholder="Search equipment" value="{{ query }}" onChange="{{ onSearch }}" style="border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 13px; color: inherit; width: 100%;" />
+        </div>
+        <button onClick="{{ openAdd }}" style="display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 15px; flex: none; white-space: nowrap; border: 0; border-radius: 9px; background: oklch(0.55 0.17 258); color: #fff; font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;" style-hover="background: oklch(0.48 0.17 258)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path></svg>
+          Add equipment
+        </button>
+      </div>
+    </header>
+
+    <div style="padding: 24px 32px 48px; display: flex; flex-direction: column; gap: 20px; max-width: 1240px; width: 100%;">
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+        <div style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 12px; padding: 15px 17px; display: flex; flex-direction: column; gap: 5px;">
+          <div style="font-size: 11.5px; font-weight: 500; color: oklch(0.58 0.012 258);">Units in stock</div>
+          <div style="font-size: 25px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">{{ statInStock }}</div>
+          <div style="font-size: 11.5px; color: oklch(0.62 0.012 258);">{{ statInStockSub }}</div>
+        </div>
+        <div style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 12px; padding: 15px 17px; display: flex; flex-direction: column; gap: 5px;">
+          <div style="font-size: 11.5px; font-weight: 500; color: oklch(0.58 0.012 258);">Checked out</div>
+          <div style="font-size: 25px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">{{ statOut }}</div>
+          <div style="font-size: 11.5px; color: oklch(0.62 0.012 258);">{{ statOutSub }}</div>
+        </div>
+        <div style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 12px; padding: 15px 17px; display: flex; flex-direction: column; gap: 5px; cursor: pointer;" onClick="{{ onFilterLow }}" style-hover="border-color: oklch(0.8 0.08 75)">
+          <div style="font-size: 11.5px; font-weight: 500; color: oklch(0.58 0.012 258);">Running low</div>
+          <div style="font-size: 25px; font-weight: 600; letter-spacing: -0.02em; color: oklch(0.62 0.15 62); font-variant-numeric: tabular-nums;">{{ statLow }}</div>
+          <div style="font-size: 11.5px; color: oklch(0.62 0.012 258);">Under 30% available</div>
+        </div>
+        <div style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 12px; padding: 15px 17px; display: flex; flex-direction: column; gap: 5px; cursor: pointer;" onClick="{{ onFilterOut }}" style-hover="border-color: oklch(0.8 0.1 25)">
+          <div style="font-size: 11.5px; font-weight: 500; color: oklch(0.58 0.012 258);">Fully out</div>
+          <div style="font-size: 25px; font-weight: 600; letter-spacing: -0.02em; color: oklch(0.55 0.18 25); font-variant-numeric: tabular-nums;">{{ statOutOfStock }}</div>
+          <div style="font-size: 11.5px; color: oklch(0.62 0.012 258);">Nothing left to lend</div>
+        </div>
+      </div>
+
+      <section style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 14px; overflow: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 18px; border-bottom: 1px solid oklch(0.94 0.006 258); flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+              <button onClick="{{ f.onClick }}" style="height: 30px; padding: 0 12px; border-radius: 999px; font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; border: 1px solid {{ f.border }}; background: {{ f.bg }}; color: {{ f.color }};">{{ f.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: oklch(0.58 0.012 258);">
+            <span>Sort</span>
+            <select value="{{ sort }}" onChange="{{ onSort }}" style="height: 30px; border: 1px solid oklch(0.92 0.006 258); border-radius: 8px; background: #fff; font-family: inherit; font-size: 12.5px; color: oklch(0.32 0.012 258); padding: 0 8px; cursor: pointer;">
+              <option value="name">Name A–Z</option>
+              <option value="low">Least available first</option>
+              <option value="qty">Largest stock first</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.4fr) minmax(0, 110px) 76px; align-items: center; gap: 12px; padding: 9px 18px; background: oklch(0.982 0.003 258); border-bottom: 1px solid oklch(0.94 0.006 258); font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em; color: oklch(0.55 0.012 258);">
+          <div>EQUIPMENT</div>
+          <div>AVAILABILITY</div>
+          <div>STATUS</div>
+          <div style="text-align: right;">ACTIONS</div>
+        </div>
+
+        <sc-for list="{{ rows }}" as="row" hint-placeholder-count="8">
+          <div style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.4fr) minmax(0, 110px) 76px; align-items: center; gap: 12px; padding: 13px 18px; border-bottom: 1px solid oklch(0.955 0.004 258);" style-hover="background: oklch(0.985 0.003 258)">
+            <div style="min-width: 0;">
+              <div style="font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em;">{{ row.name }}</div>
+              <div style="font-size: 12px; color: oklch(0.6 0.012 258); margin-top: 2px; text-wrap: pretty;">{{ row.desc }}</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: oklch(0.42 0.012 258);">{{ row.ratio }}</div>
+              <div style="height: 5px; border-radius: 3px; background: oklch(0.93 0.006 258); overflow: hidden;">
+                <div style="height: 100%; border-radius: 3px; width: {{ row.pct }}; background: {{ row.bar }};"></div>
+              </div>
+            </div>
+            <div>
+              <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: {{ row.statusColor }};">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: {{ row.statusColor }};"></span>
+                {{ row.status }}
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+              <button onClick="{{ row.onEdit }}" title="Edit" style="width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid oklch(0.93 0.006 258); background: #fff; border-radius: 8px; color: oklch(0.45 0.012 258); cursor: pointer;" style-hover="border-color: oklch(0.7 0.1 258); color: oklch(0.5 0.17 258)">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M11.1 2.6a1.6 1.6 0 0 1 2.3 2.3L5.6 12.7l-3 .7.7-3 7.8-7.8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg>
+              </button>
+              <button onClick="{{ row.onAskDelete }}" title="Remove" style="width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid oklch(0.93 0.006 258); background: #fff; border-radius: 8px; color: oklch(0.55 0.012 258); cursor: pointer;" style-hover="border-color: oklch(0.75 0.12 25); color: oklch(0.55 0.18 25); background: oklch(0.975 0.015 25)">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 4.4h10M6.4 4.4V3.2A1 1 0 0 1 7.4 2.2h1.2a1 1 0 0 1 1 1v1.2M4.4 4.4l.6 8.2a1.2 1.2 0 0 0 1.2 1.1h3.6a1.2 1.2 0 0 0 1.2-1.1l.6-8.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              </button>
+            </div>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 48px 18px; text-align: center; color: oklch(0.58 0.012 258); font-size: 13px;">No equipment matches that filter.</div>
+        </sc-if>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; font-size: 12px; color: oklch(0.58 0.012 258);">
+          <span>{{ footerCount }}</span>
+          <span>Updated {{ updatedAt }}</span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeAdd }}" style="position: fixed; inset: 0; background: oklch(0.25 0.012 258 / 0.42); display: flex; align-items: flex-start; justify-content: center; padding: 64px 20px; z-index: 40; overflow-y: auto;">
+      <div onClick="{{ stop }}" role="dialog" aria-modal="true" style="width: 100%; max-width: 480px; background: #fff; border-radius: 16px; box-shadow: 0 24px 60px oklch(0.25 0.03 258 / 0.22); overflow: hidden;">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px 14px;">
+          <div>
+            <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em;">{{ modalTitle }}</h2>
+            <p style="margin: 3px 0 0; font-size: 12.5px; color: oklch(0.58 0.012 258);">{{ modalSub }}</p>
+          </div>
+          <button onClick="{{ closeAdd }}" aria-label="Close" style="flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid oklch(0.93 0.006 258); background: #fff; border-radius: 8px; color: oklch(0.5 0.012 258); cursor: pointer;" style-hover="background: oklch(0.975 0.004 258)">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>
+          </button>
+        </div>
+
+        <div style="padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 16px;">
+          <label style="display: flex; flex-direction: column; gap: 6px;">
+            <span style="font-size: 12.5px; font-weight: 500;">Equipment name</span>
+            <input type="text" value="{{ form.name }}" onChange="{{ onName }}" placeholder="e.g. Projector (Epson)" style="height: 40px; padding: 0 12px; border: 1px solid oklch(0.9 0.006 258); border-radius: 9px; font-family: inherit; font-size: 13.5px; color: inherit; outline: none;" style-focus="border-color: oklch(0.6 0.13 258)" />
+          </label>
+
+          <label style="display: flex; flex-direction: column; gap: 6px;">
+            <span style="display: flex; align-items: baseline; gap: 6px; font-size: 12.5px; font-weight: 500;">Description <span style="font-weight: 400; color: oklch(0.62 0.012 258);">optional</span></span>
+            <textarea rows="2" value="{{ form.desc }}" onChange="{{ onDesc }}" placeholder="What it is and what it is used for" style="padding: 9px 12px; border: 1px solid oklch(0.9 0.006 258); border-radius: 9px; font-family: inherit; font-size: 13.5px; color: inherit; outline: none; resize: vertical; min-height: 62px;" style-focus="border-color: oklch(0.6 0.13 258)"></textarea>
+          </label>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px;">
+            <label style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 12.5px; font-weight: 500;">{{ qtyLabel }}</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <button onClick="{{ decQty }}" aria-label="Fewer units" style="width: 34px; height: 40px; flex: none; border: 1px solid oklch(0.9 0.006 258); background: #fff; border-radius: 9px; font-family: inherit; font-size: 15px; color: oklch(0.45 0.012 258); cursor: pointer;" style-hover="background: oklch(0.975 0.004 258)">−</button>
+                <input type="number" min="1" value="{{ form.qty }}" onChange="{{ onQty }}" style="width: 100%; min-width: 0; height: 40px; padding: 0 10px; border: 1px solid oklch(0.9 0.006 258); border-radius: 9px; font-family: 'IBM Plex Mono', monospace; font-size: 14px; text-align: center; color: inherit; outline: none;" style-focus="border-color: oklch(0.6 0.13 258)" />
+                <button onClick="{{ incQty }}" aria-label="More units" style="width: 34px; height: 40px; flex: none; border: 1px solid oklch(0.9 0.006 258); background: #fff; border-radius: 9px; font-family: inherit; font-size: 15px; color: oklch(0.45 0.012 258); cursor: pointer;" style-hover="background: oklch(0.975 0.004 258)">+</button>
+              </div>
+            </label>
+
+            <label style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 12.5px; font-weight: 500;">Warn me below</span>
+              <input type="number" min="0" value="{{ form.threshold }}" onChange="{{ onThreshold }}" style="height: 40px; padding: 0 12px; border: 1px solid oklch(0.9 0.006 258); border-radius: 9px; font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: inherit; outline: none;" style-focus="border-color: oklch(0.6 0.13 258)" />
+            </label>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 10px; background: {{ previewBg }}; font-size: 12.5px; color: {{ previewColor }};">
+            <span style="width: 6px; height: 6px; border-radius: 50%; flex: none; background: {{ previewDot }};"></span>
+            {{ previewLine }}
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-top: 1px solid oklch(0.94 0.006 258); background: oklch(0.985 0.003 258);">
+          <span style="font-size: 12px; color: {{ hintColor }}; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ hint }}</span>
+          <div style="display: flex; align-items: center; gap: 8px; flex: none;">
+            <button onClick="{{ closeAdd }}" style="height: 38px; padding: 0 14px; border: 1px solid oklch(0.92 0.006 258); background: #fff; border-radius: 9px; font-family: inherit; font-size: 13.5px; font-weight: 500; color: oklch(0.4 0.012 258); cursor: pointer; white-space: nowrap; flex: none;" style-hover="background: oklch(0.97 0.004 258)">Cancel</button>
+            <button onClick="{{ submitAdd }}" disabled="{{ submitDisabled }}" style="height: 38px; padding: 0 16px; border: 0; border-radius: 9px; font-family: inherit; font-size: 13.5px; font-weight: 600; color: #fff; white-space: nowrap; flex: none; background: {{ submitBg }}; cursor: {{ submitCursor }};">{{ submitLabel }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeConfirm }}" style="position: fixed; inset: 0; background: oklch(0.25 0.012 258 / 0.42); display: flex; align-items: flex-start; justify-content: center; padding: 80px 20px; z-index: 50; overflow-y: auto;">
+      <div onClick="{{ stop }}" role="dialog" aria-modal="true" style="width: 100%; max-width: 440px; background: #fff; border-radius: 16px; box-shadow: 0 24px 60px oklch(0.25 0.03 258 / 0.22); overflow: hidden;">
+        <div style="padding: 20px 20px 16px; display: flex; flex-direction: column; gap: 12px;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em;">{{ confirmTitle }}</h2>
+          <p style="margin: 0; font-size: 13px; color: oklch(0.45 0.012 258); text-wrap: pretty;">{{ confirmBody }}</p>
+
+          <div style="display: flex; flex-direction: column; gap: 1px; background: oklch(0.94 0.006 258); border: 1px solid oklch(0.94 0.006 258); border-radius: 10px; overflow: hidden;">
+            <sc-for list="{{ confirmFacts }}" as="f" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; background: #fff; font-size: 12.5px;">
+                <span style="color: oklch(0.55 0.012 258);">{{ f.label }}</span>
+                <span style="font-weight: 600; color: {{ f.color }};">{{ f.value }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-top: 1px solid oklch(0.94 0.006 258); background: oklch(0.985 0.003 258); flex-wrap: wrap;">
+          <sc-if value="{{ canDelete }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ confirmDelete }}" style="border: 0; background: none; padding: 0; font-family: inherit; font-size: 12.5px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; color: oklch(0.52 0.18 25); cursor: pointer;">Delete permanently</button>
+          </sc-if>
+          <sc-if value="{{ deleteBlocked }}" hint-placeholder-val="{{ true }}">
+            <span style="font-size: 12px; color: oklch(0.55 0.012 258); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ blockReason }}</span>
+          </sc-if>
+          <div style="display: flex; align-items: center; gap: 8px; flex: none;">
+            <button onClick="{{ closeConfirm }}" style="height: 38px; padding: 0 14px; border: 1px solid oklch(0.92 0.006 258); background: #fff; border-radius: 9px; font-family: inherit; font-size: 13.5px; font-weight: 500; color: oklch(0.4 0.012 258); cursor: pointer; white-space: nowrap; flex: none;" style-hover="background: oklch(0.97 0.004 258)">Keep item</button>
+            <button onClick="{{ confirmRetire }}" style="height: 38px; padding: 0 16px; border: 0; border-radius: 9px; font-family: inherit; font-size: 13.5px; font-weight: 600; color: #fff; white-space: nowrap; flex: none; cursor: pointer; background: {{ retireBg }};">Retire item</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const DATA = [
+  { id: 1, name: "Document Camera", desc: "Visualizer for projecting documents", qty: 2, avail: 2, history: 4 },
+  { id: 2, name: "Extension Cord", desc: "5m heavy-duty extension cord", qty: 12, avail: 9, history: 2 },
+  { id: 3, name: "HDMI Cable", desc: "3m cable for projector / monitor hookups", qty: 20, avail: 14, history: 6 },
+  { id: 4, name: "Laptop (Dell Latitude)", desc: "14-inch laptop for classroom use", qty: 10, avail: 3, history: 9 },
+  { id: 5, name: "Microphone Set", desc: "Wireless lapel + handheld microphone pair", qty: 3, avail: 0, history: 3 },
+  { id: 6, name: "Projector (Epson)", desc: "Portable projector for presentations", qty: 4, avail: 2, history: 5 },
+  { id: 7, name: "Whiteboard Markers", desc: "Pack of 4 assorted colors", qty: 30, avail: 30, history: 0 },
+  { id: 8, name: "Wireless Presenter", desc: "Slide advancer with USB receiver", qty: 8, avail: 8, history: 0 }
+];
+
+const GREEN = "oklch(0.55 0.13 158)";
+const AMBER = "oklch(0.62 0.15 62)";
+const RED = "oklch(0.55 0.18 25)";
+const ACCENT = "oklch(0.55 0.17 258)";
+
+class Component extends DCLogic {
+  state = {
+    query: "", filter: "all", sort: "name", items: DATA,
+    modalOpen: false,
+    mode: "add",
+    editId: null,
+    confirmId: null,
+    form: { name: "", desc: "", qty: 1, threshold: 2 }
+  };
+
+  componentDidMount() {
+    this._esc = e => {
+      if (e.key !== "Escape") return;
+      if (this.state.confirmId) this.setState({ confirmId: null });
+      else if (this.state.modalOpen) this.setState({ modalOpen: false });
+    };
+    document.addEventListener("keydown", this._esc);
+  }
+
+  componentWillUnmount() { document.removeEventListener("keydown", this._esc); }
+
+  setForm(patch) { this.setState(s => ({ form: { ...s.form, ...patch } })); }
+
+  classify(it) {
+    const p = it.qty ? it.avail / it.qty : 0;
+    if (it.avail === 0) return { key: "out", status: "Fully out", color: RED };
+    if (p <= 0.3) return { key: "low", status: "Running low", color: AMBER };
+    if (it.avail < it.qty) return { key: "partial", status: "Partly out", color: ACCENT };
+    return { key: "all-in", status: "All in", color: GREEN };
+  }
+
+  renderVals() {
+    const { query, filter, sort, items, modalOpen, mode, editId, form } = this.state;
+    const qty = Math.max(1, parseInt(form.qty, 10) || 0);
+    const nameOk = form.name.trim().length > 1;
+    const editing = mode === "edit";
+    const target = editing ? items.find(i => i.id === editId) : null;
+    const onLoan = target ? target.qty - target.avail : 0;
+    const tooFew = editing && qty < onLoan;
+    const victim = items.find(i => i.id === this.state.confirmId) || null;
+    const vOut = victim ? victim.qty - victim.avail : 0;
+    const vHistory = victim ? (victim.history || 0) : 0;
+    const vBlocked = vOut > 0 || vHistory > 0;
+    const RED_C = "oklch(0.55 0.18 25)";
+    const q = query.trim().toLowerCase();
+
+    let list = items.filter(it => {
+      const c = this.classify(it).key;
+      const matchQ = !q || it.name.toLowerCase().includes(q) || it.desc.toLowerCase().includes(q);
+      const matchF =
+        filter === "all" ? true :
+        filter === "available" ? it.avail > 0 :
+        filter === "low" ? (c === "low" || c === "out") :
+        filter === "out" ? c === "out" : true;
+      return matchQ && matchF;
+    });
+
+    list = list.slice().sort((a, b) =>
+      sort === "name" ? a.name.localeCompare(b.name) :
+      sort === "low" ? (a.avail / a.qty) - (b.avail / b.qty) :
+      b.qty - a.qty
+    );
+
+    const rows = list.map(it => {
+      const c = this.classify(it);
+      return {
+        ...it,
+        ratio: it.avail + " of " + it.qty + " available",
+        pct: Math.round((it.qty ? it.avail / it.qty : 0) * 100) + "%",
+        bar: c.color,
+        status: c.status,
+        statusColor: c.color,
+        onAskDelete: () => this.setState({ confirmId: it.id }),
+        onEdit: () => this.setState({
+          modalOpen: true, mode: "edit", editId: it.id,
+          form: { name: it.name, desc: it.desc, qty: it.qty, threshold: Math.max(1, Math.round(it.qty * 0.3)) }
+        })
+      };
+    });
+
+    const totalUnits = items.reduce((s, i) => s + i.qty, 0);
+    const availUnits = items.reduce((s, i) => s + i.avail, 0);
+    const outUnits = totalUnits - availUnits;
+    const lowCount = items.filter(i => this.classify(i).key === "low").length;
+    const outCount = items.filter(i => i.avail === 0).length;
+    const borrowers = items.filter(i => i.avail < i.qty).length;
+
+    const mk = (key, label) => ({
+      label,
+      onClick: () => this.setState({ filter: key }),
+      bg: filter === key ? "oklch(0.95 0.025 258)" : "#fff",
+      border: filter === key ? "oklch(0.8 0.07 258)" : "oklch(0.92 0.006 258)",
+      color: filter === key ? "oklch(0.45 0.17 258)" : "oklch(0.45 0.012 258)"
+    });
+
+    return {
+      rows,
+      isEmpty: rows.length === 0,
+      query,
+      sort,
+      noop: () => {},
+      modalOpen,
+      form,
+      stop: e => e.stopPropagation(),
+      confirmOpen: !!victim,
+      confirmTitle: victim ? "Remove " + victim.name + "?" : "",
+      confirmBody: vOut > 0
+        ? "Units of this item are still with borrowers. Retire it and it stops being lendable, but the outstanding loans stay tracked until they come back."
+        : "Retiring keeps every past loan and return in the logs — the item simply stops appearing as lendable. Deleting erases it from those records too.",
+      confirmFacts: victim ? [
+        { label: "Units owned", value: String(victim.qty), color: "oklch(0.3 0.012 258)" },
+        { label: "Out with borrowers", value: String(vOut), color: vOut > 0 ? RED_C : "oklch(0.3 0.012 258)" },
+        { label: "Loans in the history log", value: String(vHistory), color: "oklch(0.3 0.012 258)" }
+      ] : [],
+      canDelete: !!victim && !vBlocked,
+      deleteBlocked: vBlocked,
+      blockReason: vOut > 0
+        ? "Can't delete — " + vOut + (vOut === 1 ? " unit is" : " units are") + " still out"
+        : "Can't delete — " + vHistory + (vHistory === 1 ? " loan references" : " loans reference") + " this item",
+      retireBg: "oklch(0.36 0.012 258)",
+      closeConfirm: () => this.setState({ confirmId: null }),
+      confirmRetire: () => this.setState(s => ({ confirmId: null, items: s.items.filter(x => x.id !== s.confirmId) })),
+      confirmDelete: () => { if (!vBlocked) this.setState(s => ({ confirmId: null, items: s.items.filter(x => x.id !== s.confirmId) })); },
+      openAdd: () => this.setState({ modalOpen: true, mode: "add", editId: null, form: { name: "", desc: "", qty: 1, threshold: 2 } }),
+      modalTitle: editing ? "Edit equipment" : "Add equipment",
+      modalSub: editing
+        ? "Availability is tracked from loans — adjust the total only when units are added, retired or lost."
+        : "New items start fully available. Availability updates itself as things are lent out.",
+      qtyLabel: editing ? "Total units owned" : "Units to add",
+      submitLabel: editing ? "Save changes" : "Add to inventory",
+      closeAdd: () => this.setState({ modalOpen: false }),
+      onName: e => this.setForm({ name: e.target.value }),
+      onDesc: e => this.setForm({ desc: e.target.value }),
+      onQty: e => this.setForm({ qty: e.target.value }),
+      onThreshold: e => this.setForm({ threshold: e.target.value }),
+      incQty: () => this.setForm({ qty: qty + 1 }),
+      decQty: () => this.setForm({ qty: Math.max(1, qty - 1) }),
+      previewLine: tooFew
+        ? onLoan + " units are out on loan — the total cannot go below that"
+        : editing
+          ? onLoan + " out on loan · will read " + (qty - onLoan) + " of " + qty + " available"
+          : "Will be listed as " + qty + " of " + qty + " available",
+      previewBg: tooFew ? "oklch(0.97 0.02 25)" : "oklch(0.975 0.004 258)",
+      previewColor: tooFew ? "oklch(0.48 0.18 25)" : "oklch(0.45 0.012 258)",
+      previewDot: tooFew ? "oklch(0.55 0.18 25)" : "oklch(0.55 0.13 158)",
+      hint: !nameOk ? "Name required"
+        : tooFew ? "Check in the units first"
+        : editing ? "Warns below " + form.threshold + (String(form.threshold) === "1" ? " unit" : " units")
+        : "Appears in the list at once",
+      hintColor: (!nameOk || tooFew) ? "oklch(0.55 0.18 25)" : "oklch(0.58 0.012 258)",
+      submitDisabled: !nameOk || tooFew,
+      submitBg: (nameOk && !tooFew) ? "oklch(0.55 0.17 258)" : "oklch(0.85 0.01 258)",
+      submitCursor: (nameOk && !tooFew) ? "pointer" : "not-allowed",
+      submitAdd: () => {
+        if (!nameOk || tooFew) return;
+        this.setState(s => ({
+          modalOpen: false,
+          items: editing
+            ? s.items.map(x => x.id === editId
+                ? { ...x, name: s.form.name.trim(), desc: s.form.desc.trim() || "No description yet", qty: qty, avail: qty - onLoan }
+                : x)
+            : s.items.concat({
+                id: Date.now(),
+                name: s.form.name.trim(),
+                desc: s.form.desc.trim() || "No description yet",
+                qty: qty,
+                avail: qty,
+                history: 0
+              })
+        }));
+      },
+      onSearch: e => this.setState({ query: e.target.value }),
+      onSort: e => this.setState({ sort: e.target.value }),
+      onFilterLow: () => this.setState({ filter: "low" }),
+      onFilterOut: () => this.setState({ filter: "out" }),
+      filters: [mk("all", "All " + items.length), mk("available", "Lendable"), mk("low", "Low or out"), mk("out", "Fully out")],
+      summaryLine: items.length + " item types · " + totalUnits + " units",
+      statInStock: availUnits,
+      statInStockSub: "of " + totalUnits + " total units",
+      statOut: outUnits,
+      statOutSub: "across " + borrowers + " item types",
+      statLow: lowCount,
+      statOutOfStock: outCount,
+      footerCount: rows.length === items.length ? "Showing all " + items.length + " items" : "Showing " + rows.length + " of " + items.length + " items",
+      updatedAt: "today, 9:42 AM"
+    };
+  }
+}
+
+</script>
+</body>
+</html>

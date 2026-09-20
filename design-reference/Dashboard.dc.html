@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: oklch(0.975 0.004 258); font-family: Poppins, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: oklch(0.55 0.17 258); text-decoration: none; }
+  a:hover { color: oklch(0.45 0.17 258); }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+
+<div style="display: grid; grid-template-columns: 244px minmax(0, 1fr); min-height: 100vh; color: oklch(0.28 0.012 258);">
+
+  <aside style="background: #fff; border-right: 1px solid oklch(0.92 0.006 258); display: flex; flex-direction: column; padding: 18px 14px; gap: 22px; position: sticky; top: 0; height: 100vh;">
+    <div style="display: flex; align-items: center; gap: 11px; padding: 4px 6px;">
+      <div style="width: 34px; height: 34px; border-radius: 9px; background: oklch(0.55 0.17 258); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px;">CE</div>
+      <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+        <div style="font-size: 13.5px; font-weight: 600; line-height: 1.15;">CICT Equipment</div>
+        <div style="font-size: 11px; color: oklch(0.58 0.012 258); line-height: 1.15;">Management System</div>
+      </div>
+    </div>
+
+    <nav style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: oklch(0.65 0.012 258); padding: 0 10px 6px;">OVERVIEW</div>
+      <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: oklch(0.45 0.17 258); background: oklch(0.955 0.022 258); position: relative;">
+        <span style="position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: oklch(0.55 0.17 258);"></span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.4"></rect><rect x="9" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.4"></rect><rect x="1.5" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.4"></rect><rect x="9" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.4"></rect></svg>
+        Dashboard
+      </a>
+      <a href="./Manage Inventory.dc.html" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.6" y="4.2" width="12.8" height="9.2" rx="1.6" stroke="currentColor" stroke-width="1.4"></rect><path d="M5.4 4.2V3a1.4 1.4 0 0 1 1.4-1.4h2.4A1.4 1.4 0 0 1 10.6 3v1.2" stroke="currentColor" stroke-width="1.4"></path></svg>
+        Equipment
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5.4" r="2.6" stroke="currentColor" stroke-width="1.4"></circle><path d="M1.8 13.4c0-2.2 1.9-3.6 4.2-3.6s4.2 1.4 4.2 3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path><path d="M11.4 9.9c1.7.2 2.8 1.5 2.8 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg>
+        Users
+      </a>
+      <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: oklch(0.65 0.012 258); padding: 16px 10px 6px;">CIRCULATION</div>
+      <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 5.2h11M10.4 2.6 13 5.2l-2.6 2.6M14 10.8H3M5.6 8.2 3 10.8l2.6 2.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        Borrow Transactions
+      </a>
+      <a href="#" style="display: flex; align-items: center; justify-content: space-between; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <span style="display: flex; align-items: center; gap: 11px;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12.4" rx="1.6" stroke="currentColor" stroke-width="1.4"></rect><path d="M5.8 6h4.4M5.8 9h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg>
+          Requests
+        </span>
+        <span style="background: oklch(0.58 0.18 25); color: #fff; font-size: 10.5px; font-weight: 600; line-height: 1; padding: 4px 6px; border-radius: 20px;">{{ pendingCount }}</span>
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2.2" y="3" width="11.6" height="10.4" rx="1.6" stroke="currentColor" stroke-width="1.4"></rect><path d="M2.2 6.4h11.6" stroke="currentColor" stroke-width="1.4"></path></svg>
+        Return Logs
+      </a>
+    </nav>
+
+    <div style="margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 9px; border-radius: 10px; border: 1px solid oklch(0.93 0.006 258); cursor: pointer;" style-hover="background: oklch(0.975 0.004 258)">
+      <div style="width: 30px; height: 30px; border-radius: 50%; background: oklch(0.9 0.03 258); color: oklch(0.45 0.12 258); display: grid; place-items: center; font-size: 12px; font-weight: 600;">QJ</div>
+      <div style="min-width: 0; flex: 1;">
+        <div style="font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Quincy Jane O.</div>
+        <div style="font-size: 10.5px; color: oklch(0.6 0.012 258);">Administrator</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="color: oklch(0.65 0.012 258);"><circle cx="8" cy="3" r="1.3" fill="currentColor"></circle><circle cx="8" cy="8" r="1.3" fill="currentColor"></circle><circle cx="8" cy="13" r="1.3" fill="currentColor"></circle></svg>
+    </div>
+  </aside>
+
+  <main style="display: flex; flex-direction: column; min-width: 0;">
+    <header style="display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 32px; background: #fff; border-bottom: 1px solid oklch(0.92 0.006 258); position: sticky; top: 0; z-index: 5;">
+      <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 0 1 auto; overflow: hidden;">
+        <h1 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap;">{{ greeting }}</h1>
+        <span style="font-size: 12.5px; color: oklch(0.6 0.012 258); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ todayLine }}</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+        <button onClick="{{ noop }}" style="display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; border: 1px solid oklch(0.92 0.006 258); border-radius: 9px; background: #fff; color: oklch(0.35 0.012 258); font-family: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: oklch(0.975 0.004 258)">Record a return</button>
+        <button onClick="{{ noop }}" style="display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 15px; border: 0; border-radius: 9px; background: oklch(0.55 0.17 258); color: #fff; font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; white-space: nowrap;" style-hover="background: oklch(0.48 0.17 258)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path></svg>
+          New loan
+        </button>
+      </div>
+    </header>
+
+    <div style="padding: 22px 32px 48px; display: flex; flex-direction: column; gap: 18px; max-width: 1240px; width: 100%;">
+
+      <section style="border: 1px solid oklch(0.92 0.006 258); border-radius: 14px; overflow: hidden;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1px; background: oklch(0.95 0.004 258);">
+          <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+            <div style="padding: 14px 18px; display: flex; flex-direction: column; gap: 4px; background: #fff;">
+              <div style="font-size: 11.5px; font-weight: 500; color: oklch(0.58 0.012 258);">{{ s.label }}</div>
+              <div style="display: flex; align-items: baseline; gap: 7px;">
+                <span style="font-size: 26px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: {{ s.color }};">{{ s.value }}</span>
+                <span style="font-size: 11.5px; color: oklch(0.62 0.012 258);">{{ s.unit }}</span>
+              </div>
+              <div style="font-size: 11.5px; color: oklch(0.62 0.012 258);">{{ s.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; align-items: start;">
+
+        <section style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 14px; overflow: hidden;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid oklch(0.94 0.006 258);">
+            <div style="display: flex; align-items: center; gap: 9px; min-width: 0;">
+              <h2 style="margin: 0; font-size: 14.5px; font-weight: 600;">Needs your attention</h2>
+              <span style="background: oklch(0.96 0.03 25); color: oklch(0.5 0.18 25); font-size: 11px; font-weight: 600; padding: 3px 7px; border-radius: 20px;">{{ attentionCount }}</span>
+            </div>
+          </div>
+          <sc-for list="{{ attention }}" as="a" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 13px 18px; border-bottom: 1px solid oklch(0.96 0.004 258);" style-hover="background: oklch(0.985 0.003 258)">
+              <span style="width: 8px; height: 8px; border-radius: 50%; flex: none; background: {{ a.color }};"></span>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-size: 13px; font-weight: 600;">{{ a.title }}</div>
+                <div style="font-size: 12px; color: oklch(0.6 0.012 258); margin-top: 1px; text-wrap: pretty;">{{ a.detail }}</div>
+              </div>
+              <button onClick="{{ a.onAct }}" style="flex: none; height: 30px; padding: 0 12px; border: 1px solid oklch(0.92 0.006 258); background: #fff; border-radius: 8px; font-family: inherit; font-size: 12.5px; font-weight: 500; color: oklch(0.42 0.012 258); cursor: pointer; white-space: nowrap;" style-hover="border-color: oklch(0.7 0.1 258); color: oklch(0.5 0.17 258)">{{ a.action }}</button>
+            </div>
+          </sc-for>
+          <sc-if value="{{ attentionClear }}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 34px 18px; text-align: center; font-size: 13px; color: oklch(0.58 0.012 258);">Nothing outstanding. Everything is returned and reviewed.</div>
+          </sc-if>
+        </section>
+
+        <section style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 14px; overflow: hidden;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid oklch(0.94 0.006 258);">
+            <h2 style="margin: 0; font-size: 14.5px; font-weight: 600;">Currently out</h2>
+            <a href="#" style="font-size: 12.5px; font-weight: 500;">Borrow log</a>
+          </div>
+          <sc-for list="{{ loans }}" as="l" hint-placeholder-count="4">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid oklch(0.96 0.004 258);" style-hover="background: oklch(0.985 0.003 258)">
+              <div style="width: 30px; height: 30px; border-radius: 50%; flex: none; background: oklch(0.955 0.01 258); color: oklch(0.45 0.03 258); display: grid; place-items: center; font-size: 11px; font-weight: 600;">{{ l.initials }}</div>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ l.item }}</div>
+                <div style="font-size: 12px; color: oklch(0.6 0.012 258); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ l.who }}</div>
+              </div>
+              <div style="flex: none; text-align: right;">
+                <div style="font-size: 12px; font-weight: 500; color: {{ l.dueColor }};">{{ l.due }}</div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: oklch(0.62 0.012 258); margin-top: 1px;">{{ l.qty }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </section>
+      </div>
+
+      <section style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 14px; overflow: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid oklch(0.94 0.006 258);">
+          <div>
+            <h2 style="margin: 0; font-size: 14.5px; font-weight: 600;">Activity</h2>
+            <div style="font-size: 12px; color: oklch(0.6 0.012 258); margin-top: 1px;">Loans, returns and requests across the department</div>
+          </div>
+          <a href="#" style="font-size: 12.5px; font-weight: 500; white-space: nowrap;">View all</a>
+        </div>
+        <sc-for list="{{ activity }}" as="ev" hint-placeholder-count="5">
+          <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid oklch(0.96 0.004 258);" style-hover="background: oklch(0.985 0.003 258)">
+            <span style="flex: none; font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; padding: 4px 8px; border-radius: 6px; width: 78px; text-align: center; background: {{ ev.tagBg }}; color: {{ ev.tagColor }};">{{ ev.tag }}</span>
+            <div style="min-width: 0; flex: 1; font-size: 13px; text-wrap: pretty;">
+              <span style="font-weight: 600;">{{ ev.item }}</span>
+              <span style="color: oklch(0.55 0.012 258);"> {{ ev.verb }} </span>
+              <span style="font-weight: 500;">{{ ev.person }}</span>
+            </div>
+            <span style="flex: none; font-size: 11.5px; color: oklch(0.62 0.012 258); white-space: nowrap;">{{ ev.when }}</span>
+          </div>
+        </sc-for>
+        <div style="padding: 12px 18px; font-size: 12px; color: oklch(0.58 0.012 258);">Showing the last 6 events</div>
+      </section>
+    </div>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const GREEN = "oklch(0.55 0.13 158)";
+const AMBER = "oklch(0.62 0.15 62)";
+const RED = "oklch(0.55 0.18 25)";
+const ACCENT = "oklch(0.5 0.17 258)";
+const INK = "oklch(0.28 0.012 258)";
+
+class Component extends DCLogic {
+  state = {
+    attention: [
+      { id: 1, title: "2 requests awaiting review", detail: "Projector (Epson) ×1 and Laptop ×2 · oldest waiting 2 days", action: "Review", color: ACCENT },
+      { id: 2, title: "1 loan overdue", detail: "Laptop (Dell Latitude) ×2 with Richie Mers · due 3 days ago", action: "Follow up", color: RED },
+      { id: 3, title: "Microphone Set is fully out", detail: "0 of 3 available — two more requests reference it", action: "View item", color: AMBER }
+    ]
+  };
+
+  renderVals() {
+    const attention = this.state.attention.map(a => ({
+      ...a,
+      onAct: () => this.setState(s => ({ attention: s.attention.filter(x => x.id !== a.id) }))
+    }));
+
+    const tag = (t) =>
+      t === "RETURNED" ? { tagBg: "oklch(0.96 0.03 158)", tagColor: "oklch(0.44 0.13 158)" } :
+      t === "BORROWED" ? { tagBg: "oklch(0.96 0.02 258)", tagColor: ACCENT } :
+      { tagBg: "oklch(0.965 0.008 258)", tagColor: "oklch(0.48 0.012 258)" };
+
+    const activity = [
+      { tag: "RETURNED", item: "Microphone Set", verb: "returned by", person: "Richie Mers", when: "1 day ago" },
+      { tag: "BORROWED", item: "Laptop (Dell Latitude) ×2", verb: "checked out to", person: "Richie Mers", when: "4 days ago" },
+      { tag: "REQUEST", item: "Projector (Epson)", verb: "requested by", person: "Ana Flores", when: "2 days ago" },
+      { tag: "BORROWED", item: "HDMI Cable ×6", verb: "checked out to", person: "Prof. Dela Cruz", when: "5 days ago" },
+      { tag: "RETURNED", item: "Document Camera", verb: "returned by", person: "Jose Reyes", when: "1 week ago" },
+      { tag: "REQUEST", item: "Extension Cord ×3", verb: "approved for", person: "Mia Santos", when: "1 week ago" }
+    ].map(e => ({ ...e, ...tag(e.tag) }));
+
+    return {
+      noop: () => {},
+      greeting: "Good morning, Quincy",
+      todayLine: "Saturday, 20 September · 3 things need you today",
+      pendingCount: 2,
+      attention,
+      attentionCount: attention.length,
+      attentionClear: attention.length === 0,
+      stats: [
+        { label: "Units out on loan", value: 21, unit: "of 89", sub: "Across 5 item types", color: INK },
+        { label: "Overdue", value: 1, unit: "loan", sub: "Due 3 days ago", color: RED },
+        { label: "Pending requests", value: 2, unit: "", sub: "Oldest waiting 2 days", color: AMBER },
+        { label: "Returned this week", value: 7, unit: "units", sub: "All checked back in", color: GREEN }
+      ],
+      loans: [
+        { initials: "RM", item: "Laptop (Dell Latitude)", who: "Richie Mers · Instructor", due: "3 days overdue", dueColor: RED, qty: "×2" },
+        { initials: "DC", item: "HDMI Cable", who: "Prof. Dela Cruz · Instructor", due: "Due tomorrow", dueColor: AMBER, qty: "×6" },
+        { initials: "MS", item: "Extension Cord", who: "Mia Santos · Student", due: "Due in 4 days", dueColor: "oklch(0.5 0.012 258)", qty: "×3" },
+        { initials: "JR", item: "Projector (Epson)", who: "Jose Reyes · Student", due: "Due in 6 days", dueColor: "oklch(0.5 0.012 258)", qty: "×2" }
+      ],
+      activity
+    };
+  }
+}
+
+</script>
+</body>
+</html>

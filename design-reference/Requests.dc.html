@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: oklch(0.975 0.004 258); font-family: Poppins, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: oklch(0.55 0.17 258); text-decoration: none; }
+  a:hover { color: oklch(0.45 0.17 258); }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+
+<div style="display: grid; grid-template-columns: 244px minmax(0, 1fr); min-height: 100vh; color: oklch(0.28 0.012 258);">
+
+  <aside style="background: #fff; border-right: 1px solid oklch(0.92 0.006 258); display: flex; flex-direction: column; padding: 18px 14px; gap: 22px; position: sticky; top: 0; height: 100vh;">
+    <div style="display: flex; align-items: center; gap: 11px; padding: 4px 6px;">
+      <div style="width: 34px; height: 34px; border-radius: 9px; background: oklch(0.55 0.17 258); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px;">CE</div>
+      <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+        <div style="font-size: 13.5px; font-weight: 600; line-height: 1.15;">CICT Equipment</div>
+        <div style="font-size: 11px; color: oklch(0.58 0.012 258); line-height: 1.15;">Management System</div>
+      </div>
+    </div>
+
+    <nav style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: oklch(0.65 0.012 258); padding: 0 10px 6px;">OVERVIEW</div>
+      <a href="./Dashboard.dc.html" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.4"></rect><rect x="9" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.4"></rect><rect x="1.5" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.4"></rect><rect x="9" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.4"></rect></svg>
+        Dashboard
+      </a>
+      <a href="./Manage Inventory.dc.html" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.6" y="4.2" width="12.8" height="9.2" rx="1.6" stroke="currentColor" stroke-width="1.4"></rect><path d="M5.4 4.2V3a1.4 1.4 0 0 1 1.4-1.4h2.4A1.4 1.4 0 0 1 10.6 3v1.2" stroke="currentColor" stroke-width="1.4"></path></svg>
+        Equipment
+      </a>
+      <a href="./Users.dc.html" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5.4" r="2.6" stroke="currentColor" stroke-width="1.4"></circle><path d="M1.8 13.4c0-2.2 1.9-3.6 4.2-3.6s4.2 1.4 4.2 3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path><path d="M11.4 9.9c1.7.2 2.8 1.5 2.8 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg>
+        Users
+      </a>
+      <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: oklch(0.65 0.012 258); padding: 16px 10px 6px;">CIRCULATION</div>
+      <a href="./Borrow Transactions.dc.html" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 5.2h11M10.4 2.6 13 5.2l-2.6 2.6M14 10.8H3M5.6 8.2 3 10.8l2.6 2.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        Borrow Transactions
+      </a>
+      <a href="#" style="display: flex; align-items: center; justify-content: space-between; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: oklch(0.45 0.17 258); background: oklch(0.955 0.022 258); position: relative;">
+        <span style="position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: oklch(0.55 0.17 258);"></span>
+        <span style="display: flex; align-items: center; gap: 11px;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12.4" rx="1.6" stroke="currentColor" stroke-width="1.4"></rect><path d="M5.8 6h4.4M5.8 9h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg>
+          Requests
+        </span>
+        <sc-if value="{{ hasPending }}" hint-placeholder-val="{{ true }}">
+          <span style="background: oklch(0.58 0.18 25); color: #fff; font-size: 10.5px; font-weight: 600; line-height: 1; padding: 4px 6px; border-radius: 20px;">{{ pendingCount }}</span>
+        </sc-if>
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: oklch(0.42 0.012 258);" style-hover="background: oklch(0.965 0.004 258); color: oklch(0.28 0.012 258)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2.2" y="3" width="11.6" height="10.4" rx="1.6" stroke="currentColor" stroke-width="1.4"></rect><path d="M2.2 6.4h11.6" stroke="currentColor" stroke-width="1.4"></path></svg>
+        Return Logs
+      </a>
+    </nav>
+
+    <div style="margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 9px; border-radius: 10px; border: 1px solid oklch(0.93 0.006 258); cursor: pointer;" style-hover="background: oklch(0.975 0.004 258)">
+      <div style="width: 30px; height: 30px; border-radius: 50%; background: oklch(0.9 0.03 258); color: oklch(0.45 0.12 258); display: grid; place-items: center; font-size: 12px; font-weight: 600;">QJ</div>
+      <div style="min-width: 0; flex: 1;">
+        <div style="font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Quincy Jane O.</div>
+        <div style="font-size: 10.5px; color: oklch(0.6 0.012 258);">Administrator</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="color: oklch(0.65 0.012 258);"><circle cx="8" cy="3" r="1.3" fill="currentColor"></circle><circle cx="8" cy="8" r="1.3" fill="currentColor"></circle><circle cx="8" cy="13" r="1.3" fill="currentColor"></circle></svg>
+    </div>
+  </aside>
+
+  <main style="display: flex; flex-direction: column; min-width: 0;">
+    <header style="display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 32px; background: #fff; border-bottom: 1px solid oklch(0.92 0.006 258); position: sticky; top: 0; z-index: 5;">
+      <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 0 1 auto; overflow: hidden;">
+        <h1 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap;">Requests</h1>
+        <span style="font-size: 12.5px; color: oklch(0.6 0.012 258); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ summaryLine }}</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+        <button onClick="{{ noop }}" style="height: 38px; padding: 0 14px; border: 1px solid oklch(0.92 0.006 258); border-radius: 9px; background: #fff; color: oklch(0.35 0.012 258); font-family: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; white-space: nowrap;" style-hover="background: oklch(0.975 0.004 258)">Export log</button>
+      </div>
+    </header>
+
+    <div style="padding: 24px 32px 48px; display: flex; flex-direction: column; gap: 22px; max-width: 1240px; width: 100%;">
+
+      <section style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 10px;">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600;">Waiting on you</h2>
+          <span style="font-size: 12.5px; color: oklch(0.6 0.012 258);">{{ pendingSub }}</span>
+        </div>
+
+        <sc-for list="{{ pending }}" as="r" hint-placeholder-count="3">
+          <article style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-left: 3px solid {{ r.edge }}; border-radius: 12px; padding: 15px 18px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+              <div style="min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+                <div style="font-size: 15px; font-weight: 600; letter-spacing: -0.005em;">{{ r.itemLine }}</div>
+                <div style="font-size: 12.5px; color: oklch(0.55 0.012 258);">{{ r.who }} · asked {{ r.asked }}</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 7px; flex: none;">
+                <button onClick="{{ r.onDecline }}" style="height: 34px; padding: 0 13px; border: 1px solid oklch(0.92 0.006 258); background: #fff; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 500; color: oklch(0.42 0.012 258); cursor: pointer; white-space: nowrap;" style-hover="border-color: oklch(0.75 0.12 25); color: oklch(0.52 0.18 25)">Decline</button>
+                <button onClick="{{ r.onApprove }}" disabled="{{ r.blocked }}" style="height: 34px; padding: 0 15px; border: 0; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; background: {{ r.approveBg }}; cursor: {{ r.approveCursor }};">{{ r.approveLabel }}</button>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px;">
+              <span style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 8px; font-weight: 500; background: {{ r.stockBg }}; color: {{ r.stockColor }};">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: {{ r.stockColor }};"></span>
+                {{ r.stockLine }}
+              </span>
+              <span style="color: oklch(0.55 0.012 258);">{{ r.needLine }}</span>
+            </div>
+
+            <div style="font-size: 13px; color: oklch(0.42 0.012 258); text-wrap: pretty; border-top: 1px solid oklch(0.96 0.004 258); padding-top: 10px;">{{ r.purpose }}</div>
+          </article>
+        </sc-for>
+
+        <sc-if value="{{ noPending }}" hint-placeholder-val="{{ false }}">
+          <div style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 12px; padding: 34px 18px; text-align: center; font-size: 13px; color: oklch(0.58 0.012 258);">Queue is clear. Every request has been decided.</div>
+        </sc-if>
+      </section>
+
+      <section style="background: #fff; border: 1px solid oklch(0.92 0.006 258); border-radius: 14px; overflow: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 18px; border-bottom: 1px solid oklch(0.94 0.006 258); flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <h2 style="margin: 0 6px 0 0; font-size: 15px; font-weight: 600;">Decided</h2>
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+              <button onClick="{{ t.onClick }}" style="height: 28px; padding: 0 11px; border-radius: 999px; font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; white-space: nowrap; border: 1px solid {{ t.border }}; background: {{ t.bg }}; color: {{ t.color }};">{{ t.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; background: oklch(0.975 0.004 258); border: 1px solid oklch(0.92 0.006 258); border-radius: 9px; padding: 0 10px; height: 32px; flex: 0 1 200px; min-width: 0;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="color: oklch(0.62 0.012 258); flex: none;"><circle cx="7" cy="7" r="4.6" stroke="currentColor" stroke-width="1.5"></circle><path d="m10.6 10.6 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+            <input type="text" placeholder="Search decided" value="{{ query }}" onChange="{{ onSearch }}" style="border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 12.5px; color: inherit; width: 100%;" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.5fr) 104px; align-items: center; gap: 12px; padding: 9px 18px; background: oklch(0.982 0.003 258); border-bottom: 1px solid oklch(0.94 0.006 258); font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em; color: oklch(0.55 0.012 258);">
+          <div>REQUEST</div>
+          <div>DECISION</div>
+          <div style="text-align: right;">OUTCOME</div>
+        </div>
+
+        <sc-for list="{{ decided }}" as="d" hint-placeholder-count="4">
+          <div style="display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.5fr) 104px; align-items: center; gap: 12px; padding: 11px 18px; border-bottom: 1px solid oklch(0.96 0.004 258);" style-hover="background: oklch(0.985 0.003 258)">
+            <div style="min-width: 0;">
+              <div style="font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ d.itemLine }}</div>
+              <div style="font-size: 12px; color: oklch(0.6 0.012 258); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ d.who }}</div>
+            </div>
+            <div style="min-width: 0;">
+              <div style="font-size: 12.5px; color: oklch(0.42 0.012 258); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ d.decidedLine }}</div>
+              <div style="font-size: 11.5px; color: oklch(0.62 0.012 258); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ d.note }}</div>
+            </div>
+            <div style="text-align: right;">
+              <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: {{ d.statusColor }};">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: {{ d.statusColor }};"></span>
+                {{ d.status }}
+              </span>
+            </div>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ decidedEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 44px 18px; text-align: center; color: oklch(0.58 0.012 258); font-size: 13px;">Nothing decided matches that filter.</div>
+        </sc-if>
+
+        <div style="padding: 12px 18px; font-size: 12px; color: oklch(0.58 0.012 258);">{{ decidedCount }}</div>
+      </section>
+    </div>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const RED = "oklch(0.55 0.18 25)";
+const AMBER = "oklch(0.62 0.15 62)";
+const GREEN = "oklch(0.45 0.13 158)";
+const ACCENT = "oklch(0.5 0.17 258)";
+
+const REQUESTS = [
+  { id: 1, who: "Ana Flores · Student", item: "Projector (Epson)", qty: 1, asked: "2 days ago", need: "Needed Sep 24 – Sep 26",
+    purpose: "Capstone presentation dry run in AVR 2.", avail: 2, total: 4, state: "pending" },
+  { id: 2, who: "Carlo Ramos · Student", item: "Microphone Set", qty: 1, asked: "yesterday", need: "Needed Sep 22 – Sep 23",
+    purpose: "Department orientation hosting duties.", avail: 0, total: 3, state: "pending" },
+  { id: 3, who: "Bill Samar · Instructor", item: "Laptop (Dell Latitude)", qty: 4, asked: "4 hours ago", need: "Needed Sep 21 – Oct 02",
+    purpose: "Two weeks of remote proctoring for BSIT-3B.", avail: 3, total: 10, state: "pending" },
+  { id: 4, who: "Jose Reyes · Student", item: "HDMI Cable", qty: 1, asked: "Sep 19", purpose: "", avail: 14, total: 20,
+    state: "declined", decided: "Declined Sep 19 by Quincy Jane O.", note: "Cable already issued with the projector loan" },
+  { id: 5, who: "Richie Mers · Instructor", item: "Microphone Set", qty: 1, asked: "Sep 07", purpose: "", avail: 0, total: 3,
+    state: "approved", decided: "Approved Sep 07 by Quincy Jane O.", note: "Released same day · returned Sep 14" },
+  { id: 6, who: "Mia Santos · Student", item: "Extension Cord", qty: 3, asked: "Sep 18", purpose: "", avail: 9, total: 12,
+    state: "approved", decided: "Approved Sep 18 by Quincy Jane O.", note: "Released Sep 18 · due Sep 24" },
+  { id: 7, who: "Liza Bautista · Student", item: "Whiteboard Markers", qty: 2, asked: "Sep 12", purpose: "", avail: 30, total: 30,
+    state: "approved", decided: "Approved Sep 12 by Quincy Jane O.", note: "Consumable · not tracked for return" }
+];
+
+class Component extends DCLogic {
+  state = { query: "", tab: "All", reqs: REQUESTS };
+
+  renderVals() {
+    const { query, tab, reqs } = this.state;
+    const q = query.trim().toLowerCase();
+
+    const decide = (id, state) => this.setState(s => ({
+      reqs: s.reqs.map(r => r.id === id ? {
+        ...r, state,
+        decided: (state === "approved" ? "Approved" : "Declined") + " just now by Quincy Jane O.",
+        note: state === "approved" ? "Awaiting release" : "No reason recorded"
+      } : r)
+    }));
+
+    const pending = reqs.filter(r => r.state === "pending").map(r => {
+      const short = r.avail < r.qty;
+      return {
+        ...r,
+        itemLine: r.item + (r.qty > 1 ? " ×" + r.qty : ""),
+        needLine: r.need,
+        edge: short ? RED : ACCENT,
+        stockLine: short ? "Only " + r.avail + " of " + r.total + " available" : r.avail + " of " + r.total + " available",
+        stockBg: short ? "oklch(0.965 0.025 25)" : "oklch(0.965 0.02 158)",
+        stockColor: short ? RED : GREEN,
+        blocked: short,
+        approveLabel: short ? "Can't fill" : "Approve",
+        approveBg: short ? "oklch(0.85 0.01 258)" : ACCENT,
+        approveCursor: short ? "not-allowed" : "pointer",
+        onApprove: () => { if (!short) decide(r.id, "approved"); },
+        onDecline: () => decide(r.id, "declined")
+      };
+    });
+
+    const decidedAll = reqs.filter(r => r.state !== "pending");
+    const decided = decidedAll.filter(r => {
+      const matchQ = !q || r.who.toLowerCase().includes(q) || r.item.toLowerCase().includes(q);
+      const matchT = tab === "All" || (tab === "Approved" ? r.state === "approved" : r.state === "declined");
+      return matchQ && matchT;
+    }).map(r => ({
+      ...r,
+      itemLine: r.item + (r.qty > 1 ? " ×" + r.qty : ""),
+      decidedLine: r.decided,
+      status: r.state === "approved" ? "Approved" : "Declined",
+      statusColor: r.state === "approved" ? GREEN : RED
+    }));
+
+    const mk = (key, label) => ({
+      label,
+      onClick: () => this.setState({ tab: key }),
+      bg: tab === key ? "oklch(0.95 0.025 258)" : "#fff",
+      border: tab === key ? "oklch(0.8 0.07 258)" : "oklch(0.92 0.006 258)",
+      color: tab === key ? "oklch(0.45 0.17 258)" : "oklch(0.45 0.012 258)"
+    });
+
+    const blocked = pending.filter(p => p.blocked).length;
+
+    return {
+      pending,
+      decided,
+      noPending: pending.length === 0,
+      decidedEmpty: decided.length === 0,
+      hasPending: pending.length > 0,
+      pendingCount: pending.length,
+      query,
+      noop: () => {},
+      onSearch: e => this.setState({ query: e.target.value }),
+      tabs: [
+        mk("All", "All " + decidedAll.length),
+        mk("Approved", "Approved " + decidedAll.filter(r => r.state === "approved").length),
+        mk("Declined", "Declined " + decidedAll.filter(r => r.state === "declined").length)
+      ],
+      summaryLine: pending.length + " awaiting review · " + decidedAll.length + " decided this month",
+      pendingSub: blocked > 0 ? blocked + " cannot be filled from current stock" : "All fillable from current stock",
+      decidedCount: "Showing " + decided.length + " of " + decidedAll.length + " decided requests"
+    };
+  }
+}
+
+</script>
+</body>
+</html>

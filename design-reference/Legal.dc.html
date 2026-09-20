@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: oklch(0.982 0.003 258); font-family: Poppins, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: oklch(0.5 0.17 258); text-decoration: none; }
+  a:hover { color: oklch(0.42 0.17 258); text-decoration: underline; text-underline-offset: 3px; }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; color: oklch(0.24 0.012 258);">
+
+  <header style="background: #fff; border-bottom: 1px solid oklch(0.92 0.006 258); position: sticky; top: 0; z-index: 10;">
+    <div style="max-width: 1060px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; height: 60px;">
+      <a href="./Dashboard.dc.html" style="display: flex; align-items: center; gap: 11px; min-width: 0; color: inherit;" style-hover="color: inherit; text-decoration: none">
+        <span style="width: 32px; height: 32px; flex: none; border-radius: 9px; background: oklch(0.55 0.17 258); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 12.5px;">CE</span>
+        <span style="display: flex; flex-direction: column; gap: 0; min-width: 0;">
+          <span style="font-size: 13px; font-weight: 600; line-height: 1.2;">CICT Equipment</span>
+          <span style="font-size: 11px; color: oklch(0.58 0.012 258); line-height: 1.2;">Management System</span>
+        </span>
+      </a>
+      <div style="display: flex; align-items: center; gap: 6px; flex: none;">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
+          <button onClick="{{ t.onClick }}" style="height: 32px; padding: 0 13px; border-radius: 999px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; border: 1px solid {{ t.border }}; background: {{ t.bg }}; color: {{ t.color }};">{{ t.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+  </header>
+
+  <div style="max-width: 1060px; margin: 0 auto; padding: 40px 32px 72px; display: grid; grid-template-columns: minmax(0, 1fr) 216px; gap: 48px; align-items: start;">
+
+    <main style="min-width: 0; display: flex; flex-direction: column; gap: 30px;">
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: oklch(0.58 0.012 258);">LEGAL</span>
+        <h1 style="margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15;">{{ docTitle }}</h1>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: oklch(0.48 0.012 258); max-width: 62ch; text-wrap: pretty;">{{ docLede }}</p>
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: oklch(0.58 0.012 258); margin-top: 2px;">
+          <span>Last updated 20 September 2026</span>
+          <span style="width: 3px; height: 3px; border-radius: 50%; background: oklch(0.8 0.006 258);"></span>
+          <span>{{ readTime }}</span>
+        </div>
+      </div>
+
+      <div style="padding: 18px 20px; border-radius: 12px; background: #fff; border: 1px solid oklch(0.92 0.006 258); display: flex; flex-direction: column; gap: 11px;">
+        <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: oklch(0.55 0.012 258);">{{ summaryLabel }}</div>
+        <sc-for list="{{ summary }}" as="s" hint-placeholder-count="3">
+          <div style="display: flex; align-items: flex-start; gap: 11px;">
+            <span style="width: 5px; height: 5px; border-radius: 50%; flex: none; margin-top: 8px; background: oklch(0.55 0.17 258);"></span>
+            <span style="font-size: 14.5px; line-height: 1.55; color: oklch(0.3 0.012 258); text-wrap: pretty;">{{ s }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <article style="display: flex; flex-direction: column; gap: 34px;">
+        <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="6">
+          <section id="{{ sec.id }}" style="display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 84px;">
+            <h2 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em;">{{ sec.heading }}</h2>
+            <sc-for list="{{ sec.paras }}" as="p" hint-placeholder-count="2">
+              <p style="margin: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 17px; line-height: 1.65; color: oklch(0.3 0.012 258); max-width: 66ch; text-wrap: pretty;">{{ p }}</p>
+            </sc-for>
+            <sc-if value="{{ sec.hasList }}" hint-placeholder-val="{{ false }}">
+              <ul style="margin: 2px 0 0; padding: 0 0 0 20px; display: flex; flex-direction: column; gap: 9px; max-width: 66ch;">
+                <sc-for list="{{ sec.items }}" as="li" hint-placeholder-count="3">
+                  <li style="font-family: 'Source Serif 4', Georgia, serif; font-size: 17px; line-height: 1.6; color: oklch(0.3 0.012 258); text-wrap: pretty;">{{ li }}</li>
+                </sc-for>
+              </ul>
+            </sc-if>
+            <sc-if value="{{ sec.hasNote }}" hint-placeholder-val="{{ false }}">
+              <p style="margin: 4px 0 0; font-size: 14px; line-height: 1.6; color: oklch(0.5 0.012 258); padding-left: 14px; border-left: 2px solid oklch(0.9 0.006 258); max-width: 62ch; text-wrap: pretty;">{{ sec.note }}</p>
+            </sc-if>
+          </section>
+        </sc-for>
+      </article>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 22px; border-top: 1px solid oklch(0.92 0.006 258); flex-wrap: wrap;">
+        <span style="font-size: 14px; color: oklch(0.48 0.012 258); text-wrap: pretty;">Questions about any of this? Email <a href="#">cict.equipment@nmsc.edu.ph</a> or drop by the department office.</span>
+        <button onClick="{{ swap }}" style="height: 38px; padding: 0 15px; border: 1px solid oklch(0.92 0.006 258); background: #fff; border-radius: 9px; font-family: inherit; font-size: 13.5px; font-weight: 500; color: oklch(0.35 0.012 258); cursor: pointer; white-space: nowrap; flex: none;" style-hover="background: oklch(0.975 0.004 258)">{{ swapLabel }}</button>
+      </div>
+    </main>
+
+    <nav style="position: sticky; top: 84px; display: flex; flex-direction: column; gap: 9px; min-width: 0;">
+      <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.09em; color: oklch(0.6 0.012 258); padding-left: 11px;">ON THIS PAGE</div>
+      <div style="display: flex; flex-direction: column; gap: 1px;">
+        <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="6">
+          <a href="{{ sec.href }}" style="font-size: 13px; line-height: 1.45; color: oklch(0.45 0.012 258); padding: 6px 11px; border-left: 2px solid oklch(0.93 0.006 258); text-wrap: pretty;" style-hover="color: oklch(0.45 0.17 258); border-left-color: oklch(0.7 0.12 258); text-decoration: none">{{ sec.heading }}</a>
+        </sc-for>
+      </div>
+      <a href="./Login.dc.html" style="margin-top: 14px; font-size: 13px; color: oklch(0.5 0.012 258); padding-left: 11px;">← Back to sign in</a>
+    </nav>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const TOS = {
+  title: "Terms of service",
+  lede: "The rules for borrowing equipment through this system. Written for the people who actually use it, not for lawyers.",
+  read: "3 minute read",
+  summaryLabel: "THE SHORT VERSION",
+  summary: [
+    "A request is not a reservation — stock is only held once an administrator approves it.",
+    "The default loan is seven days, and the return is not closed until a custodian logs it.",
+    "Overdue items pause your ability to borrow more until they come back."
+  ],
+  sections: [
+    { id: "eligibility", heading: "Who may use this system", paras: [
+      "Accounts are for currently enrolled students and teaching staff of the College of Information and Communications Technology.",
+      "Register with your institutional email address and your real name. The name on your account is the name that appears on the borrow slip a custodian checks against, so a nickname will slow you down at the counter."
+    ] },
+    { id: "account", heading: "Your account", paras: [
+      "You are responsible for what happens under your account. Do not share your password, and tell the department office if you think someone else has it.",
+      "An account may be suspended where records suggest it is being used by someone other than its owner."
+    ] },
+    { id: "borrowing", heading: "Borrowing equipment", paras: [
+      "Every loan follows the same four steps, and each one is recorded:"
+    ], items: [
+      "A request reserves nothing until an administrator approves it. Stock is deducted at approval, not at request.",
+      "Items are due on the return date shown on your transaction. The default loan period is seven days.",
+      "An item that passes its return date is marked overdue, and a reminder goes to the email address on your account.",
+      "Return the item to a custodian, who records its condition. A transaction is not closed until that return is logged."
+    ] },
+    { id: "damage", heading: "Damage and loss", paras: [
+      "Report damage when you return the item rather than leaving it to be found. The return log records condition either way, and an accurate account of how damage happened is treated differently from one that is missing.",
+      "Repair or replacement for items lost or damaged beyond normal use follows the college's existing property rules, which this system does not replace."
+    ] },
+    { id: "suspension", heading: "Suspension of borrowing", paras: [
+      "The department may decline further requests from an account with items still overdue, or with a pattern of late returns, until the outstanding items are back."
+    ] },
+    { id: "availability", heading: "Availability", paras: [
+      "This is an internal departmental system. It may be taken offline for maintenance or during academic breaks."
+    ], note: "Where the system is unavailable, borrowing falls back to the paper process at the department office." },
+    { id: "changes", heading: "Changes to these terms", paras: [
+      "These terms may be revised as departmental policy changes. The date at the top of this page shows when it was last revised."
+    ] }
+  ]
+};
+
+const PRIVACY = {
+  title: "Privacy policy",
+  lede: "What this system stores about you, who can see it, and how long it is kept.",
+  read: "3 minute read",
+  summaryLabel: "THE SHORT VERSION",
+  summary: [
+    "The system stores your name, school email, contact number and your borrowing activity — nothing else.",
+    "Administrators can see all records; other borrowers cannot see yours.",
+    "No analytics, no advertising trackers, and nothing is shared outside the college."
+  ],
+  sections: [
+    { id: "scope", heading: "What this covers", paras: [
+      "The CICT Equipment Borrower System is an internal service of the College of Information and Communications Technology at the University of Northwestern Mindanao. It is used by enrolled students, teaching staff and the equipment custodians who administer it.",
+      "This page describes what the system stores and who can see it."
+    ] },
+    { id: "stored", heading: "What we store", paras: [
+      "An account holds your name, institutional email address, contact number and role. Everything else the system keeps is a record of borrowing activity:"
+    ], items: [
+      "Equipment requests you submit, including quantity, purpose and remarks.",
+      "Borrow transactions created from an approved request, with borrow and return dates.",
+      "Return logs recording the condition of an item when it came back, and which staff member received it.",
+      "Return reminders sent to your email address, and when they were sent."
+    ], note: "The system does not use analytics or advertising trackers, and does not share records with anyone outside the college." },
+    { id: "access", heading: "Who can see your records", paras: [
+      "You can see your own requests and transactions on your dashboard.",
+      "Department administrators can see all records, because approving a request, recording a return and reconciling stock all require it. Other borrowers cannot see your records."
+    ] },
+    { id: "retention", heading: "How long records are kept", paras: [
+      "Borrowing records are kept for the academic year in which they were created and the one following it, so that outstanding items and past equipment condition can be traced.",
+      "Accounts remain active until the department removes them."
+    ] },
+    { id: "cookies", heading: "Cookies", paras: [
+      "The system sets one session cookie, which keeps you signed in while you use it, and a CSRF token cookie, which protects forms against cross-site submission. Both are required for the system to function and neither is used for tracking.",
+      "Choosing \u201cKeep me signed in\u201d at sign-in stores a second cookie that keeps you signed in between visits until you log out."
+    ] },
+    { id: "corrections", heading: "Correcting or removing your data", paras: [
+      "To correct your name, email or contact number, or to ask for your account to be removed, contact the CICT department office."
+    ], note: "Borrowing records tied to equipment that is still out cannot be removed until the item is returned." }
+  ]
+};
+
+class Component extends DCLogic {
+  state = { doc: "tos" };
+
+  renderVals() {
+    const isTos = this.state.doc === "tos";
+    const d = isTos ? TOS : PRIVACY;
+
+    const mk = (key, label) => ({
+      label,
+      onClick: () => { this.setState({ doc: key }); window.scrollTo(0, 0); },
+      bg: this.state.doc === key ? "oklch(0.95 0.025 258)" : "#fff",
+      border: this.state.doc === key ? "oklch(0.8 0.07 258)" : "oklch(0.92 0.006 258)",
+      color: this.state.doc === key ? "oklch(0.45 0.17 258)" : "oklch(0.45 0.012 258)"
+    });
+
+    return {
+      tabs: [mk("tos", "Terms of service"), mk("privacy", "Privacy policy")],
+      docTitle: d.title,
+      docLede: d.lede,
+      readTime: d.read,
+      summaryLabel: d.summaryLabel,
+      summary: d.summary,
+      sections: d.sections.map(s => ({
+        ...s,
+        href: "#" + s.id,
+        paras: s.paras || [],
+        hasList: !!(s.items && s.items.length),
+        items: s.items || [],
+        hasNote: !!s.note,
+        note: s.note || ""
+      })),
+      swapLabel: isTos ? "Read the privacy policy →" : "Read the terms of service →",
+      swap: () => { this.setState({ doc: isTos ? "privacy" : "tos" }); window.scrollTo(0, 0); }
+    };
+  }
+}
+
+</script>
+</body>
+</html>
