@@ -41,13 +41,23 @@ always sit inside the `auth` middleware group.
 - **Admin** — full CRUD on equipment, users, class schedules and borrow transactions; approves/declines item requests; views notifications and return logs. Lands on `/admin/dashboard`.
 - **Instructor** / **Student** — collectively "borrowers". Same routes and same dashboard view; they create, update and delete only their *own* item requests (ownership enforced by `ItemRequestController::assertOwner`). Land on `/borrower/dashboard`. Instructors additionally own `ClassSchedule` rows that Admins attach to transactions.
 
-`user_type` is capped at `Instructor` or `Student` on **both** registration routes, and this is
-deliberate. `POST /admin/users` reuses `AuthenticateUser::register`, so it inherits the same
-`in:Instructor,Student` rule: an admin uses that form to add borrowers, not staff. Posting
-`Admin` to either route is **rejected** (a `user_type` validation error, no row written) rather
-than downgraded — an earlier revision silently coerced it to `Student`, which is no longer the
-behaviour. Creating an Admin is a deliberate DB/seed/tinker action with no web path.
-Both properties are pinned by `tests/Feature/SecurityRegressionTest`.
+No web route can create an `Admin`, and the two registration routes refuse it differently.
+
+**Public sign-up (`POST /register` → `AuthenticateUser::registerPublic`)** does not read a role
+from the request at all. The role is derived from the school domain of the submitted address by
+`User::roleForEmail()` — `@student.nmsc.edu.ph` → `Student`, `@nmsc.edu.ph` → `Instructor`,
+anything else rejected on the `email` field. The domain is matched **whole**, never as a suffix:
+`str_ends_with($email, 'nmsc.edu.ph')` would hand an Instructor account to whoever registers
+`not-nmsc.edu.ph`. A `user_type` in the payload is ignored rather than validated, so there is no
+field to tamper with. If you add a role, add it to `roleForEmail()`, not to the form.
+
+**The admin users form (`POST /admin/users` → `AuthenticateUser::register`)** still takes an
+explicit `user_type`, capped at `in:Instructor,Student` — an admin uses that form to add
+borrowers, not staff, and they are behind `userType:Admin` to do it. Posting `Admin` there is
+**rejected** (a `user_type` validation error, no row written) rather than downgraded.
+
+Creating an Admin is a deliberate DB/seed/tinker action with no web path. All of this is pinned
+by `tests/Feature/SecurityRegressionTest` and `tests/Feature/RegisterPageTest`.
 
 ## Data model
 
@@ -84,7 +94,7 @@ All in `routes/web.php`. Everything under `/admin` and `/borrower` is inside `au
 - `POST /login` — `AuthenticateUser@login` (`login.store`)
 - `POST /logout` — `AuthenticateUser@destroy` (`logout`)
 - `GET /register` — `AuthenticateUser@registerUser` (`register`)
-- `POST /register` — `AuthenticateUser@register` (`register.store`)
+- `POST /register` — `AuthenticateUser@registerPublic` (`register.store`); role is derived from the email domain, never read from the request
 
 **Admin** (`auth` + `userType:Admin`)
 - `GET /admin/dashboard` — `AuthenticateUser@adminView` (`admin.dashboard`); loads equipment, users, transactions, requests, return logs
@@ -95,7 +105,7 @@ All in `routes/web.php`. Everything under `/admin` and `/borrower` is inside `au
 - `POST /admin/equipment/{id}/restore` — `EquipmentController@restore` (`admin.equipment.restore`)
 - `DELETE /admin/equipment/{id}` — `EquipmentController@destroy` (`admin.equipment.destroy`); refused while any loan or request references the row
 - `GET /admin/users` — `UserController@adminUser` (`admin.users`)
-- `POST /admin/users` — `AuthenticateUser@register` (`admin.user.register`)
+- `POST /admin/users` — `AuthenticateUser@register` (`admin.user.register`); the one route that still takes an explicit `user_type`
 - `POST /admin/users/update` — `UserController@update` (`admin.users.update`); id in body
 - `POST /admin/users/add-sched` — `ClassScheduleController@store` (`admin.add-sched`)
 - `POST /admin/users/{id}/deactivate` — `UserController@deactivate` (`admin.users.deactivate`); the non-destructive default, and it blocks login

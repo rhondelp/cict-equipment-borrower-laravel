@@ -53,6 +53,54 @@ class User extends Authenticatable
     }
 
     /**
+     * The two school domains a borrower account can come from. Role is read
+     * from the address rather than chosen on the form: picking your own role is
+     * a privilege boundary, and a select is a request the client controls.
+     */
+    public const STUDENT_DOMAIN = 'student.nmsc.edu.ph';
+
+    public const STAFF_DOMAIN = 'nmsc.edu.ph';
+
+    /**
+     * The domain half of an address, lowercased. Null when there is not exactly
+     * one `@` with something either side of it.
+     */
+    public static function emailDomain(?string $email): ?string
+    {
+        $parts = explode('@', trim((string) $email));
+
+        if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
+            return null;
+        }
+
+        return strtolower($parts[1]);
+    }
+
+    /**
+     * The role a school address implies — `Student` for the student subdomain,
+     * `Instructor` for the staff domain, null for anything else.
+     *
+     * Matched on the whole domain, never on a suffix: `endsWith('nmsc.edu.ph')`
+     * would hand an Instructor account to anyone who registers
+     * `not-nmsc.edu.ph`. `Admin` is not reachable from here at all, which is
+     * the point — it stays a deliberate database action.
+     */
+    public static function roleForEmail(?string $email): ?string
+    {
+        return match (self::emailDomain($email)) {
+            self::STUDENT_DOMAIN => 'Student',
+            self::STAFF_DOMAIN => 'Instructor',
+            default => null,
+        };
+    }
+
+    /** Whether an address is one this system issues accounts for. */
+    public static function isSchoolEmail(?string $email): bool
+    {
+        return self::roleForEmail($email) !== null;
+    }
+
+    /**
      * Deactivating is the non-destructive half of the Remove dialog: the
      * account stops working, every loan and log that names this person stays
      * exactly where it is. AuthenticateUser::login refuses a deactivated

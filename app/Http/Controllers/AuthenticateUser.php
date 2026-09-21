@@ -364,6 +364,68 @@ class AuthenticateUser extends Controller
         return view('register');
     }
 
+    /**
+     * Public sign-up.
+     *
+     * Deliberately separate from register() below, which serves the admin
+     * users form: that one is behind `userType:Admin` and an admin picking a
+     * borrower's role is a decision they are entitled to make. Out here nobody
+     * is authenticated, so the role is not accepted as input at all — it is
+     * read from the school domain of the submitted address and nothing else.
+     * Any `user_type` in the payload is ignored rather than validated, so
+     * there is no field to tamper with in the first place.
+     */
+    public function registerPublic(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => [
+                'required', 'string', 'email', 'max:255', 'unique:users',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (! User::isSchoolEmail($value)) {
+                        $fail('Use your school address — @'.User::STUDENT_DOMAIN.' for students, @'.User::STAFF_DOMAIN.' for instructors.');
+                    }
+                },
+            ],
+            // The three rules the form states before submit, in the same order
+            // it states them. Confirm-password is gone: it catches a typo the
+            // reveal toggle already prevents, at the cost of a whole field.
+            'password' => ['required', 'string', 'min:8', 'regex:/[A-Za-z]/', 'regex:/[0-9]/'],
+            'contact_number' => 'nullable|string|max:15',
+            'agree' => 'accepted',
+        ], [
+            'password.min' => 'Your password needs at least 8 characters.',
+            'password.regex' => 'Your password needs both letters and numbers.',
+            'agree.accepted' => 'Tick the agreement to continue.',
+        ]);
+
+        $email = strtolower(trim($validated['email']));
+        // Derived, never taken from the request. isSchoolEmail() above has
+        // already guaranteed this is not null.
+        $role = User::roleForEmail($email);
+
+        $user = User::create([
+            'user_type' => $role,
+            'name' => $validated['name'],
+            'email' => $email,
+            'password' => Hash::make($validated['password']),
+            'contact_number' => $validated['contact_number'] ?? null,
+        ]);
+
+        // Not `success`: that key throws the shared SweetAlert modal, which
+        // would land on top of the page's own success state saying the same
+        // thing twice. The page reads `registered` and renders it inline.
+        return redirect()->route('register')->with('registered', [
+            'email' => $user->email,
+            'role' => $user->user_type,
+        ]);
+    }
+
+    /**
+     * The admin users form (`POST /admin/users`). Still takes an explicit
+     * user_type, capped at the two borrower roles — an Admin account has no
+     * web path by design.
+     */
     public function register(Request $request)
     {
         $validatedData = $request->validate([

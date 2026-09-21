@@ -18,7 +18,7 @@ Route::get('/', function () {
 Route::get('/login', [UserController::class, 'index'])->name('login');
 Route::post('/login', [AuthenticateUser::class, 'login'])->name('login.store');
 Route::post('/logout', [AuthenticateUser::class, 'destroy'])->name('logout');
-Route::post('/register', [AuthenticateUser::class, 'register'])->name('register.store');
+Route::post('/register', [AuthenticateUser::class, 'registerPublic'])->name('register.store');
 Route::get('/register', [AuthenticateUser::class, 'registerUser'])->name('register');
 
 Route::get('/welcome', function () {

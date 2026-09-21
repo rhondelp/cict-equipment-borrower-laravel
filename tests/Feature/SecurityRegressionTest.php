@@ -12,43 +12,98 @@ class SecurityRegressionTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * `Admin` is not an assignable role on either registration route: the shared
-     * validation in AuthenticateUser::register caps user_type at
-     * Instructor/Student, so the request is rejected outright rather than being
-     * quietly rewritten to a lesser role.
+     * `Admin` is not an assignable role on either registration route, but the
+     * two routes refuse it for different reasons now.
      *
-     * An earlier revision coerced the value to Student instead of rejecting it;
-     * this asserts the property that matters either way — no Admin account can
-     * come from a web request.
+     * Public sign-up does not read a role from the request at all: the role is
+     * derived from the school domain of the submitted address, so a posted
+     * `user_type` is not validated, not trusted and not written. That is a
+     * stronger property than rejecting the field — there is no field.
      */
-    public function test_public_registration_cannot_create_admin_account(): void
+    public function test_public_registration_ignores_any_role_sent_by_the_client(): void
     {
-        $response = $this->post('/register', [
+        $this->post('/register', [
             'user_type' => 'Admin',
             'name'      => 'Evil User',
-            'email'     => 'evil@example.com',
+            'email'     => 'evil.user@student.nmsc.edu.ph',
             'password'  => 'secret123',
-            'password_confirmation' => 'secret123',
+            'agree'     => '1',
         ]);
 
-        $response->assertSessionHasErrors('user_type');
+        // Written as the address says, not as the payload asked.
+        $this->assertDatabaseHas('users', [
+            'email'     => 'evil.user@student.nmsc.edu.ph',
+            'user_type' => 'Student',
+        ]);
+        $this->assertDatabaseMissing('users', ['user_type' => 'Admin']);
+    }
 
-        // Rejected, not downgraded: no account is created at all.
+    /** The same holds for the staff domain: Instructor, never Admin. */
+    public function test_a_posted_role_cannot_override_the_domain_on_the_staff_domain_either(): void
+    {
+        $this->post('/register', [
+            'user_type' => 'Admin',
+            'name'      => 'Evil Staff',
+            'email'     => 'evil.staff@nmsc.edu.ph',
+            'password'  => 'secret123',
+            'agree'     => '1',
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'email'     => 'evil.staff@nmsc.edu.ph',
+            'user_type' => 'Instructor',
+        ]);
+        $this->assertDatabaseMissing('users', ['user_type' => 'Admin']);
+    }
+
+    /** An address outside the two school domains creates nothing at all. */
+    public function test_public_registration_refuses_an_outside_address(): void
+    {
+        $response = $this->post('/register', [
+            'name'     => 'Evil User',
+            'email'    => 'evil@example.com',
+            'password' => 'secret123',
+            'agree'    => '1',
+        ]);
+
+        $response->assertSessionHasErrors('email');
         $this->assertDatabaseMissing('users', ['email' => 'evil@example.com']);
     }
 
-    /** Public signup deliberately offers both borrower roles. */
-    public function test_public_registration_allows_both_borrower_roles(): void
+    /**
+     * The domain is matched whole, not as a suffix. `endsWith('nmsc.edu.ph')`
+     * would hand an Instructor account to anyone who can register
+     * `not-nmsc.edu.ph`, and a lookalike registrable domain is the cheapest
+     * way there is to buy a role.
+     */
+    public function test_a_lookalike_domain_does_not_pass_as_the_school(): void
     {
-        foreach (['Instructor', 'Student'] as $role) {
-            $email = strtolower($role).'@example.com';
-
+        foreach (['evil@not-nmsc.edu.ph', 'evil@nmsc.edu.ph.attacker.com', 'evil@fake-student.nmsc.edu.ph.co'] as $email) {
             $this->post('/register', [
-                'user_type' => $role,
-                'name'      => "Public $role",
-                'email'     => $email,
-                'password'  => 'secret123',
-                'password_confirmation' => 'secret123',
+                'name'     => 'Evil User',
+                'email'    => $email,
+                'password' => 'secret123',
+                'agree'    => '1',
+            ])->assertSessionHasErrors('email');
+
+            $this->assertDatabaseMissing('users', ['email' => $email]);
+        }
+    }
+
+    /** Public signup serves both borrower roles, one domain each. */
+    public function test_public_registration_derives_both_borrower_roles_from_the_domain(): void
+    {
+        $cases = [
+            'student.one@student.nmsc.edu.ph' => 'Student',
+            'instructor.one@nmsc.edu.ph'      => 'Instructor',
+        ];
+
+        foreach ($cases as $email => $role) {
+            $this->post('/register', [
+                'name'     => "Public $role",
+                'email'    => $email,
+                'password' => 'secret123',
+                'agree'    => '1',
             ]);
 
             $this->assertDatabaseHas('users', [
@@ -59,10 +114,12 @@ class SecurityRegressionTest extends TestCase
     }
 
     /**
-     * POST /admin/users reuses AuthenticateUser::register, so it is capped at the
-     * same two roles. Admin accounts are made directly in the database (seed or
-     * tinker) by design — see AGENT_CONTEXT.md. This pins that decision so the
-     * cap is not widened by accident.
+     * POST /admin/users keeps AuthenticateUser::register, which still takes an
+     * explicit user_type capped at the two borrower roles — an admin choosing a
+     * borrower's role is a decision they are entitled to make, and they are
+     * behind `userType:Admin` to make it. Admin accounts are made directly in
+     * the database (seed or tinker) by design — see AGENT_CONTEXT.md. This pins
+     * that decision so the cap is not widened by accident.
      */
     public function test_admin_users_form_cannot_create_admin_accounts(): void
     {
@@ -224,11 +281,13 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('Students and instructors both sign in here.')
             ->assertSee(route('login.store'));
 
-        // Register page
+        // Register page. Rebuilt on the app's Tailwind bundle alongside the
+        // login page, so it no longer pulls auth.css either — the remaining
+        // three public pages still do, which is what keeps the file shared.
         $this->get('/register')
             ->assertStatus(200)
-            ->assertSee('Create your')
-            ->assertSee('auth.css');
+            ->assertSee('Request an account')
+            ->assertSee(route('register.store'));
     }
 
     public function test_shared_auth_stylesheet_is_publicly_servable(): void
