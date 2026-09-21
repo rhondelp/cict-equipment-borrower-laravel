@@ -74,6 +74,31 @@ link, reset its password, and still be turned away by `AuthenticateUser::login`,
 live in `config/office.php` (`OFFICE_EMAIL`, `OFFICE_HOURS`). Pinned by
 `tests/Feature/ForgotPasswordPageTest`.
 
+## Legal documents
+
+`resources/views/legal/terms.blade.php` and `privacy.blade.php` hold **no markup** — each is a
+single `$doc` array (title, lede, updated, three summary bullets, and an ordered list of
+sections). `layouts/legal.blade.php` renders both, and builds the table-of-contents rail from the
+same `sections` array the article renders, so the rail cannot drift out of step with the
+headings. Section shape is `['id', 'heading', 'paras' => [], 'items' => [], 'note' => '']`;
+`note` renders as a bordered aside and is reserved for a clause that tells someone what to do
+when the normal path is closed — there is exactly one per document, and the treatment stops
+meaning anything if that grows.
+
+Both documents keep their own URL. The tab switch is two links, not a client-side toggle,
+because the registration consent checkbox links straight to each of them.
+
+Body copy is 17px `font-serif` (Source Serif 4) at `max-w-[66ch]`. The font is pushed onto the
+`styles` stack by the legal layout alone — do not move it into `components/default`, where every
+page would pay for it.
+
+**Careful with Blade comments here:** Blade lifts `@php … @endphp` blocks out of a template
+*before* it strips comments, so writing `@php(` inside a `{{-- --}}` comment swallows the file
+down to the next `@endphp` and fails with an unrelated "Cannot end a push stack" error. The
+layout's own doc-comment spells directive names without their `@` for this reason.
+
+Pinned by `tests/Feature/LegalPagesTest`.
+
 ## Data model
 
 All models are plain `Illuminate\Database\Eloquent\Model` with `$fillable`, no observers and no
@@ -110,7 +135,7 @@ All in `routes/web.php`. Everything under `/admin` and `/borrower` is inside `au
 - `POST /logout` — `AuthenticateUser@destroy` (`logout`)
 - `GET /register` — `AuthenticateUser@registerUser` (`register`)
 - `POST /register` — `AuthenticateUser@registerPublic` (`register.store`); role is derived from the email domain, never read from the request
-- `GET /privacy` / `GET /terms` — `Route::view` (`legal.privacy`, `legal.terms`)
+- `GET /privacy` / `GET /terms` — `Route::view` (`legal.privacy`, `legal.terms`); both render through `layouts/legal`, which builds the page from one `$doc` array per document
 - `GET /forgot-password` — `PasswordResetController@request` (`password.request`); renders the confirmation state instead of the form while `reset_link_sent_to` is in the session; `?new=1` clears it ("Use a different address")
 - `POST /forgot-password` — `PasswordResetController@email` (`password.email`); also serves the Resend button, and refuses a deactivated account before the broker is called
 - `GET /reset-password/{token}` — `PasswordResetController@reset` (`password.reset`)

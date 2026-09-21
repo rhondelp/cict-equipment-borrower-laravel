@@ -67,6 +67,11 @@ export default {
       fontFamily: {
         sans: ['Poppins', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
         display: ['Poppins', 'sans-serif'],
+        // Long-form reading only — the two legal documents. Poppins is a UI
+        // face; it holds up over a label and falls apart over four hundred
+        // words at a 66-character measure. Loaded by layouts/legal.blade.php
+        // alone rather than on every page.
+        serif: ['Source Serif 4', 'Source Serif Pro', 'Georgia', 'Cambria', 'Times New Roman', 'serif'],
       },
       fontSize: {
         // Tracking is normal from `base` up: tight letter-spacing costs legibility,
