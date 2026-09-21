@@ -282,8 +282,9 @@ class SecurityRegressionTest extends TestCase
             ->assertSee(route('login.store'));
 
         // Register page. Rebuilt on the app's Tailwind bundle alongside the
-        // login page, so it no longer pulls auth.css either — the remaining
-        // three public pages still do, which is what keeps the file shared.
+        // login and forgot-password pages, so it no longer pulls auth.css
+        // either — the landing page and reset-password still do, which is what
+        // keeps the file shared.
         $this->get('/register')
             ->assertStatus(200)
             ->assertSee('Request an account')

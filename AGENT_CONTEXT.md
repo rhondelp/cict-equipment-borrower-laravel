@@ -59,6 +59,21 @@ borrowers, not staff, and they are behind `userType:Admin` to do it. Posting `Ad
 Creating an Admin is a deliberate DB/seed/tinker action with no web path. All of this is pinned
 by `tests/Feature/SecurityRegressionTest` and `tests/Feature/RegisterPageTest`.
 
+## Password reset
+
+The `Password` broker in `config/auth.php` owns token generation, expiry (`expire`, 60 minutes)
+and resend throttling (`throttle`, 60 seconds) — none of it is hand-rolled. The forgot-password
+screen **reads both numbers out of that config** and states them in its copy rather than quoting
+figures of its own, and its resend cooldown is counted from the `created_at` on the broker's own
+`password_reset_tokens` row. If you change either config value the copy follows it; if you quote
+a number in the template instead, the page starts promising something the server will refuse.
+
+A **deactivated account is refused before the broker is called**. It could otherwise be sent a
+link, reset its password, and still be turned away by `AuthenticateUser::login`, which checks
+`deactivated_at` separately — a loop with no exit and no explanation. Office contact details
+live in `config/office.php` (`OFFICE_EMAIL`, `OFFICE_HOURS`). Pinned by
+`tests/Feature/ForgotPasswordPageTest`.
+
 ## Data model
 
 All models are plain `Illuminate\Database\Eloquent\Model` with `$fillable`, no observers and no
@@ -95,6 +110,11 @@ All in `routes/web.php`. Everything under `/admin` and `/borrower` is inside `au
 - `POST /logout` — `AuthenticateUser@destroy` (`logout`)
 - `GET /register` — `AuthenticateUser@registerUser` (`register`)
 - `POST /register` — `AuthenticateUser@registerPublic` (`register.store`); role is derived from the email domain, never read from the request
+- `GET /privacy` / `GET /terms` — `Route::view` (`legal.privacy`, `legal.terms`)
+- `GET /forgot-password` — `PasswordResetController@request` (`password.request`); renders the confirmation state instead of the form while `reset_link_sent_to` is in the session; `?new=1` clears it ("Use a different address")
+- `POST /forgot-password` — `PasswordResetController@email` (`password.email`); also serves the Resend button, and refuses a deactivated account before the broker is called
+- `GET /reset-password/{token}` — `PasswordResetController@reset` (`password.reset`)
+- `POST /reset-password` — `PasswordResetController@update` (`password.update`)
 
 **Admin** (`auth` + `userType:Admin`)
 - `GET /admin/dashboard` — `AuthenticateUser@adminView` (`admin.dashboard`); loads equipment, users, transactions, requests, return logs
