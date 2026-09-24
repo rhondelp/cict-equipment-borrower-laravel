@@ -6,11 +6,25 @@ use Illuminate\Database\Eloquent\Model;
 
 class ReturnLog extends Model
 {
-    protected $fillable = ['borrow_transaction_id', 'return_date', 'condition', 'remarks', 'user_id'];
+    protected $fillable = [
+        'borrow_transaction_id', 'return_date', 'condition', 'remarks', 'user_id',
+        'resolution', 'resolved_at', 'resolved_by',
+    ];
+
+    /**
+     * The conditions a return can be logged in, worst last.
+     *
+     * `Missing parts` is not offered any more — it is kept accepted because
+     * rows written before this exist with that value, and rewriting history to
+     * tidy up a vocabulary is exactly what an audit log must not do.
+     */
+    public const CONDITIONS = ['Good', 'Minor damage', 'Damaged', 'Lost'];
+
+    public const LEGACY_CONDITIONS = ['Missing parts'];
 
     protected function casts(): array
     {
-        return ['return_date' => 'datetime'];
+        return ['return_date' => 'datetime', 'resolved_at' => 'datetime'];
     }
 
     /** Whole days between the loan's due date and the day it actually came back. */
@@ -36,13 +50,62 @@ class ReturnLog extends Model
             : $day.' · on time';
     }
 
+    /** Colour carries the severity, so the scale has to run all the way down. */
     public function conditionTone(): string
     {
         return match ($this->condition) {
             'Good' => 'success',
-            'Damaged' => 'danger',
+            'Lost', 'Damaged' => 'danger',
             default => 'warning',
         };
+    }
+
+    /** Anything other than a clean return is an incident. */
+    public function isIncident(): bool
+    {
+        return $this->condition !== 'Good';
+    }
+
+    public function isResolved(): bool
+    {
+        return $this->resolved_at !== null;
+    }
+
+    /**
+     * The rows the screen leads with: something came back damaged or lost and
+     * nobody has recorded what was done about it. Everything else is archive.
+     */
+    public function needsFollowUp(): bool
+    {
+        return $this->isIncident() && ! $this->isResolved();
+    }
+
+    /** "Resolved Sep 20 by Quincy Jane O." */
+    public function resolutionLine(): string
+    {
+        if (! $this->isResolved()) {
+            return 'No resolution recorded';
+        }
+
+        $when = $this->resolved_at?->format('M j');
+        $who = $this->resolver?->name;
+
+        return trim('Resolved'.($when ? ' '.$when : '').($who ? ' by '.$who : ''));
+    }
+
+    /**
+     * Corrections, appended. The log row itself never changes — there is no
+     * update and no delete path to one — so a correction is a new note with
+     * its own author and time, and the original reading survives beside it.
+     */
+    public function notes()
+    {
+        return $this->hasMany(ReturnLogNote::class)->oldest();
+    }
+
+    public function resolver()
+    {
+        return $this->belongsTo(User::class, 'resolved_by');
     }
 
     // Borrow transaction itself

@@ -43,10 +43,14 @@
             @forelse ($pending as $request)
                 @php
                     $equipment = $request->equipment;
-                    $available = $equipment?->available_quantity ?? 0;
-                    $total = $equipment?->quantity ?? 0;
+                    $context = $queue[$request->id] ?? [];
+                    $available = $context['available'] ?? 0;
+                    $total = $context['total'] ?? 0;
                     $retired = $equipment?->isRetired() ?? false;
                     $fillable = $request->canBeFilled();
+                    $conflicts = $context['conflicts'] ?? [];
+                    $unitsOut = $context['units_out'] ?? 0;
+                    $overdueLoans = $context['overdue_loans'] ?? 0;
                     $waited = $request->requested_date
                         ? (int) $request->requested_date->startOfDay()->diffInDays(now()->startOfDay())
                         : 0;
@@ -61,6 +65,19 @@
                                 {{ $request->user->name ?? 'Deleted user' }}
                                 @if($request->user) · {{ $request->user->user_type }} @endif
                                 · asked {{ $waited === 0 ? 'today' : $waited.' '.str('day')->plural($waited).' ago' }}
+                            </p>
+                            <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" data-borrower-standing>
+                                @if($unitsOut > 0)
+                                    <span class="text-neutral-700 tabular-nums">Holding {{ $unitsOut }} {{ str('unit')->plural($unitsOut) }}</span>
+                                @else
+                                    <span class="text-neutral-600">Nothing out right now</span>
+                                @endif
+                                @if($overdueLoans > 0)
+                                    <span class="inline-flex items-center gap-1.5 rounded-md bg-danger-50 px-2 py-0.5 font-semibold text-danger-700">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-danger-600" aria-hidden="true"></span>
+                                        {{ $overdueLoans }} overdue
+                                    </span>
+                                @endif
                             </p>
                         </div>
 
@@ -90,13 +107,16 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3 px-5 pt-3 text-sm">
-                        <span class="inline-flex items-center gap-2 rounded-lg px-2.5 py-1 font-semibold
+                        {{-- The question is "what happens if I say yes", so the
+                             chip answers that rather than restating stock. --}}
+                        <span data-approval-effect
+                              class="inline-flex items-center gap-2 rounded-lg px-2.5 py-1 font-semibold tabular-nums
                                      {{ $fillable ? 'bg-success-50 text-success-700' : 'bg-danger-50 text-danger-700' }}">
                             <span class="w-1.5 h-1.5 rounded-full {{ $fillable ? 'bg-success-600' : 'bg-danger-600' }}" aria-hidden="true"></span>
                             @if($retired)
                                 {{ $equipment->equipment_name }} is retired
                             @elseif($fillable)
-                                {{ $available }} of {{ $total }} available
+                                Approving leaves {{ $context['leaves'] ?? 0 }} of {{ $total }} on the shelf
                             @else
                                 Only {{ $available }} of {{ $total }} available
                             @endif
@@ -106,6 +126,18 @@
                             requested {{ $request->requested_date?->format('M j') ?? '—' }}
                         </span>
                     </div>
+
+                    @if(! empty($conflicts))
+                        <ul class="px-5 pt-3 space-y-1.5" data-request-conflicts>
+                            @foreach($conflicts as $conflict)
+                                <li class="flex items-start gap-2 text-sm text-warning-800 text-pretty"
+                                    data-conflict="{{ $conflict['key'] }}">
+                                    <i class="fa-solid fa-triangle-exclamation mt-0.5 text-[12px] text-warning-600" aria-hidden="true"></i>
+                                    <span>{{ $conflict['text'] }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
 
                     <p class="px-5 py-3 mt-3 text-sm border-t text-neutral-700 border-neutral-100 text-pretty">
                         {{ $request->remarks ?: 'No reason given for the request.' }}

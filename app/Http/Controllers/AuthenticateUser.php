@@ -38,6 +38,20 @@ class AuthenticateUser extends Controller
         $requests = ItemRequest::with(['user', 'equipment'])->get();
         $returnLogs = ReturnLog::with(['borrower', 'receiver', 'equipment'])->latest()->take(6)->get();
 
+        // Two queues the dashboard leads with that are not loans or requests.
+        // Each is one query, counted in the database rather than by pulling the
+        // whole table in and filtering it in PHP.
+        $unresolvedIncidents = ReturnLog::with(['borrower', 'equipment'])
+            ->where('condition', '!=', 'Good')
+            ->whereNull('resolved_at')
+            ->orderBy('return_date')
+            ->get();
+
+        $restrictedAccounts = User::query()
+            ->where(fn ($query) => $query->whereNotNull('deactivated_at')->orWhereNotNull('suspended_at'))
+            ->orderBy('name')
+            ->get();
+
         // Counted here rather than from $returnLogs, which is capped at six for
         // the activity feed and so could never report more than six.
         $returnedThisWeek = ReturnLog::where('return_date', '>=', now()->subWeek())->count();
@@ -46,10 +60,21 @@ class AuthenticateUser extends Controller
             ->sortBy(fn ($transaction) => $transaction->return_date?->timestamp ?? PHP_INT_MAX)
             ->values();
 
-        $attention = $this->adminAttention($requests, $openLoans, $equipments);
+        $attention = $this->adminAttention(
+            $requests, $openLoans, $equipments, $unresolvedIncidents, $restrictedAccounts
+        );
+
+        // What blocks approvals: an item with nothing on the shelf cannot be
+        // lent however many requests are waiting for it.
+        $stockWatch = $equipments
+            ->reject(fn ($item) => $item->isRetired())
+            ->filter(fn ($item) => in_array($item->availabilityState()['key'], ['out', 'low'], true))
+            ->sortBy('available_quantity')
+            ->values();
 
         return view('admin.dashboard', compact(
-            'equipments', 'users', 'transactions', 'requests', 'returnLogs', 'openLoans', 'attention', 'returnedThisWeek'
+            'equipments', 'users', 'transactions', 'requests', 'returnLogs', 'openLoans',
+            'attention', 'returnedThisWeek', 'stockWatch', 'unresolvedIncidents', 'restrictedAccounts'
         ));
     }
 
@@ -60,9 +85,12 @@ class AuthenticateUser extends Controller
      *
      * @return list<array{tone: string, title: string, detail: string, action: string, url: string}>
      */
-    private function adminAttention($requests, $openLoans, $equipments): array
-    {
+    private function adminAttention(
+        $requests, $openLoans, $equipments, $unresolvedIncidents = null, $restrictedAccounts = null
+    ): array {
         $attention = [];
+        $unresolvedIncidents ??= collect();
+        $restrictedAccounts ??= collect();
 
         $overdue = $openLoans->filter(fn ($loan) => $loan->isOverdue())->values();
         if ($overdue->isNotEmpty()) {
@@ -73,7 +101,7 @@ class AuthenticateUser extends Controller
                 'detail' => ($worst->equipment->equipment_name ?? 'Equipment').' ×'.$worst->quantity
                     .' with '.($worst->user->name ?? 'a deleted user').' · '.$worst->dateLine(),
                 'action' => 'Follow up',
-                'url' => route('admin.transaction'),
+                'url' => route('admin.transaction', ['filter' => 'overdue']),
             ];
         }
 
@@ -103,7 +131,7 @@ class AuthenticateUser extends Controller
                 'detail' => $dueToday->take(2)->map(fn ($loan) => ($loan->equipment->equipment_name ?? 'Equipment')
                     .' · '.($loan->user->name ?? 'deleted user'))->implode(' · '),
                 'action' => 'Send reminders',
-                'url' => route('admin.transaction'),
+                'url' => route('admin.transaction', ['filter' => 'active']),
             ];
         }
 
@@ -115,7 +143,44 @@ class AuthenticateUser extends Controller
                 'detail' => $fullyOut->take(3)->pluck('equipment_name')->implode(', ')
                     .' — nothing left to lend.',
                 'action' => 'View stock',
-                'url' => route('admin.equipment'),
+                'url' => route('admin.equipment', ['filter' => 'out']),
+            ];
+        }
+
+        // Something came back damaged or lost and nobody has recorded what was
+        // done about it. This is the only queue on the dashboard that does not
+        // age out on its own — a loan gets returned, a request gets decided,
+        // an unresolved incident simply sits there.
+        if ($unresolvedIncidents->isNotEmpty()) {
+            $oldest = $unresolvedIncidents->first();
+            $attention[] = [
+                'tone' => 'warning',
+                'title' => $unresolvedIncidents->count().' damaged or lost '
+                    .str('return')->plural($unresolvedIncidents->count()).' with no outcome recorded',
+                'detail' => ($oldest->equipment->equipment_name ?? 'Equipment').' — '.strtolower($oldest->condition)
+                    .', returned '.($oldest->return_date?->format('M j') ?? 'recently')
+                    .' by '.($oldest->borrower->name ?? 'a deleted user'),
+                'action' => 'Record outcomes',
+                'url' => route('admin.logs', ['filter' => 'followup']),
+            ];
+        }
+
+        // Accounts a human has already restricted. There is no approval queue
+        // in this system — registration creates a working account.
+        if ($restrictedAccounts->isNotEmpty()) {
+            $suspended = $restrictedAccounts->filter(fn ($user) => $user->isSuspended())->count();
+            $deactivated = $restrictedAccounts->count() - $suspended;
+
+            $attention[] = [
+                'tone' => 'primary',
+                'title' => $restrictedAccounts->count().' restricted '
+                    .str('account')->plural($restrictedAccounts->count()),
+                'detail' => collect([
+                    $suspended > 0 ? $suspended.' suspended from borrowing' : null,
+                    $deactivated > 0 ? $deactivated.' unable to sign in' : null,
+                ])->filter()->implode(' · '),
+                'action' => 'Review',
+                'url' => route('admin.users', ['filter' => 'suspended']),
             ];
         }
 

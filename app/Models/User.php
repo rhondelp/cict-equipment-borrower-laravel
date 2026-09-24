@@ -26,6 +26,12 @@ class User extends Authenticatable
         'password',
         'contact_number',
         'deactivated_at',
+        'suspended_at',
+        'suspension_reason',
+        'suspended_by',
+        'role_overridden_at',
+        'role_override_reason',
+        'role_overridden_by',
     ];
 
     /**
@@ -48,6 +54,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'deactivated_at' => 'datetime',
+            'suspended_at' => 'datetime',
+            'role_overridden_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -109,6 +117,92 @@ class User extends Authenticatable
     public function isDeactivated(): bool
     {
         return $this->deactivated_at !== null;
+    }
+
+    /**
+     * Suspension is not deactivation.
+     *
+     * A deactivated account cannot sign in at all. A suspended one signs in,
+     * sees its history and its open loans, and cannot borrow — which is the
+     * sanction the terms of service already describe. Enforced in
+     * ItemRequestController::store, not only by hiding a button.
+     */
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
+    }
+
+    public function canBorrow(): bool
+    {
+        return ! $this->isDeactivated() && ! $this->isSuspended();
+    }
+
+    /** "Suspended since Sep 14 · two items never came back" */
+    public function suspensionLine(): string
+    {
+        if (! $this->isSuspended()) {
+            return '';
+        }
+
+        $since = $this->suspended_at?->format('M j');
+
+        return 'Suspended'.($since ? ' since '.$since : '')
+            .($this->suspension_reason ? ' · '.$this->suspension_reason : '');
+    }
+
+    /**
+     * Whether this account's role matches what its email domain implies.
+     *
+     * Role is derived from the domain; an admin may override it, but the
+     * override is a recorded decision rather than an inline edit, and the
+     * screen shows both the derived answer and the override beside it.
+     */
+    public function roleMatchesDomain(): bool
+    {
+        $derived = self::roleForEmail($this->email);
+
+        // An address outside both school domains implies nothing, so there is
+        // nothing for the stored role to contradict.
+        return $derived === null || $derived === $this->user_type;
+    }
+
+    public function roleIsOverridden(): bool
+    {
+        return $this->role_overridden_at !== null;
+    }
+
+    /** "Set to Instructor by Quincy Jane O. on Sep 20 — teaches lab sections" */
+    public function roleOverrideLine(): string
+    {
+        if (! $this->roleIsOverridden()) {
+            return '';
+        }
+
+        $who = $this->roleOverrider?->name;
+        $when = $this->role_overridden_at?->format('M j');
+
+        return 'Set to '.$this->user_type
+            .($who ? ' by '.$who : '')
+            .($when ? ' on '.$when : '')
+            .($this->role_override_reason ? ' — '.$this->role_override_reason : '');
+    }
+
+    /** Requests this person is waiting on a decision for. */
+    public function pendingRequests(): int
+    {
+        return isset($this->attributes['pending_requests_count'])
+            ? (int) $this->attributes['pending_requests_count']
+            : $this->itemRequests()->where('status', 'Pending')->count();
+    }
+
+    public function suspender()
+    {
+        return $this->belongsTo(User::class, 'suspended_by');
+    }
+
+    public function roleOverrider()
+    {
+        return $this->belongsTo(User::class, 'role_overridden_by');
     }
 
     /** Units this person is holding right now. */

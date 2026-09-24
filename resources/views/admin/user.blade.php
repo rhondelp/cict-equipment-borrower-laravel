@@ -6,6 +6,9 @@
 @php
     $holding = $users->filter(fn ($user) => $user->outNow() > 0)->count();
     $deactivated = $users->filter(fn ($user) => $user->isDeactivated())->count();
+    $suspended = $users->filter(fn ($user) => $user->isSuspended())->count();
+    $overdueHolders = $users->filter(fn ($user) => (int) ($user->overdue_count ?? 0) > 0)->count();
+    $mismatched = $users->filter(fn ($user) => ! $user->roleMatchesDomain())->count();
     $counts = [
         'Instructor' => $users->where('user_type', 'Instructor')->count(),
         'Student' => $users->where('user_type', 'Student')->count(),
@@ -38,7 +41,94 @@
     </x-ui.page-header>
 
     <main id="main-content" class="p-4 mx-auto space-y-5 sm:p-6 max-w-content">
-        <x-ui.panel data-list data-active-chip="all">
+
+        @if($users->isNotEmpty())
+            <x-ui.stat-strip :stats="[
+                ['label' => 'Holding equipment', 'value' => $holding, 'unit' => str('account')->plural($holding), 'sub' => $holding === 0 ? 'Nothing is out with anyone' : 'Units still with borrowers'],
+                ['label' => 'With something overdue', 'value' => $overdueHolders, 'unit' => '', 'sub' => $overdueHolders === 0 ? 'Everyone is inside their due dates' : 'Past the return date', 'tone' => $overdueHolders === 0 ? 'neutral' : 'danger', 'chip' => 'overdue', 'list' => '#user-list'],
+                ['label' => 'Suspended', 'value' => $suspended, 'unit' => '', 'sub' => $suspended === 0 ? 'Everyone can borrow' : 'Can sign in, cannot borrow', 'tone' => $suspended === 0 ? 'neutral' : 'warning', 'chip' => 'suspended', 'list' => '#user-list'],
+                ['label' => 'Deactivated', 'value' => $deactivated, 'unit' => '', 'sub' => $deactivated === 0 ? 'Every account can sign in' : 'Cannot sign in at all', 'chip' => 'deactivated', 'list' => '#user-list'],
+            ]" />
+        @endif
+
+        {{-- The accounts a human has already acted on, above the member list.
+             There is no account-approval queue in this system: registration
+             creates a working account, so the actionable rows here are the ones
+             that have been closed or restricted. --}}
+        @if($needsAttention->isNotEmpty())
+            <section aria-labelledby="attention-heading" class="space-y-3">
+                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h2 id="attention-heading" class="text-lg font-semibold text-neutral-900">Restricted accounts</h2>
+                    <p class="text-sm text-neutral-600">
+                        {{ $needsAttention->count() }} {{ str('account')->plural($needsAttention->count()) }} cannot sign in or cannot borrow
+                    </p>
+                </div>
+
+                @foreach($needsAttention as $user)
+                    @php
+                        $out = $user->outNow();
+                        $overdue = (int) ($user->overdue_count ?? 0);
+                    @endphp
+                    <article class="bg-white border rounded-xl border-neutral-200 border-l-[3px] {{ $user->isDeactivated() ? 'border-l-danger-500' : 'border-l-warning-500' }}"
+                             data-restricted-account>
+                        <div class="flex flex-wrap items-start justify-between gap-4 px-5 py-4">
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h3 class="text-base font-semibold text-neutral-900">{{ $user->name }}</h3>
+                                    @if($user->isDeactivated())
+                                        <x-ui.status label="Deactivated" tone="danger" />
+                                    @else
+                                        <x-ui.status label="Suspended" tone="warning" />
+                                    @endif
+                                </div>
+                                <p class="mt-1 text-sm text-neutral-600">{{ $user->email }} · {{ $user->user_type }}</p>
+
+                                {{-- Why, and since when. A restriction with no
+                                     reason on it cannot be reviewed by anyone
+                                     who was not in the room. --}}
+                                <p class="mt-1 text-sm text-pretty {{ $user->isDeactivated() ? 'text-danger-700' : 'text-warning-800' }}"
+                                   data-restriction-reason>
+                                    @if($user->isSuspended())
+                                        {{ $user->suspensionLine() }}@if($user->suspender) · by {{ $user->suspender->name }}@endif
+                                    @else
+                                        Cannot sign in. History and loans are untouched.
+                                    @endif
+                                </p>
+
+                                @if($out > 0)
+                                    <p class="mt-1 text-sm {{ $overdue > 0 ? 'font-semibold text-danger-700' : 'text-neutral-700' }}">
+                                        Still holding {{ $out }} {{ str('unit')->plural($out) }}@if($overdue > 0) · {{ $overdue }} overdue @endif
+                                    </p>
+                                @endif
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                                @if($user->isSuspended())
+                                    <form method="POST" action="{{ route('admin.users.lift', $user->id) }}">
+                                        @csrf
+                                        <button type="submit"
+                                                class="inline-flex min-h-[40px] items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700">
+                                            <i class="text-sm fas fa-unlock" aria-hidden="true"></i> Let them borrow again
+                                        </button>
+                                    </form>
+                                @endif
+                                @if($user->isDeactivated())
+                                    <form method="POST" action="{{ route('admin.users.reactivate', $user->id) }}">
+                                        @csrf
+                                        <button type="submit"
+                                                class="inline-flex min-h-[40px] items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700">
+                                            <i class="text-sm fas fa-rotate-left" aria-hidden="true"></i> Reactivate
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        </div>
+                    </article>
+                @endforeach
+            </section>
+        @endif
+
+        <x-ui.panel id="user-list" data-list data-active-chip="all">
             @if($users->isEmpty())
                 <x-ui.empty-state icon="fa-users" title="No accounts yet"
                                   message="Add the borrowers who will be requesting equipment.">
@@ -58,6 +148,12 @@
                                 'student' => 'Students '.$counts['Student'],
                                 'holding' => 'Holding equipment '.$holding,
                             ];
+                            if ($overdueHolders > 0) {
+                                $chips['overdue'] = 'With overdue '.$overdueHolders;
+                            }
+                            if ($suspended > 0) {
+                                $chips['suspended'] = 'Suspended '.$suspended;
+                            }
                             if ($deactivated > 0) {
                                 $chips['deactivated'] = 'Deactivated '.$deactivated;
                             }
@@ -71,6 +167,16 @@
                             </button>
                         @endforeach
                     </div>
+                    <div class="flex items-center gap-2 text-sm text-neutral-600">
+                        <label for="user-sort" class="shrink-0">Sort</label>
+                        <select id="user-sort" data-list-sort
+                                class="min-h-[40px] rounded-md border border-neutral-300 bg-white px-2.5 py-2 text-sm text-neutral-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                            <option value="name">Name A&ndash;Z</option>
+                            <option value="overdue" data-type="number" data-dir="desc">Most overdue first</option>
+                            <option value="out" data-type="number" data-dir="desc">Holding most first</option>
+                        </select>
+                    </div>
+
                     <label class="relative flex-1 min-w-[12rem] max-w-xs">
                         <span class="sr-only">Search accounts</span>
                         <i class="absolute text-sm -translate-y-1/2 pointer-events-none fas fa-search left-4 top-1/2 text-neutral-500" aria-hidden="true"></i>
@@ -90,7 +196,7 @@
                     <div class="text-right">Actions</div>
                 </div>
 
-                <div class="divide-y divide-neutral-200">
+                <div data-list-rows class="divide-y divide-neutral-200">
                     @foreach ($users as $user)
                         @php
                             $out = $user->outNow();
@@ -102,7 +208,10 @@
                                 ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))->implode('') ?: '—';
                             $chipKeys = collect(['all', strtolower($user->user_type)]);
                             if ($out > 0) { $chipKeys->push('holding'); }
+                            if ($overdue > 0) { $chipKeys->push('overdue'); }
                             if ($user->isDeactivated()) { $chipKeys->push('deactivated'); }
+                            if ($user->isSuspended()) { $chipKeys->push('suspended'); }
+                            $pending = $user->pendingRequests();
                             $isSelf = $user->id === Auth::id();
                             $blocked = $out > 0
                                 ? "Can't delete — ".$out.' '.str('unit')->plural($out).' '.($out === 1 ? 'is' : 'are').' still out with them'
@@ -112,6 +221,9 @@
                         @endphp
                         <div data-list-row data-chip="{{ $chipKeys->implode(' ') }}"
                              data-search="{{ strtolower($user->name.' '.$user->email) }}"
+                             data-sort-name="{{ $user->name }}"
+                             data-sort-out="{{ $out }}"
+                             data-sort-overdue="{{ $overdue }}"
                              class="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,1fr)_6rem] lg:items-center lg:gap-4 hover:bg-neutral-50">
 
                             <div class="flex items-center min-w-0 gap-3">
@@ -120,12 +232,26 @@
                                       aria-hidden="true">{{ $initials }}</span>
                                 <div class="min-w-0">
                                     <p class="text-base font-semibold truncate text-neutral-900">{{ $user->name }}</p>
-                                    <p class="text-sm text-neutral-600">
+                                    {{-- Role is a fact read off the email domain,
+                                         not a control. Where it has been
+                                         overridden, the row says so and by whom. --}}
+                                    <p class="text-sm text-neutral-600" data-user-role>
                                         {{ $user->user_type }}
+                                        @if($user->roleIsOverridden())
+                                            <span class="font-semibold text-warning-700" title="{{ $user->roleOverrideLine() }}">· set by hand</span>
+                                        @elseif(! $user->roleMatchesDomain())
+                                            <span class="font-semibold text-warning-700">· does not match {{ $user->email }}</span>
+                                        @endif
+                                        @if($user->isSuspended())
+                                            <span class="font-semibold text-warning-700">· suspended</span>
+                                        @endif
                                         @if($user->isDeactivated())
                                             <span class="font-semibold text-danger-700">· deactivated</span>
                                         @endif
                                     </p>
+                                    @if($user->roleIsOverridden())
+                                        <p class="text-sm text-neutral-500 text-pretty" data-role-override>{{ $user->roleOverrideLine() }}</p>
+                                    @endif
                                 </div>
                             </div>
 
@@ -134,15 +260,26 @@
                                 <p class="text-sm text-neutral-600">{{ $user->contact_number ?: 'No contact number' }}</p>
                             </div>
 
-                            <div class="min-w-0">
+                            {{-- Standing, not account fields. Whoever has to
+                                 decide on this person's next request needs all
+                                 three of these, and none of them are on the
+                                 account itself. --}}
+                            <div class="min-w-0" data-user-standing>
                                 @if($overdue > 0)
-                                    <p class="text-sm font-semibold text-danger-700">
+                                    <p class="text-sm font-semibold text-danger-700 tabular-nums">
                                         {{ $out }} {{ str('unit')->plural($out) }} out · {{ $overdue }} overdue
                                     </p>
                                 @elseif($out > 0)
-                                    <p class="text-sm text-neutral-800">{{ $out }} {{ str('unit')->plural($out) }} out</p>
+                                    <p class="text-sm text-neutral-800 tabular-nums">{{ $out }} {{ str('unit')->plural($out) }} out</p>
                                 @else
                                     <p class="text-sm text-neutral-500">Nothing borrowed</p>
+                                @endif
+                                @if($pending > 0)
+                                    <p class="text-sm text-neutral-600 tabular-nums">
+                                        <a href="{{ route('admin.request') }}" class="underline underline-offset-2 hover:text-primary-700">
+                                            {{ $pending }} pending {{ str('request')->plural($pending) }}
+                                        </a>
+                                    </p>
                                 @endif
                             </div>
 
@@ -167,6 +304,32 @@
                                         data-user-type="{{ $user->user_type }}" data-contact="{{ $user->contact_number }}">
                                     <i class="text-base fas fa-pen" aria-hidden="true"></i>
                                 </button>
+
+                                @if(! $isSelf && $user->user_type !== 'Admin')
+                                    {{-- Suspension stops them borrowing and
+                                         leaves the account usable, which is the
+                                         sanction the terms actually describe.
+                                         Neutral at rest like its neighbours. --}}
+                                    @if($user->isSuspended())
+                                        <form method="POST" action="{{ route('admin.users.lift', $user->id) }}">
+                                            @csrf
+                                            <button type="submit"
+                                                    class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-600 hover:border-primary-300 hover:text-primary-700"
+                                                    title="Let {{ $user->name }} borrow again" aria-label="Lift the suspension on {{ $user->name }}">
+                                                <i class="text-base fas fa-unlock" aria-hidden="true"></i>
+                                            </button>
+                                        </form>
+                                    @else
+                                        <button type="button"
+                                                class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-600 hover:border-warning-300 hover:bg-warning-50 hover:text-warning-700"
+                                                title="Suspend borrowing for {{ $user->name }}" aria-label="Suspend borrowing for {{ $user->name }}"
+                                                data-suspend-trigger
+                                                data-id="{{ $user->id }}"
+                                                data-summary="{{ $user->name.' · '.$user->user_type.($out > 0 ? ' · holding '.$out.' '.str('unit')->plural($out) : '') }}">
+                                            <i class="text-base fas fa-ban" aria-hidden="true"></i>
+                                        </button>
+                                    @endif
+                                @endif
 
                                 @unless($isSelf)
                                     <button type="button"
@@ -209,6 +372,8 @@
 
 @include('components.admin.user.form-modal')
 @include('components.admin.user.schedules-modal')
+
+@include('components.admin.user.suspend-modal')
 
 <x-ui.remove-dialog
     id="remove-dialog"

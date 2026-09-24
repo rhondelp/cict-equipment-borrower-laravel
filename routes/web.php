@@ -56,6 +56,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('/admin/users/sched/{id}', [ClassScheduleController::class, 'destroy'])->name('admin.sched.destroy');
         Route::post('/admin/users/{id}/deactivate', [UserController::class, 'deactivate'])->name('admin.users.deactivate');
         Route::post('/admin/users/{id}/reactivate', [UserController::class, 'reactivate'])->name('admin.users.reactivate');
+        // Suspension is a different state from deactivation: the account signs
+        // in and cannot borrow. Enforced in ItemRequestController::store.
+        Route::post('/admin/users/{id}/suspend', [UserController::class, 'suspend'])->name('admin.users.suspend');
+        Route::post('/admin/users/{id}/lift-suspension', [UserController::class, 'liftSuspension'])->name('admin.users.lift');
         Route::delete('/admin/users/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
         Route::get('/admin/transaction', [BorrowTransactionController::class, 'index'])->name('admin.transaction');
         Route::post('/admin/transaction', [BorrowTransactionController::class, 'store'])->name('admin.transaction.store');
@@ -72,6 +76,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/request/decline', [ItemRequestController::class, 'requestActions'])->name('admin.request.decline');
 
         Route::get('/admin/logs', [ReturnLogsController::class, 'index'])->name('admin.logs');
+        // Every return ever recorded for one item — a pattern of damage is
+        // invisible on a date-ordered list.
+        Route::get('/admin/logs/item/{equipment}', [ReturnLogsController::class, 'itemHistory'])->name('admin.logs.item');
+        // The only two writes this screen has. There is deliberately no update
+        // and no destroy: a return log is immutable, and a correction is
+        // appended as a note rather than overwriting what was recorded.
+        Route::post('/admin/logs/{id}/resolve', [ReturnLogsController::class, 'resolve'])->name('admin.logs.resolve');
+        Route::post('/admin/logs/{id}/notes', [ReturnLogsController::class, 'addNote'])->name('admin.logs.note');
 
         // Admin-only mail utilities (previously public)
         Route::get('/admin/send-return-alerts', [BorrowTransactionController::class, 'sendReturnAlertNotification'])

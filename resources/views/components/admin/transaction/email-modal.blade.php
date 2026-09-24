@@ -8,7 +8,12 @@
         <div class="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
             <div class="min-w-0">
                 <h2 id="email-modal-title" class="text-lg font-semibold text-neutral-900">Email the borrower</h2>
-                <p class="mt-1 text-sm text-neutral-600">Sent from the equipment office address.</p>
+                {{-- Filled from the row's own data attributes, never from
+                     whatever the list happens to be showing: a dialog opened
+                     out of a filtered list has no "current row" to derive from,
+                     and that is how these end up reading "undefined". --}}
+                <p class="mt-1 text-sm text-neutral-600" data-email-summary>Sent from the equipment office address.</p>
+                <p class="mt-1 text-sm text-neutral-500" data-email-history hidden></p>
             </div>
             <button type="button" data-modal-close="emailModal" aria-label="Close"
                     class="grid w-10 h-10 border rounded-md shrink-0 place-items-center border-neutral-200 text-neutral-600 hover:bg-neutral-50">

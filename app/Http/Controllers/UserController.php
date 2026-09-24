@@ -50,13 +50,26 @@ class UserController extends Controller
                 'borrowTransactions as overdue_count' => fn ($query) => $query->whereNull('voided_at')
                     ->whereIn('status', ['Borrowed', 'Overdue'])
                     ->whereDate('return_date', '<', now()->toDateString()),
+                // A person's standing is not just what they hold — it is also
+                // what they are waiting on. Counted here so the row can say it
+                // without firing a query of its own.
+                'itemRequests as pending_requests_count' => fn ($query) => $query->where('status', 'Pending'),
             ])
+            ->with(['suspender', 'roleOverrider'])
             ->orderBy('name')
             ->get();
 
         $instructors = UserModel::where('user_type', 'Instructor')->orderBy('name')->get();
 
-        return view('admin.user', compact('users', 'instructors'));
+        // The actionable list. There is no account-approval gate in this
+        // system — registration creates a working account — so the accounts
+        // that need a decision are the ones a human has already acted on:
+        // closed, or allowed to sign in but stopped from borrowing.
+        $needsAttention = $users->filter(
+            fn ($user) => $user->isDeactivated() || $user->isSuspended()
+        )->values();
+
+        return view('admin.user', compact('users', 'instructors', 'needsAttention'));
     }
 
     public function update(Request $request)
@@ -70,13 +83,44 @@ class UserController extends Controller
             'email' => "required|string|email|max:255|unique:users,email,{$userId}",
             'password' => 'nullable|string|min:4|confirmed',
             'contact_number' => 'nullable|string|max:15',
+            // Required only when the submitted role contradicts the address.
+            'role_override_reason' => 'nullable|string|max:500',
         ]);
 
         $user = UserModel::findOrFail($userId);
+
+        // Role is derived from the school email domain. An admin may still set
+        // it by hand — they are behind userType:Admin, and sometimes the
+        // register is simply wrong — but overriding the derivation is a
+        // privilege decision, so it takes a reason and it is recorded. An
+        // unexplained role change is the one edit on this screen nobody can
+        // reconstruct afterwards.
+        $derived = UserModel::roleForEmail($validated['email']);
+        $isOverride = $derived !== null && $derived !== $validated['user_type'];
+
+        if ($isOverride && blank($validated['role_override_reason'] ?? null)) {
+            return redirect()->back()
+                ->withErrors(['role_override_reason' => 'That email implies '.$derived
+                    .'. Say why this account is '.$validated['user_type'].' instead — the reason is recorded.'])
+                ->withInput();
+        }
+
         $user->name = $validated['name'];
         $user->email = $validated['email'];
-        $user->user_type = $validated['user_type'];
         $user->contact_number = $validated['contact_number'] ?? null;
+
+        if ($isOverride) {
+            $user->user_type = $validated['user_type'];
+            $user->role_overridden_at = now();
+            $user->role_overridden_by = auth()->id();
+            $user->role_override_reason = $validated['role_override_reason'];
+        } else {
+            // Back in step with the address, so the override record goes too.
+            $user->user_type = $derived ?? $validated['user_type'];
+            $user->role_overridden_at = null;
+            $user->role_overridden_by = null;
+            $user->role_override_reason = null;
+        }
 
         // If password is provided, hash and update it
         if (! empty($validated['password'])) {
@@ -114,6 +158,57 @@ class UserController extends Controller
             : '';
 
         return redirect()->back()->with('success', $user->name.' deactivated and can no longer sign in.'.$note);
+    }
+
+    /**
+     * Suspension: the account keeps working, and stops being able to borrow.
+     *
+     * Distinct from deactivation on purpose. Deactivating someone who owes two
+     * items also locks them out of the screen that tells them what they owe,
+     * which is the wrong sanction for the thing it is usually used for.
+     */
+    public function suspend(Request $request, string $id)
+    {
+        $validated = $request->validate([
+            'reason' => 'required|string|min:5|max:500',
+        ], [
+            'reason.required' => 'Say why — the borrower is shown this, and it is the only record of the decision.',
+            'reason.min' => 'Give a usable reason (at least 5 characters).',
+        ]);
+
+        if ((int) $id === (int) auth()->id()) {
+            return redirect()->back()->with('error', 'You cannot suspend your own account.');
+        }
+
+        $user = UserModel::findOrFail($id);
+
+        if ($user->isSuspended()) {
+            return redirect()->back()->with('error', $user->name.' is already suspended.');
+        }
+
+        $user->suspended_at = now();
+        $user->suspension_reason = $validated['reason'];
+        $user->suspended_by = auth()->id();
+        $user->save();
+
+        return redirect()->back()->with('success',
+            $user->name.' suspended — they can still sign in and see their loans, but cannot borrow.');
+    }
+
+    public function liftSuspension(string $id)
+    {
+        $user = UserModel::findOrFail($id);
+
+        if (! $user->isSuspended()) {
+            return redirect()->back()->with('error', $user->name.' is not suspended.');
+        }
+
+        $user->suspended_at = null;
+        $user->suspension_reason = null;
+        $user->suspended_by = null;
+        $user->save();
+
+        return redirect()->back()->with('success', $user->name.' can borrow again.');
     }
 
     public function reactivate(string $id)

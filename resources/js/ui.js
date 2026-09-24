@@ -6,7 +6,7 @@
 // including the ones nobody sorts by. Those are gone; the search survives, as
 // the three functions below.
 //
-//   initListFilters()   search + filter chips + a live "showing N of M"
+//   initListFilters()   search + filter chips + one sort control + "showing N of M"
 //   initRemoveDialogs() the destructive confirm, filled from the row's data
 //   initModals()        open/close, backdrop, Escape, focus restore
 //
@@ -15,22 +15,31 @@
 
 /* ------------------------------------------------------------------ lists */
 
-function rowMatches(row, term, chip) {
+function rowMatches(row, term, chip, from, to) {
   const haystack = (row.getAttribute('data-search') || '').toLowerCase();
   const chips = (row.getAttribute('data-chip') || '').split(/\s+/);
   const matchesTerm = !term || haystack.includes(term);
   const matchesChip = !chip || chip === 'all' || chips.includes(chip);
-  return matchesTerm && matchesChip;
+
+  // ISO dates compare correctly as strings, which is the whole reason the rows
+  // carry `data-date` in that format rather than something human-readable.
+  const date = row.getAttribute('data-date') || '';
+  const matchesFrom = !from || (date && date >= from);
+  const matchesTo = !to || (date && date <= to);
+
+  return matchesTerm && matchesChip && matchesFrom && matchesTo;
 }
 
 function applyFilter(list) {
   const term = (list.querySelector('[data-list-search]')?.value || '').trim().toLowerCase();
   const chip = list.getAttribute('data-active-chip') || 'all';
+  const from = list.querySelector('[data-list-from]')?.value || '';
+  const to = list.querySelector('[data-list-to]')?.value || '';
   const rows = list.querySelectorAll('[data-list-row]');
 
   let shown = 0;
   rows.forEach((row) => {
-    const visible = rowMatches(row, term, chip);
+    const visible = rowMatches(row, term, chip, from, to);
     row.hidden = !visible;
     if (visible) shown += 1;
   });
@@ -55,6 +64,39 @@ function applyFilter(list) {
   }
 }
 
+/**
+ * One sort control per list, in place of a sort arrow on every column header.
+ *
+ * Rows carry `data-sort-<key>` attributes and the <select>'s options name the
+ * key plus how to read it (`data-type="number"`, `data-dir="desc"`). Sorting
+ * reorders the DOM rather than re-querying, so it composes with the filter
+ * chips and the search box instead of fighting them.
+ */
+function applySort(list) {
+  const select = list.querySelector('[data-list-sort]');
+  const container = list.querySelector('[data-list-rows]');
+  if (!select || !container) return;
+
+  const option = select.selectedOptions[0];
+  const key = select.value;
+  if (!key) return;
+
+  const direction = option && option.getAttribute('data-dir') === 'desc' ? -1 : 1;
+  const numeric = option && option.getAttribute('data-type') === 'number';
+
+  const rows = Array.from(container.querySelectorAll(':scope > [data-list-row]'));
+  rows.sort((a, b) => {
+    const left = a.getAttribute('data-sort-' + key) || '';
+    const right = b.getAttribute('data-sort-' + key) || '';
+    const compared = numeric
+      ? (parseFloat(left) || 0) - (parseFloat(right) || 0)
+      : left.localeCompare(right, undefined, { sensitivity: 'base', numeric: true });
+    return compared * direction;
+  });
+
+  rows.forEach((row) => container.appendChild(row));
+}
+
 function setChip(list, value) {
   list.setAttribute('data-active-chip', value);
   list.querySelectorAll('[data-list-chip]').forEach((button) => {
@@ -70,8 +112,27 @@ function setChip(list, value) {
   applyFilter(list);
 }
 
+// A chip control usually sits inside its list. The summary tiles above the
+// table do not, so they name their list with `data-list-target`.
+function listFor(control) {
+  const target = control.getAttribute('data-list-target');
+  return target ? document.querySelector(target) : control.closest('[data-list]');
+}
+
 export function initListFilters() {
-  document.querySelectorAll('[data-list]').forEach((list) => applyFilter(list));
+  // A link can arrive pre-filtered: /admin/transaction?filter=overdue. This is
+  // what makes a dashboard queue entry land on the rows it was counting rather
+  // than on the whole screen, leaving the reader to re-find them.
+  const wanted = new URLSearchParams(window.location.search).get('filter');
+
+  document.querySelectorAll('[data-list]').forEach((list) => {
+    const known = list.querySelector('[data-list-chip="' + (wanted || '') + '"]');
+    if (wanted && known) {
+      setChip(list, wanted);
+    }
+    applySort(list);
+    applyFilter(list);
+  });
 
   document.addEventListener('input', (event) => {
     const search = event.target.closest('[data-list-search]');
@@ -80,11 +141,46 @@ export function initListFilters() {
     if (list) applyFilter(list);
   });
 
+  document.addEventListener('change', (event) => {
+    const sort = event.target.closest('[data-list-sort]');
+    if (sort) {
+      const list = sort.closest('[data-list]');
+      if (list) {
+        applySort(list);
+        applyFilter(list);
+      }
+      return;
+    }
+
+    const range = event.target.closest('[data-list-from], [data-list-to]');
+    if (range) {
+      const list = range.closest('[data-list]');
+      if (list) applyFilter(list);
+    }
+  });
+
+  document.addEventListener('click', (event) => {
+    const clear = event.target.closest('[data-list-range-clear]');
+    if (!clear) return;
+    const list = clear.closest('[data-list]');
+    if (!list) return;
+    list.querySelectorAll('[data-list-from], [data-list-to]').forEach((input) => { input.value = ''; });
+    applyFilter(list);
+  });
+
   document.addEventListener('click', (event) => {
     const chip = event.target.closest('[data-list-chip]');
     if (!chip) return;
-    const list = chip.closest('[data-list]');
-    if (list) setChip(list, chip.getAttribute('data-list-chip'));
+    const list = listFor(chip);
+    if (!list) return;
+
+    setChip(list, chip.getAttribute('data-list-chip'));
+
+    // A tile fired from above the table scrolls its result into view, or the
+    // filter looks like it did nothing.
+    if (chip.hasAttribute('data-list-target')) {
+      list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   });
 }
 

@@ -15,6 +15,8 @@ class ItemRequestController extends Controller
 {
     public function index()
     {
+        // Oldest first. A queue is worked in order, and `id` breaks ties so two
+        // requests filed the same day keep a stable position between renders.
         $requests = ItemRequest::with(['user', 'equipment', 'decider'])
             ->orderBy('requested_date')
             ->orderBy('id')
@@ -28,7 +30,113 @@ class ItemRequestController extends Controller
             fn ($request) => $request->decided_at ?? $request->updated_at
         )->values();
 
-        return view('admin.request', compact('requests', 'pending', 'decided'));
+        $standing = $this->borrowerStanding($pending->pluck('user_id')->filter()->unique()->all());
+
+        return view('admin.request', [
+            'requests' => $requests,
+            'pending' => $pending,
+            'decided' => $decided,
+            'standing' => $standing,
+            'queue' => $this->reviewQueue($pending, $standing),
+        ]);
+    }
+
+    /**
+     * What each borrower in the queue is already holding — units out and how
+     * many of those loans are late.
+     *
+     * One grouped query for the whole queue rather than two per row: this sits
+     * next to every name on the page, and a request list of twenty would
+     * otherwise fire forty queries to draw a subtitle.
+     *
+     * @param  list<int>  $userIds
+     * @return \Illuminate\Support\Collection<int, object>
+     */
+    private function borrowerStanding(array $userIds)
+    {
+        if ($userIds === []) {
+            return collect();
+        }
+
+        $today = Carbon::today()->toDateString();
+
+        return BorrowTransaction::query()
+            ->whereIn('user_id', $userIds)
+            ->whereNull('voided_at')
+            ->whereIn('status', ['Borrowed', 'Overdue'])
+            ->groupBy('user_id')
+            ->selectRaw('user_id')
+            ->selectRaw('SUM(quantity) as units_out')
+            ->selectRaw('SUM(CASE WHEN return_date < ? THEN 1 ELSE 0 END) as overdue_loans', [$today])
+            ->get()
+            ->keyBy('user_id');
+    }
+
+    /**
+     * The queue, annotated with the two things an admin actually needs to know
+     * before saying yes: what approving would leave on the shelf, and anything
+     * that makes this a bad yes.
+     *
+     * `leaves` is computed **cumulatively**. Availability alone answers "can I
+     * fill this one", but the admin is working down a list, and three pending
+     * requests for four units of a six-unit item are individually fillable and
+     * collectively not. Walking the queue in the order it will be worked and
+     * subtracting as it goes is the only reading that matches what will
+     * actually happen.
+     *
+     * Nothing here authorises anything: requestActions() re-checks under a row
+     * lock before it deducts. This is the screen telling the truth in advance.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function reviewQueue($pending, $standing): array
+    {
+        $queue = [];
+        $claimed = [];   // equipment_id => units already spoken for by earlier rows
+
+        foreach ($pending as $request) {
+            $equipment = $request->equipment;
+            $available = (int) ($equipment->available_quantity ?? 0);
+            $already = $claimed[$request->equipment_id] ?? 0;
+            $leaves = $available - $already - (int) $request->quantity;
+
+            $conflicts = [];
+
+            if ($equipment === null) {
+                $conflicts[] = ['key' => 'missing', 'text' => 'The item this asks for has been deleted.'];
+            } elseif ($equipment->isRetired()) {
+                $conflicts[] = ['key' => 'retired', 'text' => $equipment->equipment_name.' has been retired and can no longer be lent out.'];
+            } elseif (! $request->canBeFilled()) {
+                $conflicts[] = ['key' => 'stock', 'text' => 'Asks for '.$request->quantity.' but only '
+                    .$available.' '.($available === 1 ? 'is' : 'are').' on the shelf.'];
+            } elseif ($leaves < 0) {
+                // Fillable on its own, but earlier requests in this queue want
+                // the same units. Approving those first leaves this one short.
+                $conflicts[] = ['key' => 'overlap', 'text' => 'Earlier requests in this queue already claim '
+                    .$already.' of the '.$available.' available — approving them first leaves this one short.'];
+            }
+
+            $their = $standing->get($request->user_id);
+            $overdue = (int) ($their->overdue_loans ?? 0);
+            if ($overdue > 0) {
+                $conflicts[] = ['key' => 'overdue', 'text' => ($request->user->name ?? 'This borrower').' has '
+                    .$overdue.' overdue '.str('item')->plural($overdue).' still out.'];
+            }
+
+            $queue[$request->id] = [
+                'leaves' => max($leaves, 0),
+                'available' => $available,
+                'total' => (int) ($equipment->quantity ?? 0),
+                'would_overdraw' => $leaves < 0,
+                'conflicts' => $conflicts,
+                'units_out' => (int) ($their->units_out ?? 0),
+                'overdue_loans' => $overdue,
+            ];
+
+            $claimed[$request->equipment_id] = $already + (int) $request->quantity;
+        }
+
+        return $queue;
     }
 
     public function requestActions(Request $request)
@@ -125,6 +233,18 @@ class ItemRequestController extends Controller
             'quantity' => 'required|integer|min:1',
             'remarks' => 'nullable|string|max:1000',
         ]);
+
+        // A suspended account signs in, sees its loans, and cannot borrow.
+        // Checked on the server because the borrower's form is not the only
+        // way to reach this action.
+        $borrower = Auth::user();
+        if ($borrower && $borrower->isSuspended()) {
+            return back()->withErrors([
+                'quantity' => 'Borrowing is suspended on your account'
+                    .($borrower->suspension_reason ? ' — '.$borrower->suspension_reason : '')
+                    .'. Speak to the equipment office.',
+            ])->withInput();
+        }
 
         $equipment = Equipment::findOrFail($validated['equipment_id']);
 

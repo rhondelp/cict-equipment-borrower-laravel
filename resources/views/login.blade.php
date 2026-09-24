@@ -53,7 +53,7 @@
                 @endif
                 <li class="flex items-center gap-2.5 text-[13.5px] text-white/80">
                     <span class="w-[5px] h-[5px] rounded-full shrink-0 bg-[#63d99b]" aria-hidden="true"></span>
-                    Equipment room open 8:00 AM – 5:00 PM, Monday to Saturday
+                    Equipment room open 8:00 AM – 5:00 PM, Monday to Friday
                 </li>
                 <li class="flex items-center gap-2.5 text-[13.5px] text-white/80">
                     <span class="w-[5px] h-[5px] rounded-full shrink-0 bg-[#63d99b]" aria-hidden="true"></span>

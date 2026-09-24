@@ -82,6 +82,17 @@
                             </button>
                         @endforeach
                     </div>
+                    <div class="flex items-center gap-2 text-sm text-neutral-600">
+                        <label for="loan-sort" class="shrink-0">Sort</label>
+                        <select id="loan-sort" data-list-sort
+                                class="min-h-[40px] rounded-md border border-neutral-300 bg-white px-2.5 py-2 text-sm text-neutral-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                            <option value="urgency">Most urgent first</option>
+                            <option value="due" data-type="number">Due date</option>
+                            <option value="borrowed" data-type="number" data-dir="desc">Recently borrowed</option>
+                            <option value="person">Borrower A&ndash;Z</option>
+                        </select>
+                    </div>
+
                     <label class="relative flex-1 min-w-[12rem] max-w-xs">
                         <span class="sr-only">Search loans</span>
                         <i class="absolute text-sm -translate-y-1/2 pointer-events-none fas fa-search left-4 top-1/2 text-neutral-500" aria-hidden="true"></i>
@@ -101,10 +112,15 @@
                     <div class="text-right">Actions</div>
                 </div>
 
-                <div class="divide-y divide-neutral-200">
+                <div data-list-rows class="divide-y divide-neutral-200">
                     @foreach ($transactions as $tx)
                         @php
                             $status = $tx->derivedStatus();
+                            $rank = $tx->isVoided() ? 4
+                                : ($tx->isReturned() ? 3
+                                : ($tx->isOverdue() ? 0
+                                : (($tx->daysUntilDue() !== null && $tx->daysUntilDue() <= 1) ? 1 : 2)));
+                            $lastReminder = $tx->reminders->first();
                             $chipKeys = match ($status) {
                                 'Overdue' => 'all active overdue',
                                 'Out' => 'all active',
@@ -117,9 +133,13 @@
                                 ? "Can't delete — the loan is still open"
                                 : ($log ? "Can't delete — it is part of the return history" : '');
                         @endphp
-                        <div data-list-row data-chip="{{ $chipKeys }}"
+                        <div data-list-row id="loan-{{ $tx->id }}" data-chip="{{ $chipKeys }}"
                              data-search="{{ strtolower(($tx->user->name ?? '').' '.($tx->equipment->equipment_name ?? '').' '.$tx->purpose) }}"
-                             class="{{ $tx->isOverdue() ? 'bg-danger-50/40' : '' }}">
+                             data-sort-urgency="{{ $rank }}{{ str_pad((string) ($tx->return_date?->timestamp ?? 9999999999), 10, '0', STR_PAD_LEFT) }}"
+                             data-sort-due="{{ $tx->return_date?->timestamp ?? 0 }}"
+                             data-sort-borrowed="{{ $tx->borrow_date?->timestamp ?? 0 }}"
+                             data-sort-person="{{ $tx->user->name ?? 'zzz' }}"
+                             class="scroll-mt-24 {{ $tx->isOverdue() ? 'bg-danger-50/40' : '' }}">
 
                             <div class="grid gap-3 px-4 py-3 sm:px-5 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_8rem_10rem] md:items-center md:gap-4">
                                 <div class="flex items-center min-w-0 gap-2">
@@ -145,6 +165,20 @@
                                     <p class="text-sm truncate {{ $tx->isOverdue() ? 'font-semibold text-danger-700' : 'text-neutral-600' }}">
                                         {{ $tx->timingLabel() }}
                                     </p>
+                                    {{-- Whether this one has been chased, and when.
+                                         Without it an admin cannot tell a first
+                                         nudge from a fourth. --}}
+                                    @if($lastReminder)
+                                        <p class="text-xs truncate text-neutral-500" data-last-reminder>
+                                            <i class="fa-regular fa-paper-plane mr-1 text-[10px]" aria-hidden="true"></i>
+                                            Reminded {{ $lastReminder->send_date?->format('M j') }}@if($tx->reminders->count() > 1) · {{ $tx->reminders->count() }} sent @endif
+                                        </p>
+                                    @elseif($tx->isOverdue())
+                                        <p class="text-xs truncate text-warning-700" data-last-reminder>
+                                            <i class="fa-regular fa-paper-plane mr-1 text-[10px]" aria-hidden="true"></i>
+                                            Not chased yet
+                                        </p>
+                                    @endif
                                 </div>
 
                                 <div>
@@ -169,7 +203,11 @@
                                         <button type="button"
                                                 class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-700 hover:border-primary-300 hover:text-primary-700"
                                                 title="Email borrower" aria-label="Email the borrower"
-                                                data-email-trigger data-id="{{ $tx->id }}" data-email="{{ $tx->user->email }}">
+                                                data-email-trigger data-id="{{ $tx->id }}" data-email="{{ $tx->user->email }}"
+                                                data-summary="{{ ($tx->equipment->equipment_name ?? 'Equipment').($tx->quantity > 1 ? ' ×'.$tx->quantity : '').' · '.($tx->user->name ?? 'Deleted user') }}"
+                                                data-timing="{{ $tx->timingLabel() }}"
+                                                data-reminders="{{ $tx->reminders->count() }}"
+                                                data-last-reminded="{{ $lastReminder?->send_date?->format('M j') ?? '' }}">
                                             <i class="text-base fas fa-envelope" aria-hidden="true"></i>
                                         </button>
                                     @endif
@@ -577,8 +615,34 @@ document.addEventListener('DOMContentLoaded', function () {
         emailTransactionId = trigger.dataset.id;
         const to = document.getElementById('modalEmail');
         const message = document.getElementById('modalMessage');
+        const summary = document.querySelector('[data-email-summary]');
+        const history = document.querySelector('[data-email-history]');
+
         if (to) to.value = trigger.dataset.email || '';
         if (message) message.value = '';
+
+        // Every one of these falls back to a sentence rather than to the
+        // dataset value: an absent attribute reads `undefined`, and a dialog
+        // that says "undefined · undefined" is worse than one that says nothing.
+        if (summary) {
+            const loan = trigger.dataset.summary;
+            const timing = trigger.dataset.timing;
+            summary.textContent = loan
+                ? loan + (timing ? ' · ' + timing : '')
+                : 'Sent from the equipment office address.';
+        }
+
+        if (history) {
+            const sent = parseInt(trigger.dataset.reminders || '0', 10) || 0;
+            const last = trigger.dataset.lastReminded || '';
+            history.hidden = sent === 0;
+            history.textContent = sent === 0
+                ? ''
+                : (sent === 1
+                    ? 'One reminder already sent' + (last ? ' on ' + last : '') + '.'
+                    : sent + ' reminders already sent' + (last ? ', the last on ' + last : '') + '.');
+        }
+
         window.appUI.openModal('emailModal');
     });
 

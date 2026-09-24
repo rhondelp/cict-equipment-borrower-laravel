@@ -39,12 +39,12 @@
             <x-ui.stat-strip :stats="[
                 ['label' => 'Units on the shelf', 'value' => $availableUnits, 'unit' => 'of '.$totalUnits, 'sub' => 'Ready to lend right now'],
                 ['label' => 'Checked out', 'value' => $unitsOut, 'unit' => $unitsOut === 1 ? 'unit' : 'units', 'sub' => 'Across '.$itemTypesOut.' item '.str('type')->plural($itemTypesOut)],
-                ['label' => 'Running low', 'value' => $lowCount, 'unit' => '', 'sub' => 'Under 30% available', 'tone' => $lowCount > 0 ? 'warning' : 'neutral'],
-                ['label' => 'Fully out', 'value' => $fullyOut, 'unit' => '', 'sub' => 'Nothing left to lend', 'tone' => $fullyOut > 0 ? 'danger' : 'neutral'],
+                ['label' => 'Running low', 'value' => $lowCount, 'unit' => '', 'sub' => 'Under 30% available', 'tone' => $lowCount > 0 ? 'warning' : 'neutral', 'chip' => 'low', 'list' => '#equipment-list'],
+                ['label' => 'Fully out', 'value' => $fullyOut, 'unit' => '', 'sub' => 'Nothing left to lend', 'tone' => $fullyOut > 0 ? 'danger' : 'neutral', 'chip' => 'out', 'list' => '#equipment-list'],
             ]" />
         @endif
 
-        <x-ui.panel data-list data-active-chip="all">
+        <x-ui.panel id="equipment-list" data-list data-active-chip="all">
             @if($equipment->isEmpty())
                 <x-ui.empty-state icon="fa-toolbox" title="No equipment yet"
                                   message="Add your first item to start tracking what the department lends out.">
@@ -64,7 +64,7 @@
                             $chips = [
                                 'all' => 'All '.$equipment->count(),
                                 'lendable' => 'Lendable',
-                                'low' => 'Low or out',
+                                'low' => 'Running low',
                                 'out' => 'Fully out',
                             ];
                             if ($retiredCount > 0) {
@@ -80,6 +80,16 @@
                             </button>
                         @endforeach
                     </div>
+                    <div class="flex items-center gap-2 text-sm text-neutral-600">
+                        <label for="equipment-sort" class="shrink-0">Sort</label>
+                        <select id="equipment-sort" data-list-sort
+                                class="min-h-[40px] rounded-md border border-neutral-300 bg-white px-2.5 py-2 text-sm text-neutral-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                            <option value="name">Name A&ndash;Z</option>
+                            <option value="available" data-type="number">Least available first</option>
+                            <option value="quantity" data-type="number" data-dir="desc">Largest stock first</option>
+                        </select>
+                    </div>
+
                     <label class="relative flex-1 min-w-[12rem] max-w-xs">
                         <span class="sr-only">Search equipment</span>
                         <i class="absolute text-sm -translate-y-1/2 pointer-events-none fas fa-search left-4 top-1/2 text-neutral-500" aria-hidden="true"></i>
@@ -93,12 +103,12 @@
                      column now: "3 of 10 available", with a bar behind it. --}}
                 <div class="hidden gap-4 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-50 border-b border-neutral-200 md:grid md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_9rem_6rem]">
                     <div>Equipment</div>
-                    <div>Availability</div>
+                    <div class="text-right">Availability</div>
                     <div>Status</div>
                     <div class="text-right">Actions</div>
                 </div>
 
-                <div class="divide-y divide-neutral-200">
+                <div data-list-rows class="divide-y divide-neutral-200">
                     @foreach ($equipment as $item)
                         @php
                             $state = $item->availabilityState();
@@ -113,7 +123,6 @@
                             $chipKeys = collect([$state['key']]);
                             if (! $item->isRetired()) {
                                 if ($item->available_quantity > 0) { $chipKeys->push('lendable'); }
-                                if (in_array($state['key'], ['low', 'out'])) { $chipKeys->push('low'); }
                             }
                             $blocked = $out > 0
                                 ? "Can't delete — ".$out.' '.str('unit')->plural($out).' '.($out === 1 ? 'is' : 'are').' still out'
@@ -123,6 +132,9 @@
                         @endphp
                         <div data-list-row data-chip="{{ $chipKeys->implode(' ') }}"
                              data-search="{{ strtolower($item->equipment_name.' '.$item->description) }}"
+                             data-sort-name="{{ $item->equipment_name }}"
+                             data-sort-available="{{ $item->available_quantity }}"
+                             data-sort-quantity="{{ $item->quantity }}"
                              class="grid gap-3 px-4 py-4 sm:px-5 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_9rem_6rem] md:items-center md:gap-4 hover:bg-neutral-50">
 
                             <div class="min-w-0">
@@ -131,7 +143,7 @@
                             </div>
 
                             <div class="min-w-0">
-                                <p class="text-sm text-neutral-700 tabular-nums">
+                                <p class="text-sm text-right text-neutral-700 tabular-nums">
                                     <span class="font-semibold">{{ $item->available_quantity }}</span> of {{ $item->quantity }} available
                                     @if($out > 0)
                                         <span class="text-neutral-600">· {{ $out }} out</span>

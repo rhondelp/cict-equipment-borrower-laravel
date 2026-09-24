@@ -10,7 +10,16 @@
         <x-ui.stat-strip :stats="[
             ['label' => 'Units out on loan', 'value' => 21, 'unit' => 'of 89', 'sub' => 'Across 5 item types'],
             ['label' => 'Overdue', 'value' => 1, 'unit' => 'loan', 'sub' => 'Due 3 days ago', 'tone' => 'danger'],
-        ]" /> --}}
+        ]" />
+
+     A figure can also *do* something. `url` makes the tile a link; `chip`
+     makes it a filter control for a list elsewhere on the page — give the
+     panel an id and pass `list` as the selector:
+
+        ['label' => 'Fully out', 'value' => 3, 'chip' => 'out', 'list' => '#equipment-list']
+
+     A figure nobody can act on is a counter, and a counter that names a
+     problem without offering the rows behind it is the worst of both. --}}
 @props(['stats' => []])
 
 @php
@@ -29,11 +38,31 @@
             @php
                 $tone = $tones[$stat['tone'] ?? 'neutral'] ?? $tones['neutral'];
                 $href = $stat['url'] ?? null;
-                $tag = $href ? 'a' : 'div';
+                $chip = $stat['chip'] ?? null;
+                $tag = $href ? 'a' : ($chip ? 'button' : 'div');
+                $interactive = $href || $chip;
+                // A tile that filters to nothing is a dead control, so it only
+                // becomes one when it has rows behind it.
+                if ($chip && (int) $stat['value'] === 0) {
+                    $tag = 'div';
+                    $interactive = false;
+                    $chip = null;
+                }
             @endphp
             <{{ $tag }} @if($href) href="{{ $href }}" @endif
-               class="flex flex-col gap-1 bg-white px-5 py-4 {{ $href ? 'transition-colors hover:bg-neutral-50' : '' }}">
-                <span class="text-sm font-medium text-neutral-600">{{ $stat['label'] }}</span>
+               @if($chip)
+                   type="button"
+                   data-list-chip="{{ $chip }}"
+                   data-list-target="{{ $stat['list'] ?? '' }}"
+                   aria-label="Show only {{ strtolower($stat['label']) }} items"
+               @endif
+               class="flex flex-col gap-1 bg-white px-5 py-4 text-left {{ $interactive ? 'transition-colors hover:bg-neutral-50' : '' }}">
+                <span class="flex items-center gap-1.5 text-sm font-medium text-neutral-600">
+                    {{ $stat['label'] }}
+                    @if($chip)
+                        <i class="text-[11px] fas fa-filter text-neutral-400" aria-hidden="true"></i>
+                    @endif
+                </span>
                 <span class="flex items-baseline gap-2">
                     <span class="text-3xl font-semibold tabular-nums {{ $tone }}">{{ $stat['value'] }}</span>
                     @if(! empty($stat['unit']))

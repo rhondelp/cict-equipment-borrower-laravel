@@ -15,6 +15,10 @@
 
     $typesOut = $openLoans->pluck('equipment_id')->unique()->count();
 
+    // What blocks approvals: an item with nothing on the shelf cannot be lent
+    // however many requests are waiting on it.
+    $fullyOut = $stockWatch->filter(fn ($item) => $item->available_quantity <= 0)->count();
+
     // The activity feed: loans out, returns in and requests raised, folded into
     // one list so the dashboard can answer "what has been happening" without
     // three separate tables.
@@ -24,12 +28,16 @@
             'item' => ($loan->equipment->equipment_name ?? 'Equipment').($loan->quantity > 1 ? ' ×'.$loan->quantity : ''),
             'verb' => 'checked out to', 'person' => $loan->user->name ?? 'a deleted user',
             'at' => $loan->created_at,
+            // Every entry goes to its own record. An activity feed you cannot
+            // click through is a list of things you now have to go and find.
+            'url' => route('admin.transaction').'#loan-'.$loan->id,
         ]))
         ->concat($returnLogs->map(fn ($log) => [
             'tag' => 'Returned', 'tone' => 'success',
             'item' => $log->equipment->equipment_name ?? 'Equipment',
             'verb' => 'returned by', 'person' => $log->borrower->name ?? 'a deleted user',
             'at' => $log->created_at,
+            'url' => $log->equipment ? route('admin.logs.item', $log->equipment->id) : route('admin.logs'),
         ]))
         ->concat($requests->map(fn ($request) => [
             'tag' => 'Request', 'tone' => 'neutral',
@@ -37,6 +45,7 @@
             'verb' => $request->status === 'Pending' ? 'requested by' : strtolower($request->status).' for',
             'person' => $request->user->name ?? 'a deleted user',
             'at' => $request->decided_at ?? $request->created_at,
+            'url' => route('admin.request'),
         ]))
         ->sortByDesc(fn ($event) => $event['at']?->timestamp ?? 0)
         ->take(6)
@@ -111,13 +120,13 @@
         </section>
 
         <x-ui.stat-strip class="anim-rise [animation-delay:70ms]" :stats="[
-            ['label' => 'Units out on loan', 'value' => $unitsOut, 'unit' => 'of '.$totalUnits, 'sub' => 'Across '.$typesOut.' item '.str('type')->plural($typesOut), 'url' => route('admin.transaction')],
-            ['label' => 'Overdue', 'value' => $overdueLoans->count(), 'unit' => str('loan')->plural($overdueLoans->count()), 'sub' => $overdueLoans->isEmpty() ? 'Nothing past its due date' : 'Longest: '.$overdueLoans->max(fn ($loan) => $loan->daysLate()).' days late', 'tone' => $overdueLoans->isEmpty() ? 'neutral' : 'danger', 'url' => route('admin.transaction')],
-            ['label' => 'Pending requests', 'value' => $pendingRequests->count(), 'unit' => '', 'sub' => $pendingRequests->isEmpty() ? 'Queue is clear' : 'Waiting on a decision', 'tone' => $pendingRequests->isEmpty() ? 'neutral' : 'warning', 'url' => route('admin.request')],
-            ['label' => 'Returned this week', 'value' => $returnedThisWeek, 'unit' => str('loan')->plural($returnedThisWeek), 'sub' => 'Checked back in and logged', 'tone' => 'success', 'url' => route('admin.logs')],
+            ['label' => 'Units out on loan', 'value' => $unitsOut, 'unit' => 'of '.$totalUnits, 'sub' => 'Across '.$typesOut.' item '.str('type')->plural($typesOut), 'url' => route('admin.transaction', ['filter' => 'active'])],
+            ['label' => 'Overdue', 'value' => $overdueLoans->count(), 'unit' => str('loan')->plural($overdueLoans->count()), 'sub' => $overdueLoans->isEmpty() ? 'Nothing past its due date' : 'Longest: '.$overdueLoans->max(fn ($loan) => $loan->daysLate()).' days late', 'tone' => $overdueLoans->isEmpty() ? 'neutral' : 'danger', 'url' => route('admin.transaction', ['filter' => 'overdue'])],
+            ['label' => 'Pending requests', 'value' => $pendingRequests->count(), 'unit' => '', 'sub' => $pendingRequests->isEmpty() ? 'Queue is clear' : 'Waiting on a decision', 'url' => route('admin.request')],
+            ['label' => 'Items fully out', 'value' => $fullyOut, 'unit' => str('item')->plural($fullyOut), 'sub' => $fullyOut === 0 ? 'Everything has something on the shelf' : 'Nothing left to lend — blocks approvals', 'tone' => $fullyOut === 0 ? 'neutral' : 'danger', 'url' => route('admin.equipment', ['filter' => 'out'])],
         ]" />
 
-        <div class="grid gap-5 lg:grid-cols-2 anim-rise [animation-delay:140ms]">
+        <div class="grid gap-5 lg:grid-cols-2 lg:items-start anim-rise [animation-delay:140ms]">
 
             {{-- Currently out, soonest due first: the one list that answers
                  "who has what" without a search. --}}
@@ -152,6 +161,40 @@
                 </x-ui.panel>
             </section>
 
+            {{-- Equipment that is out or nearly out. This is the list that
+                 explains why a request cannot be approved, so it sits with the
+                 decisions rather than on the equipment screen only. --}}
+            <section aria-labelledby="stock-heading">
+                <x-ui.panel>
+                    <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-neutral-200">
+                        <h2 id="stock-heading" class="text-lg font-semibold text-neutral-900">Stock to watch</h2>
+                        <a href="{{ route('admin.equipment') }}" class="text-sm font-semibold text-primary-700 hover:text-primary-800">
+                            All equipment
+                        </a>
+                    </div>
+
+                    @forelse($stockWatch->take(6) as $item)
+                        @php $state = $item->availabilityState(); @endphp
+                        <a href="{{ route('admin.equipment', ['filter' => $state['key'] === 'out' ? 'out' : 'low']) }}"
+                           data-stock-watch-entry
+                           class="flex items-center gap-3 px-5 py-3 border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-base font-semibold truncate text-neutral-900">{{ $item->equipment_name }}</p>
+                                <p class="text-sm truncate text-neutral-600 tabular-nums">
+                                    {{ $item->available_quantity }} of {{ $item->quantity }} available
+                                </p>
+                            </div>
+                            <x-ui.status :label="$state['label']" :tone="$state['tone']" />
+                        </a>
+                    @empty
+                        {{-- A sentence, not an empty card. --}}
+                        <p class="px-5 py-6 text-base text-neutral-600 text-pretty">
+                            Every item has something on the shelf — nothing is blocking an approval right now.
+                        </p>
+                    @endforelse
+                </x-ui.panel>
+            </section>
+
             <section aria-labelledby="activity-heading">
                 <x-ui.panel>
                     <div class="px-5 py-4 border-b border-neutral-200">
@@ -160,7 +203,8 @@
                     </div>
 
                     @forelse($activity as $event)
-                        <div class="flex items-center gap-3 px-5 py-3 border-b border-neutral-100 last:border-b-0">
+                        <a href="{{ $event['url'] }}" data-activity-entry
+                           class="flex items-center gap-3 px-5 py-3 border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50">
                             <span class="w-20 shrink-0 rounded px-2 py-1 text-center text-xs font-semibold uppercase tracking-wider {{ $tones[$event['tone']]['chip'] }}">
                                 {{ $event['tag'] }}
                             </span>
@@ -170,7 +214,7 @@
                                 <span class="font-medium text-neutral-900">{{ $event['person'] }}</span>
                             </p>
                             <span class="text-sm shrink-0 text-neutral-600">{{ $event['at']?->diffForHumans(null, true) ?? '—' }}</span>
-                        </div>
+                        </a>
                     @empty
                         <x-ui.empty-state icon="fa-clock-rotate-left" title="Nothing has happened yet"
                                           message="Loans, returns and requests will appear here as they are recorded." />

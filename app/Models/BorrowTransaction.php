@@ -34,6 +34,16 @@ class BorrowTransaction extends Model
         return $this->belongsTo(ClassSchedule::class);
     }
 
+    /**
+     * Reminders sent about this loan, newest first. Written by
+     * BorrowTransactionController::sendManualEmail so the loans screen can tell
+     * a first nudge from a fourth.
+     */
+    public function reminders()
+    {
+        return $this->hasMany(Notification::class)->latest('send_date');
+    }
+
     public function returnLog()
     {
         return $this->hasOne(ReturnLog::class);

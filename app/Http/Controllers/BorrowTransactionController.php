@@ -19,10 +19,24 @@ class BorrowTransactionController extends Controller
 {
     public function index()
     {
-        $transactions = BorrowTransaction::with(['user', 'equipment', 'classSchedule.instructor', 'returnLog'])
+        $transactions = BorrowTransaction::with(['user', 'equipment', 'classSchedule.instructor', 'returnLog', 'reminders'])
             ->orderByDesc('borrow_date')
             ->orderByDesc('id')
             ->get();
+
+        // Worst first. The default view of this screen is the open loans, and
+        // an open-loans list is worked in order of how much trouble each one
+        // is in — not in the order the loans happened to be created.
+        //
+        // Sorted here rather than in SQL because "overdue" is derived from the
+        // due date against today, and the stored status lags behind it until
+        // the nightly sweep runs. Ranking on the stored column would put a loan
+        // that is three days late behind one that is not late at all.
+        $transactions = $transactions->sortBy([
+            fn ($a, $b) => $this->queueRank($a) <=> $this->queueRank($b),
+            // Within a rank, the most urgent due date leads.
+            fn ($a, $b) => ($a->return_date?->timestamp ?? PHP_INT_MAX) <=> ($b->return_date?->timestamp ?? PHP_INT_MAX),
+        ])->values();
 
         $users = User::whereNull('deactivated_at')->orderBy('name')->get();
         $equipment = Equipment::lendable()->orderBy('equipment_name')->get();
@@ -41,6 +55,31 @@ class BorrowTransactionController extends Controller
      * Scoped to the signed-in borrower: the route sits in the borrower group, so
      * without this ownership check any borrower could read another's slip by id.
      */
+    /**
+     * Where a loan sits in the work queue: overdue, then due soon, then simply
+     * out, then everything already settled.
+     *
+     * @return int lower sorts first
+     */
+    private function queueRank(BorrowTransaction $transaction): int
+    {
+        if ($transaction->isVoided()) {
+            return 4;
+        }
+
+        if ($transaction->isReturned()) {
+            return 3;
+        }
+
+        if ($transaction->isOverdue()) {
+            return 0;
+        }
+
+        $days = $transaction->daysUntilDue();
+
+        return ($days !== null && $days <= 1) ? 1 : 2;
+    }
+
     public function receipt($id)
     {
         $transaction = BorrowTransaction::with(['user', 'equipment'])->findOrFail($id);
@@ -64,7 +103,10 @@ class BorrowTransactionController extends Controller
     {
         $validated = $request->validate([
             'id' => 'required|exists:borrow_transactions,id',
-            'condition' => 'required|in:Good,Damaged,Missing parts',
+            // Legacy values stay accepted so rows written before the
+            // vocabulary changed are still valid; only the four above are
+            // offered on the form.
+            'condition' => 'required|in:'.implode(',', array_merge(ReturnLog::CONDITIONS, ReturnLog::LEGACY_CONDITIONS)),
             // Anything other than Good is an incident, and an incident nobody
             // described is useless to whoever reads the log next.
             'remarks' => 'required_unless:condition,Good|nullable|string|max:255',
@@ -230,7 +272,25 @@ class BorrowTransactionController extends Controller
             return response()->json(['message' => 'Failed to send email: '.$e->getMessage()], 500);
         }
 
-        return response()->json(['message' => 'Email sent to '.$transaction->user->email.'.']);
+        // Recorded against the loan, not just sent. Without this the screen
+        // cannot answer "have we chased this one yet?", and an admin looking at
+        // an overdue item has no way to tell a first nudge from a fourth.
+        // Written after the send so a failed send leaves no record of one.
+        $this->safe(
+            fn () => Notification::create([
+                'user_id' => $transaction->user->id,
+                'borrow_transaction_id' => $transaction->id,
+                'message' => $details['body'],
+                'notification_type' => $details['title'],
+                'send_date' => Carbon::now(),
+            ]),
+            'Reminder log failed for transaction '.$id
+        );
+
+        return response()->json([
+            'message' => 'Email sent to '.$transaction->user->email.'.',
+            'sent_at' => Carbon::now()->format('M j, g:i A'),
+        ]);
     }
 
     public function sendReturnAlertNotification()

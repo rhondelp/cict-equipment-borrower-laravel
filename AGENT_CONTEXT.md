@@ -74,6 +74,37 @@ link, reset its password, and still be turned away by `AuthenticateUser::login`,
 live in `config/office.php` (`OFFICE_EMAIL`, `OFFICE_HOURS`). Pinned by
 `tests/Feature/ForgotPasswordPageTest`.
 
+## Admin screen states
+
+Three states were added on 21 September 2026 and are enforced on the server, not
+by hiding controls:
+
+- **`equipment.retired_at`** — not lendable, history kept. Availability itself is
+  always derived from open loans; `Equipment::availabilityState()` is the single
+  source for the four labels (All in / Partly out / Running low / Fully out, low
+  being under 30%).
+- **`return_logs.resolution` / `resolved_at` / `resolved_by`** — the outcome of a
+  damaged or lost return. `needsFollowUp()` is `isIncident() && ! isResolved()`
+  and is what the return-logs screen and the dashboard both lead with. Return
+  logs are **immutable**: there is no update or destroy route, corrections go to
+  `return_log_notes`, and `ReturnLogsPageTest` asserts the route table itself.
+- **`users.suspended_at` / `suspension_reason` / `suspended_by`** — suspension is
+  *not* deactivation. A suspended account signs in and cannot borrow (blocked in
+  `ItemRequestController::store`); a deactivated one cannot sign in at all
+  (blocked in `AuthenticateUser::login`). `users.role_overridden_at` /
+  `role_override_reason` / `role_overridden_by` record a role set against what
+  the email domain implies; `UserController::update` refuses an override with no
+  reason and clears the record when the role returns to the derived value.
+
+**Shared list behaviour** lives in `resources/js/ui.js` and is used by every
+admin list: search, filter chips, one sort control (`data-list-sort` + per-row
+`data-sort-<key>`, reordering inside `data-list-rows`), a date range
+(`data-list-from` / `data-list-to` against a row's ISO `data-date`), and a
+`?filter=` URL parameter that sets a chip on load — which is what lets a
+dashboard queue entry land on the rows it counted. `x-ui.stat-strip` figures can
+carry `chip` + `list` to become filter controls, and a figure reading zero
+renders as plain text rather than a control with nothing behind it.
+
 ## Legal documents
 
 `resources/views/legal/terms.blade.php` and `privacy.blade.php` hold **no markup** — each is a
@@ -168,6 +199,11 @@ All in `routes/web.php`. Everything under `/admin` and `/borrower` is inside `au
 - `POST /admin/request/approve` — `ItemRequestController@requestActions` (`admin.request.approve`)
 - `POST /admin/request/decline` — `ItemRequestController@requestActions` (`admin.request.decline`)
 - `GET /admin/logs` — `ReturnLogsController@index` (`admin.logs`)
+- `GET /admin/logs/item/{equipment}` — `ReturnLogsController@itemHistory` (`admin.logs.item`)
+- `POST /admin/logs/{id}/resolve` — `ReturnLogsController@resolve` (`admin.logs.resolve`); the only writes on this
+- `POST /admin/logs/{id}/notes` — `ReturnLogsController@addNote` (`admin.logs.note`); append-only correction
+- `POST /admin/users/{id}/suspend` — `UserController@suspend` (`admin.users.suspend`)
+- `POST /admin/users/{id}/lift-suspension` — `UserController@liftSuspension` (`admin.users.lift`)
 - `GET /admin/send-return-alerts` — `BorrowTransactionController@sendReturnAlertNotification` (`admin.send-return-alerts`)
 
 **Borrower** (`auth` + `userType:Instructor,Student`)

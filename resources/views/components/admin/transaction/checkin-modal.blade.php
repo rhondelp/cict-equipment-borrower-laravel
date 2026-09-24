@@ -32,7 +32,7 @@
                 <div>
                     <span class="block text-base font-medium text-neutral-800">Condition</span>
                     <div class="flex flex-wrap gap-2 mt-2" role="group" aria-label="Condition on return">
-                        @foreach (['Good', 'Damaged', 'Missing parts'] as $condition)
+                        @foreach (\App\Models\ReturnLog::CONDITIONS as $condition)
                             <button type="button" data-condition="{{ $condition }}"
                                     aria-pressed="{{ $condition === 'Good' ? 'true' : 'false' }}"
                                     class="inline-flex min-h-[40px] items-center rounded-full border px-4 py-2 text-sm font-semibold transition
