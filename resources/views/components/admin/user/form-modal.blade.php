@@ -55,17 +55,18 @@
                         <option value="Student">Student</option>
                         <option value="Admin" hidden disabled>Admin</option>
                     </select>
-                    {{-- Role is derived from the school email domain. Setting
-                         it against the domain is allowed and recorded: the
-                         server requires this reason whenever the two disagree,
-                         so it is not a field anyone can quietly skip. --}}
+                    {{-- Everyone shares one email domain, so nothing derives a
+                         role: changing one on an existing account is a
+                         recorded decision. The server requires this reason
+                         whenever the role differs from the stored one, so it is
+                         not a field anyone can quietly skip. --}}
                     <p class="mt-2 text-sm text-neutral-600" data-role-derived></p>
                     <div class="mt-2 hidden" data-role-override-box>
                         <label for="role-override-reason" class="block text-base font-medium text-neutral-800">
-                            Why this role, against the email domain
+                            Why this role change
                         </label>
                         <input type="text" id="role-override-reason" name="role_override_reason" maxlength="500"
-                               placeholder="Teaches the lab sections but is enrolled as a student"
+                               placeholder="Confirmed with the dean's office — teaches the lab sections"
                                class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
                         <p class="mt-1 text-sm text-neutral-600">Recorded with your name and today&rsquo;s date.</p>
                     </div>
@@ -110,41 +111,33 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const STUDENT_DOMAIN = @json(\App\Models\User::STUDENT_DOMAIN);
-    const STAFF_DOMAIN = @json(\App\Models\User::STAFF_DOMAIN);
-
-    const email = document.getElementById('user-email');
     const role = document.getElementById('user-type');
     const note = document.querySelector('[data-role-derived]');
     const box = document.querySelector('[data-role-override-box]');
-    if (!email || !role || !note || !box) return;
+    if (!role || !note || !box) return;
 
-    // Mirrors User::roleForEmail — the whole domain, never a suffix.
-    function derived() {
-        const parts = String(email.value).trim().toLowerCase().split('@');
-        if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
-        if (parts[1] === STUDENT_DOMAIN) return 'Student';
-        if (parts[1] === STAFF_DOMAIN) return 'Instructor';
-        return null;
-    }
-
+    // `data-current` is the stored role, set by the users page when it opens
+    // the dialog for an existing account; empty on the add form. Mirrors
+    // UserController::update, which requires a reason when the two differ.
     function sync() {
-        const implied = derived();
-        const mismatch = implied !== null && role.value !== '' && implied !== role.value;
+        const current = role.dataset.current || '';
+        const changing = current !== '' && role.value !== '' && role.value !== current;
 
-        note.textContent = implied === null
-            ? 'This address is outside the school domains, so it implies no role.'
-            : 'This address implies ' + implied + '.';
-        note.classList.toggle('text-warning-700', mismatch);
-        note.classList.toggle('text-neutral-600', !mismatch);
+        note.textContent = changing ? 'Changing from ' + current + ' to ' + role.value + '.' : '';
+        note.classList.toggle('hidden', !changing);
+        note.classList.toggle('text-warning-700', changing);
 
-        box.classList.toggle('hidden', !mismatch);
+        box.classList.toggle('hidden', !changing);
         const input = document.getElementById('role-override-reason');
-        if (input) input.required = mismatch;
+        if (input) {
+            input.required = changing;
+            if (!changing) input.value = '';
+        }
     }
 
-    email.addEventListener('input', sync);
     role.addEventListener('change', sync);
+    // The users page fills the form programmatically and then fires this.
+    role.addEventListener('role:reset', sync);
     sync();
 });
 </script>

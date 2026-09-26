@@ -118,3 +118,24 @@
 @media (prefers-reduced-motion: no-preference) {
   .anim-rise { animation: anim-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
 }
+
+/* =========================================================
+   Hairline grid
+   The landing page's navy grounds (hero and closing panel) carry a faint
+   56px grid: two 1px hairlines at ~3.5% white, from
+   design-reference/Landing.dc.html. Texture, not colour — no gradient
+   between hues. Plain CSS because the value has commas and slashes that
+   read badly as a Tailwind arbitrary utility.
+   ========================================================= */
+.grid-hairlines {
+  background-image:
+    linear-gradient(oklch(1 0 0 / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(1 0 0 / 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* In-page anchors on the landing page (How it works / The rules / Visit)
+   glide rather than jump — unless motion is unwelcome. */
+@media (prefers-reduced-motion: no-preference) {
+  html:has([data-landing]) { scroll-behavior: smooth; }
+}

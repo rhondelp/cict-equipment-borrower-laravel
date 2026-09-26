@@ -194,7 +194,7 @@ class ItemRequestController extends Controller
                         'user_id' => $itemRequest->user_id,
                         'equipment_id' => $itemRequest->equipment_id,
                         'borrow_date' => Carbon::today()->toDateString(),
-                        'return_date' => Carbon::today()->addDays(7)->toDateString(),
+                        'return_date' => Carbon::today()->addDays((int) config('office.loan_days', 7))->toDateString(),
                         'quantity' => $itemRequest->quantity,
                         'purpose' => $itemRequest->remarks ? mb_substr($itemRequest->remarks, 0, 250) : 'Approved item request #'.$itemRequest->id,
                         'status' => 'Borrowed',
@@ -206,7 +206,7 @@ class ItemRequestController extends Controller
                 return back()->withErrors($e->errors())->withInput();
             }
 
-            $due = Carbon::today()->addDays(7)->format('M j');
+            $due = Carbon::today()->addDays((int) config('office.loan_days', 7))->format('M j');
 
             return back()->with('success', 'Approved — '.$itemRequest->quantity.' × '
                 .($itemRequest->equipment->equipment_name ?? 'item').' is now out with '
@@ -243,6 +243,25 @@ class ItemRequestController extends Controller
                 'quantity' => 'Borrowing is suspended on your account'
                     .($borrower->suspension_reason ? ' — '.$borrower->suspension_reason : '')
                     .'. Speak to the equipment office.',
+            ])->withInput();
+        }
+
+        // Overdue items pause borrowing — the rule the terms and the landing
+        // page both state. Checked here, on the server, for the same reason as
+        // suspension: the borrower's form is not the only way in.
+        $overdue = BorrowTransaction::where('user_id', Auth::id())
+            ->whereNull('voided_at')
+            ->whereIn('status', ['Borrowed', 'Overdue'])
+            ->whereDate('return_date', '<', Carbon::today()->toDateString())
+            ->with('equipment')
+            ->orderBy('return_date')
+            ->first();
+
+        if ($overdue) {
+            return back()->withErrors([
+                'quantity' => 'You have an overdue item — '.($overdue->equipment->equipment_name ?? 'equipment')
+                    .', due '.$overdue->return_date->format('M j')
+                    .'. Return it before requesting more.',
             ])->withInput();
         }
 

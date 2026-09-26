@@ -10,12 +10,13 @@ use Tests\TestCase;
 /**
  * The account-request page.
  *
- * Two decisions here are load-bearing and cheap to undo: the role is derived
- * from the school domain server-side rather than chosen on the form, and the
- * password requirements are stated before submit rather than reported back
- * after a rejection. The rest pins the page against sliding back to a generic
- * sign-up — a user-type select, a confirm-password box, a submit that goes
- * through without consent.
+ * Two decisions here are load-bearing and cheap to undo. Students and
+ * instructors share one email domain, so the form asks which one you are —
+ * but the answer is a request: the account is always written as a Student,
+ * and Instructor waits for an admin. And the password requirements are
+ * stated before submit rather than reported back after a rejection. The rest
+ * pins the page against sliding back to a generic sign-up — a user-type
+ * select, a confirm-password box, a submit that goes through without consent.
  */
 class RegisterPageTest extends TestCase
 {
@@ -31,8 +32,9 @@ class RegisterPageTest extends TestCase
     {
         return array_merge([
             'name' => 'Maria Angeles Bautista',
-            'email' => 'maria.bautista@student.nmsc.edu.ph',
+            'email' => 'maria.bautista@nmsc.edu.ph',
             'contact_number' => '09171234567',
+            'requested_role' => 'Student',
             'password' => 'lab2026pass',
             'agree' => '1',
         ], $overrides);
@@ -55,15 +57,26 @@ class RegisterPageTest extends TestCase
         $this->assertStringContainsString('name="agree"', $html);
     }
 
-    /** Role is a fact read off the address, so there is no control that sets one. */
-    public function test_the_page_offers_no_way_to_pick_a_role(): void
+    /**
+     * The form asks Student or Instructor — and only that. It posts
+     * `requested_role`, never `user_type`, and Admin is not on offer.
+     */
+    public function test_the_role_is_asked_as_student_or_instructor_only(): void
     {
         $html = $this->html();
 
+        $this->assertStringContainsString('name="requested_role" value="Student"', $html);
+        $this->assertStringContainsString('name="requested_role" value="Instructor"', $html);
+        $this->assertSame(2, substr_count($html, 'type="radio" name="requested_role"'), 'A third role choice appeared');
         $this->assertStringNotContainsString('name="user_type"', $html, 'The user type field is back');
         $this->assertStringNotContainsString('<select', $html, 'A select is back on the sign-up form');
-        $this->assertStringNotContainsString('>Instructor</option>', $html);
-        $this->assertStringNotContainsString('>Student</option>', $html);
+        $this->assertStringNotContainsString('value="Admin"', $html);
+    }
+
+    /** Picking Instructor explains that it is a request before anyone submits. */
+    public function test_the_form_says_instructor_access_needs_confirming(): void
+    {
+        $this->assertStringContainsString('Instructor access is switched on once the equipment office confirms it', $this->html());
     }
 
     /** Confirm-password is gone; the reveal control replaces it. */
@@ -97,9 +110,7 @@ class RegisterPageTest extends TestCase
         $html = $this->html();
 
         $this->assertStringNotContainsString('name@company.com', $html, 'The generic placeholder is back');
-        $this->assertStringContainsString('name@'.User::STUDENT_DOMAIN, $html);
-        // And the domain rule is explained before the field is rejected.
-        $this->assertStringContainsString(User::STAFF_DOMAIN, $html);
+        $this->assertStringContainsString('name@'.User::SCHOOL_DOMAIN, $html);
     }
 
     /** What happens after the form, on the page where it is being filled in. */
@@ -139,43 +150,61 @@ class RegisterPageTest extends TestCase
     }
 
     /* ---------------------------------------------------------------------
-     | Server-side role derivation
+     | Role: asked, never granted
      --------------------------------------------------------------------- */
 
-    public function test_a_student_address_creates_a_student(): void
+    public function test_choosing_student_creates_a_student_with_no_request(): void
     {
-        $this->post('/register', $this->payload(['email' => 'juan@student.nmsc.edu.ph']))
+        $this->post('/register', $this->payload(['email' => 'juan@nmsc.edu.ph', 'requested_role' => 'Student']))
             ->assertRedirect(route('register'));
 
-        $this->assertDatabaseHas('users', [
-            'email' => 'juan@student.nmsc.edu.ph',
-            'user_type' => 'Student',
-        ]);
+        $user = User::where('email', 'juan@nmsc.edu.ph')->firstOrFail();
+        $this->assertSame('Student', $user->user_type);
+        $this->assertFalse($user->hasPendingInstructorRequest());
     }
 
-    public function test_an_instructor_address_creates_an_instructor(): void
+    /** The whole point: Instructor is a request an admin decides, not a grant. */
+    public function test_choosing_instructor_creates_a_student_with_a_pending_request(): void
     {
-        $this->post('/register', $this->payload(['email' => 'rmers@nmsc.edu.ph']))
+        $this->post('/register', $this->payload(['email' => 'rmers@nmsc.edu.ph', 'requested_role' => 'Instructor']))
             ->assertRedirect(route('register'));
 
-        $this->assertDatabaseHas('users', [
-            'email' => 'rmers@nmsc.edu.ph',
-            'user_type' => 'Instructor',
-        ]);
+        $user = User::where('email', 'rmers@nmsc.edu.ph')->firstOrFail();
+        $this->assertSame('Student', $user->user_type, 'Choosing Instructor granted it without an admin');
+        $this->assertTrue($user->hasPendingInstructorRequest());
+    }
+
+    public function test_the_role_question_must_be_answered(): void
+    {
+        $this->from('/register')
+            ->post('/register', $this->payload(['requested_role' => null]))
+            ->assertRedirect('/register')
+            ->assertSessionHasErrors('requested_role');
+
+        $this->assertDatabaseCount('users', 0);
+    }
+
+    public function test_admin_cannot_be_requested(): void
+    {
+        $this->from('/register')
+            ->post('/register', $this->payload(['requested_role' => 'Admin']))
+            ->assertSessionHasErrors('requested_role');
+
+        $this->assertDatabaseCount('users', 0);
     }
 
     /** Case and stray whitespace do not change which domain an address is on. */
     public function test_the_domain_is_read_case_insensitively(): void
     {
-        $this->post('/register', $this->payload(['email' => '  Juan@STUDENT.NMSC.edu.PH  ']));
+        $this->post('/register', $this->payload(['email' => '  Juan@NMSC.edu.PH  ']));
 
         $this->assertDatabaseHas('users', [
-            'email' => 'juan@student.nmsc.edu.ph',
+            'email' => 'juan@nmsc.edu.ph',
             'user_type' => 'Student',
         ]);
     }
 
-    public function test_a_personal_address_is_refused_with_a_message_naming_both_domains(): void
+    public function test_a_personal_address_is_refused_with_a_message_naming_the_domain(): void
     {
         $this->from('/register')
             ->post('/register', $this->payload(['email' => 'maria@gmail.com']))
@@ -183,21 +212,19 @@ class RegisterPageTest extends TestCase
             ->assertSessionHasErrors('email');
 
         $this->assertDatabaseCount('users', 0);
-        $this->assertStringContainsString(User::STUDENT_DOMAIN, session('errors')->first('email'));
-        $this->assertStringContainsString(User::STAFF_DOMAIN, session('errors')->first('email'));
+        $this->assertStringContainsString(User::SCHOOL_DOMAIN, session('errors')->first('email'));
     }
 
-    /** The role helper itself, at the boundaries the controller relies on. */
-    public function test_role_derivation_matches_the_whole_domain(): void
+    /** The domain check itself, at the boundaries the controller relies on. */
+    public function test_the_school_domain_is_matched_whole(): void
     {
-        $this->assertSame('Student', User::roleForEmail('a@student.nmsc.edu.ph'));
-        $this->assertSame('Instructor', User::roleForEmail('a@nmsc.edu.ph'));
+        $this->assertTrue(User::isSchoolEmail('a@nmsc.edu.ph'));
+        $this->assertTrue(User::isSchoolEmail('A@NMSC.EDU.PH'));
 
         foreach ([
             'a@not-nmsc.edu.ph',
             'a@nmsc.edu.ph.evil.com',
-            'a@notstudent.nmsc.edu.ph',
-            'a@sub.student.nmsc.edu.ph',
+            'a@sub.nmsc.edu.ph',
             'a@example.com',
             'not-an-address',
             '@nmsc.edu.ph',
@@ -205,7 +232,7 @@ class RegisterPageTest extends TestCase
             null,
             '',
         ] as $address) {
-            $this->assertNull(User::roleForEmail($address), "[$address] was accepted as a school address");
+            $this->assertFalse(User::isSchoolEmail($address), "[$address] was accepted as a school address");
         }
     }
 
@@ -261,9 +288,9 @@ class RegisterPageTest extends TestCase
 
     public function test_an_address_already_registered_is_refused(): void
     {
-        User::factory()->create(['email' => 'taken@student.nmsc.edu.ph', 'user_type' => 'Student']);
+        User::factory()->create(['email' => 'taken@nmsc.edu.ph', 'user_type' => 'Student']);
 
-        $this->post('/register', $this->payload(['email' => 'taken@student.nmsc.edu.ph']))
+        $this->post('/register', $this->payload(['email' => 'taken@nmsc.edu.ph']))
             ->assertSessionHasErrors('email');
 
         $this->assertDatabaseCount('users', 1);
@@ -278,7 +305,7 @@ class RegisterPageTest extends TestCase
         $this->post('/register', $payload)->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('users', [
-            'email' => 'maria.bautista@student.nmsc.edu.ph',
+            'email' => 'maria.bautista@nmsc.edu.ph',
             'contact_number' => null,
         ]);
     }
@@ -287,7 +314,7 @@ class RegisterPageTest extends TestCase
     {
         $this->post('/register', $this->payload());
 
-        $user = User::where('email', 'maria.bautista@student.nmsc.edu.ph')->firstOrFail();
+        $user = User::where('email', 'maria.bautista@nmsc.edu.ph')->firstOrFail();
 
         $this->assertNotSame('lab2026pass', $user->password);
         $this->assertTrue(Hash::check('lab2026pass', $user->password));
@@ -303,11 +330,28 @@ class RegisterPageTest extends TestCase
             ->post('/register', $this->payload())
             ->assertOk()
             ->assertSee('Account created')
-            ->assertSee('maria.bautista@student.nmsc.edu.ph')
+            ->assertSee('maria.bautista@nmsc.edu.ph')
             ->assertSee('Registered as')
             ->assertSee('Student')
             ->assertSee('What happens next')
             ->assertSee('Back to sign in');
+    }
+
+    public function test_the_success_state_says_an_instructor_request_is_waiting(): void
+    {
+        $html = $this->followingRedirects()
+            ->post('/register', $this->payload(['requested_role' => 'Instructor']))
+            ->getContent();
+
+        $this->assertStringContainsString('data-instructor-requested', $html);
+        $this->assertStringContainsString('Requested — waiting for the office', $html);
+    }
+
+    public function test_the_success_state_for_a_student_mentions_no_request(): void
+    {
+        $html = $this->followingRedirects()->post('/register', $this->payload())->getContent();
+
+        $this->assertStringNotContainsString('data-instructor-requested', $html);
     }
 
     /** The success state is a page, not a modal thrown over the form. */
@@ -373,7 +417,7 @@ class RegisterPageTest extends TestCase
         $this->post('/register', $this->payload());
 
         $this->post('/login', [
-            'email' => 'maria.bautista@student.nmsc.edu.ph',
+            'email' => 'maria.bautista@nmsc.edu.ph',
             'password' => 'lab2026pass',
         ])->assertRedirect(route('borrower.dashboard'));
 

@@ -53,7 +53,7 @@
                 @endif
                 <li class="flex items-center gap-2.5 text-[13.5px] text-white/80">
                     <span class="w-[5px] h-[5px] rounded-full shrink-0 bg-[#63d99b]" aria-hidden="true"></span>
-                    Equipment room open 8:00 AM – 5:00 PM, Monday to Friday
+                    Equipment room open {{ \App\Support\OfficeHours::fromConfig()->label() }}
                 </li>
                 <li class="flex items-center gap-2.5 text-[13.5px] text-white/80">
                     <span class="w-[5px] h-[5px] rounded-full shrink-0 bg-[#63d99b]" aria-hidden="true"></span>
@@ -155,8 +155,8 @@
 
             <div class="flex flex-col gap-3">
                 <p class="text-[13px] text-neutral-600 text-pretty">
-                    No account yet? Students and instructors can request one — the equipment office
-                    approves it before the first borrow.
+                    No account yet? Students and instructors can create one with their school email —
+                    the CICT office confirms instructor access.
                 </p>
                 <a href="{{ route('register') }}"
                    class="flex h-11 items-center justify-center rounded-[10px] border border-neutral-200 text-[14px] font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-neutral-900">

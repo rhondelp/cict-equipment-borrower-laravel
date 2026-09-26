@@ -23,7 +23,7 @@
     $expired = $expiresAt !== null && $expiresAt->isPast();
 
     $officeEmail = config('office.email');
-    $officeHours = config('office.hours');
+    $officeHours = \App\Support\OfficeHours::fromConfig()->label();
 
     $formError = $errors->first('email');
 
@@ -197,7 +197,7 @@
                     <label for="email" class="text-[12.5px] font-medium text-neutral-900">School email</label>
                     <input type="email" name="email" id="email" value="{{ old('email') }}"
                            autocomplete="username" required autofocus maxlength="255"
-                           placeholder="name{{ '@'.\App\Models\User::STAFF_DOMAIN }}"
+                           placeholder="name{{ '@'.\App\Models\User::SCHOOL_DOMAIN }}"
                            aria-describedby="email-note"
                            @if($errors->has('email')) aria-invalid="true" @endif
                            class="h-11 rounded-[10px] border px-[13px] text-[14px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500
@@ -211,7 +211,7 @@
                        class="text-[12px] leading-[1.5] text-pretty {{ $offDomain ? 'text-warning-700' : 'text-neutral-500' }}">
                         @if($offDomain)
                             That is not a school address — reset links normally only go to
-                            {{ \App\Models\User::STAFF_DOMAIN }} accounts.
+                            {{ \App\Models\User::SCHOOL_DOMAIN }} accounts.
                         @else
                             The link expires {{ $expiryLabel }} after it is sent, and works once.
                         @endif
@@ -253,7 +253,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const STAFF_DOMAIN = @json(\App\Models\User::STAFF_DOMAIN);
+    const SCHOOL_DOMAIN = @json(\App\Models\User::SCHOOL_DOMAIN);
 
     /* ---- Off-domain warning ------------------------------------------
        A warning, never a block. The admin users form can create an account
@@ -270,10 +270,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const parts = value.split('@');
             const domain = parts.length === 2 && parts[0] && parts[1] ? parts[1] : null;
             const complete = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-            const offDomain = complete && domain !== STAFF_DOMAIN && domain !== @json(\App\Models\User::STUDENT_DOMAIN);
+            const offDomain = complete && domain !== SCHOOL_DOMAIN;
 
             note.textContent = offDomain
-                ? 'That is not a school address — reset links normally only go to ' + STAFF_DOMAIN + ' accounts.'
+                ? 'That is not a school address — reset links normally only go to ' + SCHOOL_DOMAIN + ' accounts.'
                 : expiryLine;
             note.classList.toggle('text-warning-700', offDomain);
             note.classList.toggle('text-neutral-500', !offDomain);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Equipment;
 use App\Models\User as UserModel;
+use App\Support\OfficeHours;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -23,17 +24,72 @@ class UserController extends Controller
      */
     public function index()
     {
+        $inventory = $this->inventorySummary();
+
+        return view('login', compact('inventory'));
+    }
+
+    /**
+     * The landing page. Same live inventory line as the sign-in page, from the
+     * same query, so the two public pages can never quote different figures.
+     */
+    public function welcome()
+    {
+        // One read of the lendable stock feeds both the shelf card and the
+        // figures band, classified exactly as the inventory page classifies it:
+        // retired items excluded, state from Equipment::availabilityState().
+        // Dropped, not faked, when the database does not answer.
+        try {
+            $lendable = Equipment::lendable()
+                ->get(['id', 'equipment_name', 'quantity', 'available_quantity', 'retired_at']);
+        } catch (\Throwable $e) {
+            $lendable = null;
+        }
+
+        $inventory = $lendable === null ? null : [
+            'units' => (int) $lendable->sum('quantity'),
+            'types' => $lendable->count(),
+        ];
+
+        // At most five rows, and the ones someone should know about first:
+        // nothing left, then running low, then partly out, then fully stocked.
+        // Within a state the scarcest leads, then by name for a stable order.
+        $priority = ['out' => 0, 'low' => 1, 'partial' => 2, 'all-in' => 3];
+        $shelf = ($lendable ?? collect())
+            ->map(fn ($item) => ['item' => $item, 'state' => $item->availabilityState()])
+            ->sortBy([
+                fn ($a, $b) => ($priority[$a['state']['key']] ?? 9) <=> ($priority[$b['state']['key']] ?? 9),
+                fn ($a, $b) => ($a['item']->available_quantity / max(1, $a['item']->quantity))
+                    <=> ($b['item']->available_quantity / max(1, $b['item']->quantity)),
+                fn ($a, $b) => strcmp($a['item']->equipment_name, $b['item']->equipment_name),
+            ])
+            ->take(5)
+            ->values();
+
+        $hours = OfficeHours::fromConfig();
+        $loanDays = (int) config('office.loan_days', 7);
+
+        return view('welcome', compact('inventory', 'shelf', 'hours', 'loanDays'));
+    }
+
+    /**
+     * Units and item types currently lendable, or null when the database does
+     * not answer — the public pages drop the line rather than the page.
+     *
+     * @return array{units: int, types: int}|null
+     */
+    private function inventorySummary(): ?array
+    {
         try {
             $lendable = Equipment::lendable()->get(['quantity']);
-            $inventory = [
+
+            return [
                 'units' => (int) $lendable->sum('quantity'),
                 'types' => $lendable->count(),
             ];
         } catch (\Throwable $e) {
-            $inventory = null;
+            return null;
         }
-
-        return view('login', compact('inventory'));
     }
 
     public function adminUser()
@@ -69,7 +125,13 @@ class UserController extends Controller
             fn ($user) => $user->isDeactivated() || $user->isSuspended()
         )->values();
 
-        return view('admin.user', compact('users', 'instructors', 'needsAttention'));
+        // Signed up saying they teach. Their accounts already work as Student
+        // accounts; an admin confirms or declines each one here.
+        $instructorRequests = $users->filter(
+            fn ($user) => $user->hasPendingInstructorRequest() && ! $user->isDeactivated()
+        )->sortBy(fn ($user) => $user->instructor_requested_at->timestamp)->values();
+
+        return view('admin.user', compact('users', 'instructors', 'needsAttention', 'instructorRequests'));
     }
 
     public function update(Request $request)
@@ -83,25 +145,23 @@ class UserController extends Controller
             'email' => "required|string|email|max:255|unique:users,email,{$userId}",
             'password' => 'nullable|string|min:4|confirmed',
             'contact_number' => 'nullable|string|max:15',
-            // Required only when the submitted role contradicts the address.
+            // Required only when the submitted role differs from the stored one.
             'role_override_reason' => 'nullable|string|max:500',
         ]);
 
         $user = UserModel::findOrFail($userId);
 
-        // Role is derived from the school email domain. An admin may still set
-        // it by hand — they are behind userType:Admin, and sometimes the
-        // register is simply wrong — but overriding the derivation is a
-        // privilege decision, so it takes a reason and it is recorded. An
+        // Everyone is on the same school domain, so nothing derives a role
+        // any more — it is whatever an admin sets. That makes every change a
+        // privilege decision: it takes a reason and it is recorded, because an
         // unexplained role change is the one edit on this screen nobody can
         // reconstruct afterwards.
-        $derived = UserModel::roleForEmail($validated['email']);
-        $isOverride = $derived !== null && $derived !== $validated['user_type'];
+        $roleChanged = $validated['user_type'] !== $user->user_type;
 
-        if ($isOverride && blank($validated['role_override_reason'] ?? null)) {
+        if ($roleChanged && blank($validated['role_override_reason'] ?? null)) {
             return redirect()->back()
-                ->withErrors(['role_override_reason' => 'That email implies '.$derived
-                    .'. Say why this account is '.$validated['user_type'].' instead — the reason is recorded.'])
+                ->withErrors(['role_override_reason' => 'Say why this account is changing from '.$user->user_type
+                    .' to '.$validated['user_type'].' — the reason is recorded.'])
                 ->withInput();
         }
 
@@ -109,17 +169,13 @@ class UserController extends Controller
         $user->email = $validated['email'];
         $user->contact_number = $validated['contact_number'] ?? null;
 
-        if ($isOverride) {
+        if ($roleChanged) {
             $user->user_type = $validated['user_type'];
             $user->role_overridden_at = now();
             $user->role_overridden_by = auth()->id();
             $user->role_override_reason = $validated['role_override_reason'];
-        } else {
-            // Back in step with the address, so the override record goes too.
-            $user->user_type = $derived ?? $validated['user_type'];
-            $user->role_overridden_at = null;
-            $user->role_overridden_by = null;
-            $user->role_override_reason = null;
+            // Any role decision settles a pending instructor request.
+            $user->instructor_requested_at = null;
         }
 
         // If password is provided, hash and update it
@@ -130,6 +186,44 @@ class UserController extends Controller
         $user->save();
 
         return redirect()->back()->with('success', $user->name.' updated.');
+    }
+
+    /**
+     * Grant an instructor request made at sign-up. Recorded through the same
+     * role_overridden_* columns as any other role change, so the row says who
+     * switched it on and when.
+     */
+    public function confirmInstructor(string $id)
+    {
+        $user = UserModel::findOrFail($id);
+
+        if (! $user->hasPendingInstructorRequest()) {
+            return redirect()->back()->with('error', $user->name.' has no instructor request waiting.');
+        }
+
+        $user->user_type = 'Instructor';
+        $user->instructor_requested_at = null;
+        $user->role_overridden_at = now();
+        $user->role_overridden_by = auth()->id();
+        $user->role_override_reason = 'Confirmed instructor request from sign-up';
+        $user->save();
+
+        return redirect()->back()->with('success', $user->name.' is now an instructor.');
+    }
+
+    /** Leave the account as a Student and clear the request. */
+    public function declineInstructor(string $id)
+    {
+        $user = UserModel::findOrFail($id);
+
+        if (! $user->hasPendingInstructorRequest()) {
+            return redirect()->back()->with('error', $user->name.' has no instructor request waiting.');
+        }
+
+        $user->instructor_requested_at = null;
+        $user->save();
+
+        return redirect()->back()->with('success', $user->name.' stays a student — instructor request declined.');
     }
 
     /**

@@ -307,7 +307,8 @@
 
                 <section class="p-4 space-y-2 bg-white border rounded-xl border-neutral-200">
                     <h2 class="text-xs font-semibold tracking-widest uppercase text-neutral-600">Equipment room</h2>
-                    <p class="text-sm font-medium text-neutral-900">Open 8:00 AM – 5:00 PM, Mon–Sat</p>
+                    @php($officeHours = \App\Support\OfficeHours::fromConfig())
+                    <p class="text-sm font-medium text-neutral-900">Open {{ $officeHours->timeRange() }}, {{ $officeHours->dayRange(short: true) }}</p>
                     <p class="text-sm text-neutral-600 break-words">Bring your student or faculty ID when collecting.</p>
                     <a href="{{ route('legal.terms') }}" class="inline-block text-sm font-semibold text-primary-700 hover:text-primary-800">
                         Borrowing rules →

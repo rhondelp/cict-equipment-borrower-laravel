@@ -47,6 +47,11 @@ class AuthenticateUser extends Controller
             ->orderBy('return_date')
             ->get();
 
+        $instructorRequests = User::whereNotNull('instructor_requested_at')
+            ->whereNull('deactivated_at')
+            ->orderBy('instructor_requested_at')
+            ->get();
+
         $restrictedAccounts = User::query()
             ->where(fn ($query) => $query->whereNotNull('deactivated_at')->orWhereNotNull('suspended_at'))
             ->orderBy('name')
@@ -61,7 +66,7 @@ class AuthenticateUser extends Controller
             ->values();
 
         $attention = $this->adminAttention(
-            $requests, $openLoans, $equipments, $unresolvedIncidents, $restrictedAccounts
+            $requests, $openLoans, $equipments, $unresolvedIncidents, $restrictedAccounts, $instructorRequests
         );
 
         // What blocks approvals: an item with nothing on the shelf cannot be
@@ -86,11 +91,13 @@ class AuthenticateUser extends Controller
      * @return list<array{tone: string, title: string, detail: string, action: string, url: string}>
      */
     private function adminAttention(
-        $requests, $openLoans, $equipments, $unresolvedIncidents = null, $restrictedAccounts = null
+        $requests, $openLoans, $equipments, $unresolvedIncidents = null, $restrictedAccounts = null,
+        $instructorRequests = null
     ): array {
         $attention = [];
         $unresolvedIncidents ??= collect();
         $restrictedAccounts ??= collect();
+        $instructorRequests ??= collect();
 
         $overdue = $openLoans->filter(fn ($loan) => $loan->isOverdue())->values();
         if ($overdue->isNotEmpty()) {
@@ -165,8 +172,24 @@ class AuthenticateUser extends Controller
             ];
         }
 
+        // People who signed up as instructors. Their accounts already work as
+        // Student accounts, so this is not urgent, but nothing else moves it.
+        if ($instructorRequests->isNotEmpty()) {
+            $oldest = $instructorRequests->first();
+            $attention[] = [
+                'tone' => 'primary',
+                'title' => $instructorRequests->count().' instructor '
+                    .str('request')->plural($instructorRequests->count()).' to confirm',
+                'detail' => $instructorRequests->take(2)->pluck('name')->implode(', ')
+                    .($instructorRequests->count() > 2 ? ' and '.($instructorRequests->count() - 2).' more' : '')
+                    .' · oldest asked '.($oldest->instructor_requested_at?->format('M j') ?? 'recently'),
+                'action' => 'Confirm or decline',
+                'url' => route('admin.users', ['filter' => 'requested']),
+            ];
+        }
+
         // Accounts a human has already restricted. There is no approval queue
-        // in this system — registration creates a working account.
+        // for new accounts — registration creates a working one.
         if ($restrictedAccounts->isNotEmpty()) {
             $suspended = $restrictedAccounts->filter(fn ($user) => $user->isSuspended())->count();
             $deactivated = $restrictedAccounts->count() - $suspended;
@@ -434,11 +457,14 @@ class AuthenticateUser extends Controller
      *
      * Deliberately separate from register() below, which serves the admin
      * users form: that one is behind `userType:Admin` and an admin picking a
-     * borrower's role is a decision they are entitled to make. Out here nobody
-     * is authenticated, so the role is not accepted as input at all — it is
-     * read from the school domain of the submitted address and nothing else.
-     * Any `user_type` in the payload is ignored rather than validated, so
-     * there is no field to tamper with in the first place.
+     * borrower's role is a decision they are entitled to make.
+     *
+     * Students and instructors share one email domain, so the form asks which
+     * one you are — but out here nobody is authenticated, so the answer is a
+     * request, not a grant. The account is always written as a Student.
+     * Answering Instructor stamps `instructor_requested_at`, and an admin
+     * confirms or declines it on the users screen. `user_type` is never read
+     * from the request, so there is no field to tamper with.
      */
     public function registerPublic(Request $request)
     {
@@ -448,10 +474,11 @@ class AuthenticateUser extends Controller
                 'required', 'string', 'email', 'max:255', 'unique:users',
                 function (string $attribute, mixed $value, \Closure $fail) {
                     if (! User::isSchoolEmail($value)) {
-                        $fail('Use your school address — @'.User::STUDENT_DOMAIN.' for students, @'.User::STAFF_DOMAIN.' for instructors.');
+                        $fail('Use your school address — @'.User::SCHOOL_DOMAIN.'.');
                     }
                 },
             ],
+            'requested_role' => 'required|in:Student,Instructor',
             // The three rules the form states before submit, in the same order
             // it states them. Confirm-password is gone: it catches a typo the
             // reveal toggle already prevents, at the cost of a whole field.
@@ -459,22 +486,23 @@ class AuthenticateUser extends Controller
             'contact_number' => 'nullable|string|max:15',
             'agree' => 'accepted',
         ], [
+            'requested_role.required' => 'Say whether you are a student or an instructor.',
+            'requested_role.in' => 'Choose Student or Instructor.',
             'password.min' => 'Your password needs at least 8 characters.',
             'password.regex' => 'Your password needs both letters and numbers.',
             'agree.accepted' => 'Tick the agreement to continue.',
         ]);
 
-        $email = strtolower(trim($validated['email']));
-        // Derived, never taken from the request. isSchoolEmail() above has
-        // already guaranteed this is not null.
-        $role = User::roleForEmail($email);
+        $wantsInstructor = $validated['requested_role'] === 'Instructor';
 
         $user = User::create([
-            'user_type' => $role,
+            // Never taken from the request: Instructor is granted by an admin.
+            'user_type' => 'Student',
             'name' => $validated['name'],
-            'email' => $email,
+            'email' => strtolower(trim($validated['email'])),
             'password' => Hash::make($validated['password']),
             'contact_number' => $validated['contact_number'] ?? null,
+            'instructor_requested_at' => $wantsInstructor ? now() : null,
         ]);
 
         // Not `success`: that key throws the shared SweetAlert modal, which
@@ -483,6 +511,7 @@ class AuthenticateUser extends Controller
         return redirect()->route('register')->with('registered', [
             'email' => $user->email,
             'role' => $user->user_type,
+            'instructor_requested' => $wantsInstructor,
         ]);
     }
 

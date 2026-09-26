@@ -72,6 +72,9 @@ export default {
         // words at a 66-character measure. Loaded by layouts/legal.blade.php
         // alone rather than on every page.
         serif: ['Source Serif 4', 'Source Serif Pro', 'Georgia', 'Cambria', 'Times New Roman', 'serif'],
+        // Figures and step labels on the landing page only — never running
+        // text. Loaded by welcome.blade.php alone.
+        mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       fontSize: {
         // Tracking is normal from `base` up: tight letter-spacing costs legibility,

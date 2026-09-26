@@ -43,13 +43,22 @@ always sit inside the `auth` middleware group.
 
 No web route can create an `Admin`, and the two registration routes refuse it differently.
 
-**Public sign-up (`POST /register` → `AuthenticateUser::registerPublic`)** does not read a role
-from the request at all. The role is derived from the school domain of the submitted address by
-`User::roleForEmail()` — `@student.nmsc.edu.ph` → `Student`, `@nmsc.edu.ph` → `Instructor`,
-anything else rejected on the `email` field. The domain is matched **whole**, never as a suffix:
-`str_ends_with($email, 'nmsc.edu.ph')` would hand an Instructor account to whoever registers
-`not-nmsc.edu.ph`. A `user_type` in the payload is ignored rather than validated, so there is no
-field to tamper with. If you add a role, add it to `roleForEmail()`, not to the form.
+**Every account — student and instructor — is on `@nmsc.edu.ph`** (`User::SCHOOL_DOMAIN`), so the
+address says nothing about role. (Until 26 Sept 2026 the code assumed a separate
+`@student.nmsc.edu.ph` and derived the role from the domain; that assumption was wrong and
+`roleForEmail()` / `roleMatchesDomain()` are gone. Do not bring back domain-derived roles.)
+
+**Public sign-up (`POST /register` → `AuthenticateUser::registerPublic`)** asks the person to
+pick Student or Instructor (`requested_role`, `in:Student,Instructor`), but the answer is a
+**request, not a grant**: the account is *always* written as `Student`. Choosing Instructor stamps
+`users.instructor_requested_at`; the account works as a Student straight away, and an admin
+confirms or declines on the users screen (`POST /admin/users/{id}/instructor/confirm|decline`).
+Confirming sets `Instructor` and writes the `role_overridden_*` record ("Confirmed instructor
+request from sign-up"); declining just clears the request. `user_type` is never read from the
+request. The email must be on the school domain, matched **whole** by `User::isSchoolEmail()`,
+never as a suffix — `str_ends_with($email, 'nmsc.edu.ph')` would accept `not-nmsc.edu.ph`.
+Pending requests appear in the dashboard queue and as a "Instructor requests" section and
+`requested` filter chip on `/admin/users`.
 
 **The admin users form (`POST /admin/users` → `AuthenticateUser::register`)** still takes an
 explicit `user_type`, capped at `in:Instructor,Student` — an admin uses that form to add
@@ -71,7 +80,8 @@ a number in the template instead, the page starts promising something the server
 A **deactivated account is refused before the broker is called**. It could otherwise be sent a
 link, reset its password, and still be turned away by `AuthenticateUser::login`, which checks
 `deactivated_at` separately — a loop with no exit and no explanation. Office contact details
-live in `config/office.php` (`OFFICE_EMAIL`, `OFFICE_HOURS`). Pinned by
+live in `config/office.php` (`OFFICE_EMAIL`, `OFFICE_LOCATION`, the structured `hours`, and
+`loan_days`). Pinned by
 `tests/Feature/ForgotPasswordPageTest`.
 
 ## Admin screen states
@@ -92,9 +102,13 @@ by hiding controls:
   *not* deactivation. A suspended account signs in and cannot borrow (blocked in
   `ItemRequestController::store`); a deactivated one cannot sign in at all
   (blocked in `AuthenticateUser::login`). `users.role_overridden_at` /
-  `role_override_reason` / `role_overridden_by` record a role set against what
-  the email domain implies; `UserController::update` refuses an override with no
-  reason and clears the record when the role returns to the derived value.
+  `role_override_reason` / `role_overridden_by` record the latest role change.
+  Nothing derives a role any more, so `UserController::update` treats *any* change
+  from the stored `user_type` as a decision: it refuses one with no reason, and
+  records who, when and why. Confirming an instructor request writes the same record.
+- **`users.instructor_requested_at`** — set at sign-up when someone picks Instructor;
+  the account is a Student until an admin confirms. Cleared by confirm, decline, or
+  any manual role change. Migration `2026_09_26_120000_add_instructor_request_to_users`.
 
 **Shared list behaviour** lives in `resources/js/ui.js` and is used by every
 admin list: search, filter chips, one sort control (`data-list-sort` + per-row
@@ -143,7 +157,7 @@ offer instead of a hard delete: `equipment.retired_at`, `users.deactivated_at`,
 
 | Model | Table | Key fields | Relationships |
 |---|---|---|---|
-| `User` | `users` | `user_type` (enum Admin/Instructor/Student), `name`, `email` (unique), `password` (hashed cast), `contact_number`, `deactivated_at` | hasMany `borrowTransactions`, `itemRequests`, `notifications`, `classSchedules` |
+| `User` | `users` | `user_type` (enum Admin/Instructor/Student), `name`, `email` (unique), `password` (hashed cast), `contact_number`, `deactivated_at`, `instructor_requested_at` | hasMany `borrowTransactions`, `itemRequests`, `notifications`, `classSchedules` |
 | `Equipment` | `equipment` (explicit `$table`) | `equipment_name`, `description`, `quantity` (total owned), `available_quantity` (on shelf), `status` (enum Available/Unavailable, **derived**), `retired_at` (nullable) | hasMany `borrowTransactions`, `itemRequests` |
 | `ItemRequest` | `item_requests` | `user_id`, `equipment_id`, `quantity`, `status` (string: Pending/Approved/Declined), `requested_date`, `remarks`, `decision_reason`, `decided_at`, `decided_by` | belongsTo `user`, `equipment`, `decider` |
 | `BorrowTransaction` | `borrow_transactions` | `user_id`, `equipment_id`, `borrow_date`, `return_date` (nullable), `quantity`, `purpose`, `status` (enum Borrowed/Returned/Overdue), `remarks`, `class_schedule_id` (nullable, `onDelete('set null')`), `voided_at`, `void_reason` | belongsTo `user`, `equipment`, `classSchedule`; hasOne `returnLog` |
@@ -159,13 +173,13 @@ offer instead of a hard delete: `equipment.retired_at`, `users.deactivated_at`,
 All in `routes/web.php`. Everything under `/admin` and `/borrower` is inside `auth`.
 
 **Public**
-- `GET /` — closure, `welcome` view
-- `GET /welcome` — `auth.welcome`, `welcome` view
+- `GET /` — `UserController@welcome`, `welcome` view, built to `design-reference/Landing.dc.html`: hero with a live "On the shelf now" card (at most five lendable items, out → low → partly out → full, colours by `availabilityState()`), a key-figures band, How it works, The rules, a Visit panel and footer. Counts are lendable-only (retired excluded), from the same read as the shelf; hours via `OfficeHours`; a signed-in visitor gets "Go to your dashboard" instead of sign-in
+- `GET /welcome` — `UserController@welcome` (`auth.welcome`), same page
 - `GET /login` — `UserController@index` (`login`)
 - `POST /login` — `AuthenticateUser@login` (`login.store`)
 - `POST /logout` — `AuthenticateUser@destroy` (`logout`)
 - `GET /register` — `AuthenticateUser@registerUser` (`register`)
-- `POST /register` — `AuthenticateUser@registerPublic` (`register.store`); role is derived from the email domain, never read from the request
+- `POST /register` — `AuthenticateUser@registerPublic` (`register.store`); always creates a `Student`; `requested_role=Instructor` only files a request
 - `GET /privacy` / `GET /terms` — `Route::view` (`legal.privacy`, `legal.terms`); both render through `layouts/legal`, which builds the page from one `$doc` array per document
 - `GET /forgot-password` — `PasswordResetController@request` (`password.request`); renders the confirmation state instead of the form while `reset_link_sent_to` is in the session; `?new=1` clears it ("Use a different address")
 - `POST /forgot-password` — `PasswordResetController@email` (`password.email`); also serves the Resend button, and refuses a deactivated account before the broker is called
@@ -204,6 +218,8 @@ All in `routes/web.php`. Everything under `/admin` and `/borrower` is inside `au
 - `POST /admin/logs/{id}/notes` — `ReturnLogsController@addNote` (`admin.logs.note`); append-only correction
 - `POST /admin/users/{id}/suspend` — `UserController@suspend` (`admin.users.suspend`)
 - `POST /admin/users/{id}/lift-suspension` — `UserController@liftSuspension` (`admin.users.lift`)
+- `POST /admin/users/{id}/instructor/confirm` — `UserController@confirmInstructor` (`admin.users.instructor.confirm`); makes the account an Instructor and records who
+- `POST /admin/users/{id}/instructor/decline` — `UserController@declineInstructor` (`admin.users.instructor.decline`); leaves a Student, clears the request
 - `GET /admin/send-return-alerts` — `BorrowTransactionController@sendReturnAlertNotification` (`admin.send-return-alerts`)
 
 **Borrower** (`auth` + `userType:Instructor,Student`)
@@ -239,10 +255,24 @@ Where it happens:
 - `BorrowTransactionController::update` — edits an **open** loan only; it throws if the loan is returned or voided. If `equipment_id` changed it locks both rows in sorted id order (deadlock avoidance), releases the old quantity and reserves the new. If the equipment is unchanged it moves the delta: `$newQty - $oldQty` reserved when positive, released when negative. There is no status branch left, because `status` is not in the payload.
 - `BorrowTransactionController::void` — restores stock if the loan was open, then stamps `voided_at` + `void_reason`. Voided rows are excluded from every "out" aggregate.
 - `BorrowTransactionController::destroy` — a hard delete, refused while the loan is open or a `ReturnLog` points at it. By the time it can run, the row is voided and holds no stock, so there is nothing to restore.
-- `ItemRequestController::requestActions`, approve branch — locks the equipment, rejects if short, deducts, flips the request to `Approved`, **and auto-creates a `BorrowTransaction`** (`borrow_date` today, `return_date` today + 7 days, status `Borrowed`, `purpose` falling back to the request remarks). Decline only flips the request status, no stock movement. Both are idempotent: a request whose status is not `Pending` is rejected up front.
+- `ItemRequestController::store` — refuses a new request from a **suspended** account, and (since 26 Sept 2026) from a borrower with **any open loan past its due date** (`return_date < today`, not voided, `Borrowed`/`Overdue` — the due date decides, not the stored status, which lags until the nightly sweep). This is the "overdue items pause borrowing" rule the terms summary and the landing page state. Editing an existing pending request is not blocked. Pinned by `tests/Feature/BorrowingRulesTest`.
+- `ItemRequestController::requestActions`, approve branch — locks the equipment, rejects if short, deducts, flips the request to `Approved`, **and auto-creates a `BorrowTransaction`** (`borrow_date` today, `return_date` today + `config('office.loan_days')`, default 7, status `Borrowed`, `purpose` falling back to the request remarks). Decline only flips the request status, no stock movement. Both are idempotent: a request whose status is not `Pending` is rejected up front.
 - `BorrowTransactionController::sendReturnAlertNotification` — bulk-updates `Borrowed` rows whose `return_date` is past to `Overdue`. Because both are "out", this deliberately performs no stock change. It then emails borrowers whose `return_date` is today, skipping anyone already given a `Return Notice` notification today (checked twice: before sending, and again inside the DB transaction). Invoked by `php artisan notifications:return` (`App\Console\Commands\SendReturnNotifications`), scheduled daily at 08:00 in `bootstrap/app.php`, and reachable manually at `GET /admin/send-return-alerts`.
 
 - `EquipmentController::store` / `::update` — neither takes `available_quantity` or `status` any more. A new item starts fully available; an edit recomputes `available_quantity = quantity − unitsOut()` under a row lock, which also repairs drift, and refuses a total below the units currently out. `EquipmentController::destroy` is refused while any loan or request references the item, so the cascade can no longer take history with it.
+
+## Opening hours and office config
+
+`config('office.hours')` is **structured** — `['days' => [1..5], 'open' => '08:00', 'close' =>
+'17:00']`, ISO weekdays, app timezone (`Asia/Manila`) — and is read only through
+`App\Support\OfficeHours::fromConfig()`, which renders `timeRange()` ("8:00 AM – 5:00 PM"),
+`dayRange()` / `dayRange(short: true)` ("Monday to Friday" / "Mon–Fri"), `label()` (the sentence
+form every page used before), `closingTime()`, and `isOpenToday()` (a working day, before closing
+time). Never write the hours into a template: the landing page, sign-in panel, register and
+forgot-password copy, and the borrower dashboard all go through the helper. There is no holiday
+calendar — `isOpenToday()` knows weekdays only. `config('office.loan_days')` (7) is the default
+loan period, used by the approve branch and quoted on the landing page. `config('office.location')`
+("Equipment room, CICT building") came from the landing mockup and is unconfirmed.
 
 ## Derived state
 
@@ -266,6 +296,7 @@ never format a borrow or return date by hand, and never render a raw ISO date.
 - **Views** live under `resources/views/` in three groups: `admin/` (dashboard, equipment, transaction, user, request, notification, logs), `borrower/` (dashboard, receipt), and `components/` for everything reusable — `components/admin/*` (navbar plus per-feature modals: `equipment/form-modal`, `user/form-modal`, `user/schedules-modal`, `transaction/new-loan-modal`, `transaction/edit-modal`, `transaction/checkin-modal`, `transaction/email-modal`), `components/instructor/*` (the two borrower request modals), `components/ui/*` (`badge`, `status`, `stat-strip`, `panel`, `empty-state`, `page-header`, `remove-dialog`), plus `alerts`, `auth-card`, `default`. `emails/` holds the mail template. Note `NotificationController` returns `admin.notification` (singular) while the route is named `admin.notifications`.
 - **Lists are CSS grids, not `<table>`s.** There is no `<table>` left in the app. A row is a grid that restacks below `md`/`lg`, which is what let DataTables Responsive go. A list opts into search and filtering by wrapping itself in `[data-list]` and marking rows `[data-list-row]` with `data-search` and `data-chip`; `resources/js/ui.js` does the rest.
 - **One destructive confirm.** `x-ui.remove-dialog` is the only delete dialog; a page renders one instance and each row's trigger carries the figures (`data-fact-a/b/c`), the reason a hard delete is refused (`data-blocked`), and the two form targets (`data-delete-url`, `data-safe-url`). If you add a destructive action, add it here rather than writing a fourth modal.
+- **Modal headers sit outside the `<form>`.** Each modal is `div[data-modal] > header + form`, so the header's summary/timing lines are *not* descendants of the form. Look them up from the modal (`document.querySelector('#edit-loan-modal [data-edit-summary]')`), never `someForm.querySelector(...)` — a null there throws inside the click handler before `openModal()` runs, and the button silently does nothing (this was BUGS_FOUND #1, "Can't edit loan", which also broke Check-in). `LoansPageTest::test_every_form_scoped_lookup_in_the_script_finds_its_element` enforces it on the loans page.
 - **Flash messages** — `success` / `error` via session, rendered by `components/alerts.blade.php`. Login flashes both `welcome` and `success` for legacy view checks.
 - **Casing matters** — model statuses are TitleCase (`Borrowed`, `Pending`, `Available`). The `item_requests` migration defaults `status` to lowercase `'pending'`, but `requestActions` compares against `'Pending'`, so rows created straight from the DB default are not processable. Always write `'Pending'` explicitly, as `ItemRequestController::store` does.
 - **Style** — Laravel Pint defaults (`vendor/bin/pint`). The admin sidebar layout is `w-64` / `md:ml-64`.

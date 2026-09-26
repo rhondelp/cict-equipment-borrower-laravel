@@ -32,6 +32,7 @@ class User extends Authenticatable
         'role_overridden_at',
         'role_override_reason',
         'role_overridden_by',
+        'instructor_requested_at',
     ];
 
     /**
@@ -56,18 +57,17 @@ class User extends Authenticatable
             'deactivated_at' => 'datetime',
             'suspended_at' => 'datetime',
             'role_overridden_at' => 'datetime',
+            'instructor_requested_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
 
     /**
-     * The two school domains a borrower account can come from. Role is read
-     * from the address rather than chosen on the form: picking your own role is
-     * a privilege boundary, and a select is a request the client controls.
+     * The one domain this system issues accounts on. Students and instructors
+     * share it, so the address says nothing about role: that is asked on the
+     * sign-up form, and an Instructor answer waits for an admin to confirm it.
      */
-    public const STUDENT_DOMAIN = 'student.nmsc.edu.ph';
-
-    public const STAFF_DOMAIN = 'nmsc.edu.ph';
+    public const SCHOOL_DOMAIN = 'nmsc.edu.ph';
 
     /**
      * The domain half of an address, lowercased. Null when there is not exactly
@@ -85,27 +85,22 @@ class User extends Authenticatable
     }
 
     /**
-     * The role a school address implies — `Student` for the student subdomain,
-     * `Instructor` for the staff domain, null for anything else.
-     *
-     * Matched on the whole domain, never on a suffix: `endsWith('nmsc.edu.ph')`
-     * would hand an Instructor account to anyone who registers
-     * `not-nmsc.edu.ph`. `Admin` is not reachable from here at all, which is
-     * the point — it stays a deliberate database action.
+     * Whether an address is on the school domain. Matched on the whole domain,
+     * never on a suffix: `endsWith('nmsc.edu.ph')` would let anyone register
+     * `not-nmsc.edu.ph`.
      */
-    public static function roleForEmail(?string $email): ?string
-    {
-        return match (self::emailDomain($email)) {
-            self::STUDENT_DOMAIN => 'Student',
-            self::STAFF_DOMAIN => 'Instructor',
-            default => null,
-        };
-    }
-
-    /** Whether an address is one this system issues accounts for. */
     public static function isSchoolEmail(?string $email): bool
     {
-        return self::roleForEmail($email) !== null;
+        return self::emailDomain($email) === self::SCHOOL_DOMAIN;
+    }
+
+    /**
+     * Asked for Instructor at sign-up and not yet decided. The account is a
+     * Student until an admin confirms — see UserController::confirmInstructor.
+     */
+    public function hasPendingInstructorRequest(): bool
+    {
+        return $this->instructor_requested_at !== null;
     }
 
     /**
@@ -150,28 +145,16 @@ class User extends Authenticatable
             .($this->suspension_reason ? ' · '.$this->suspension_reason : '');
     }
 
-    /**
-     * Whether this account's role matches what its email domain implies.
-     *
-     * Role is derived from the domain; an admin may override it, but the
-     * override is a recorded decision rather than an inline edit, and the
-     * screen shows both the derived answer and the override beside it.
-     */
-    public function roleMatchesDomain(): bool
-    {
-        $derived = self::roleForEmail($this->email);
-
-        // An address outside both school domains implies nothing, so there is
-        // nothing for the stored role to contradict.
-        return $derived === null || $derived === $this->user_type;
-    }
-
     public function roleIsOverridden(): bool
     {
         return $this->role_overridden_at !== null;
     }
 
-    /** "Set to Instructor by Quincy Jane O. on Sep 20 — teaches lab sections" */
+    /**
+     * "Set to Instructor by Quincy Jane O. on Sep 20 — teaches lab sections".
+     * Written whenever an admin changes a role, including confirming an
+     * instructor request, so no role change is unexplained.
+     */
     public function roleOverrideLine(): string
     {
         if (! $this->roleIsOverridden()) {

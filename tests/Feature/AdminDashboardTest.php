@@ -175,6 +175,19 @@ class AdminDashboardTest extends TestCase
     }
 
     /** Restricted accounts, since this system has no approval queue. */
+    public function test_instructor_requests_are_a_queue_entry(): void
+    {
+        $this->borrower('Rey Mercado')->update(['instructor_requested_at' => now()->subDays(2)]);
+        // A deactivated account's request is not work anyone can act on.
+        $this->borrower('Gone')->update(['instructor_requested_at' => now(), 'deactivated_at' => now()]);
+
+        $html = $this->html();
+
+        $this->assertStringContainsString('1 instructor request to confirm', $html);
+        $this->assertStringContainsString('Rey Mercado', $html);
+        $this->assertStringContainsString(route('admin.users', ['filter' => 'requested']), $html);
+    }
+
     public function test_restricted_accounts_are_a_queue_entry(): void
     {
         $this->borrower('Locked Out')->update(['deactivated_at' => now()]);

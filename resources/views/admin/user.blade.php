@@ -8,7 +8,6 @@
     $deactivated = $users->filter(fn ($user) => $user->isDeactivated())->count();
     $suspended = $users->filter(fn ($user) => $user->isSuspended())->count();
     $overdueHolders = $users->filter(fn ($user) => (int) ($user->overdue_count ?? 0) > 0)->count();
-    $mismatched = $users->filter(fn ($user) => ! $user->roleMatchesDomain())->count();
     $counts = [
         'Instructor' => $users->where('user_type', 'Instructor')->count(),
         'Student' => $users->where('user_type', 'Student')->count(),
@@ -51,10 +50,59 @@
             ]" />
         @endif
 
+        {{-- People who signed up saying they teach. Everyone shares one email
+             domain, so the address cannot settle it: the account was created
+             as a Student and works as one, and Instructor waits for this
+             decision. Either button clears the request. --}}
+        @if($instructorRequests->isNotEmpty())
+            <section aria-labelledby="instructor-requests-heading" class="space-y-3" data-instructor-requests>
+                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h2 id="instructor-requests-heading" class="text-lg font-semibold text-neutral-900">Instructor requests</h2>
+                    <p class="text-sm text-neutral-600">
+                        {{ $instructorRequests->count() }} {{ str('person')->plural($instructorRequests->count()) }}
+                        signed up as an instructor · using a student account until confirmed
+                    </p>
+                </div>
+
+                @foreach($instructorRequests as $user)
+                    <article class="bg-white border rounded-xl border-neutral-200 border-l-[3px] border-l-primary-500" data-instructor-request>
+                        <div class="flex flex-wrap items-start justify-between gap-4 px-5 py-4">
+                            <div class="min-w-0">
+                                <h3 class="text-base font-semibold text-neutral-900">{{ $user->name }}</h3>
+                                <p class="mt-1 text-sm text-neutral-600 [overflow-wrap:anywhere]">
+                                    {{ $user->email }}@if($user->contact_number) · {{ $user->contact_number }}@endif
+                                </p>
+                                <p class="mt-1 text-sm text-neutral-600">
+                                    Asked {{ $user->instructor_requested_at->format('M j') }} · currently a {{ strtolower($user->user_type) }}
+                                </p>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                                <form method="POST" action="{{ route('admin.users.instructor.decline', $user->id) }}">
+                                    @csrf
+                                    <button type="submit"
+                                            class="inline-flex min-h-[40px] items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
+                                        Keep as student
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('admin.users.instructor.confirm', $user->id) }}">
+                                    @csrf
+                                    <button type="submit"
+                                            class="inline-flex min-h-[40px] items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700">
+                                        <i class="text-sm fas fa-chalkboard-user" aria-hidden="true"></i> Confirm instructor
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </article>
+                @endforeach
+            </section>
+        @endif
+
         {{-- The accounts a human has already acted on, above the member list.
-             There is no account-approval queue in this system: registration
-             creates a working account, so the actionable rows here are the ones
-             that have been closed or restricted. --}}
+             There is no approval queue for new accounts: registration creates
+             a working one, so the actionable rows here are the ones that have
+             been closed or restricted. --}}
         @if($needsAttention->isNotEmpty())
             <section aria-labelledby="attention-heading" class="space-y-3">
                 <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -157,6 +205,9 @@
                             if ($deactivated > 0) {
                                 $chips['deactivated'] = 'Deactivated '.$deactivated;
                             }
+                            if ($instructorRequests->isNotEmpty()) {
+                                $chips['requested'] = 'Asked for Instructor '.$instructorRequests->count();
+                            }
                         @endphp
                         @foreach($chips as $value => $label)
                             <button type="button" data-list-chip="{{ $value }}"
@@ -211,6 +262,7 @@
                             if ($overdue > 0) { $chipKeys->push('overdue'); }
                             if ($user->isDeactivated()) { $chipKeys->push('deactivated'); }
                             if ($user->isSuspended()) { $chipKeys->push('suspended'); }
+                            if ($user->hasPendingInstructorRequest()) { $chipKeys->push('requested'); }
                             $pending = $user->pendingRequests();
                             $isSelf = $user->id === Auth::id();
                             $blocked = $out > 0
@@ -232,15 +284,17 @@
                                       aria-hidden="true">{{ $initials }}</span>
                                 <div class="min-w-0">
                                     <p class="text-base font-semibold truncate text-neutral-900">{{ $user->name }}</p>
-                                    {{-- Role is a fact read off the email domain,
-                                         not a control. Where it has been
-                                         overridden, the row says so and by whom. --}}
+                                    {{-- Role is shown, not edited inline — it
+                                         changes only through the edit dialog or
+                                         an instructor confirmation, and where it
+                                         has been changed the row says by whom. --}}
                                     <p class="text-sm text-neutral-600" data-user-role>
                                         {{ $user->user_type }}
                                         @if($user->roleIsOverridden())
                                             <span class="font-semibold text-warning-700" title="{{ $user->roleOverrideLine() }}">· set by hand</span>
-                                        @elseif(! $user->roleMatchesDomain())
-                                            <span class="font-semibold text-warning-700">· does not match {{ $user->email }}</span>
+                                        @endif
+                                        @if($user->hasPendingInstructorRequest())
+                                            <span class="font-semibold text-primary-700" data-instructor-requested>· asked for Instructor</span>
                                         @endif
                                         @if($user->isSuspended())
                                             <span class="font-semibold text-warning-700">· suspended</span>
@@ -297,7 +351,7 @@
 
                             <div class="flex items-center gap-2 lg:justify-end">
                                 <button type="button"
-                                        class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-700 hover:border-primary-300 hover:text-primary-700"
+                                        class="grid w-10 h-10 bg-white border rounded-md place-items-center border-neutral-300 text-neutral-700 hover:border-primary-300 hover:text-primary-700"
                                         title="Edit {{ $user->name }}" aria-label="Edit {{ $user->name }}"
                                         data-user-edit
                                         data-id="{{ $user->id }}" data-name="{{ $user->name }}" data-email="{{ $user->email }}"
@@ -314,14 +368,14 @@
                                         <form method="POST" action="{{ route('admin.users.lift', $user->id) }}">
                                             @csrf
                                             <button type="submit"
-                                                    class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-600 hover:border-primary-300 hover:text-primary-700"
+                                                    class="grid w-10 h-10 bg-white border rounded-md place-items-center border-neutral-300 text-neutral-600 hover:border-primary-300 hover:text-primary-700"
                                                     title="Let {{ $user->name }} borrow again" aria-label="Lift the suspension on {{ $user->name }}">
                                                 <i class="text-base fas fa-unlock" aria-hidden="true"></i>
                                             </button>
                                         </form>
                                     @else
                                         <button type="button"
-                                                class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-600 hover:border-warning-300 hover:bg-warning-50 hover:text-warning-700"
+                                                class="grid w-10 h-10 bg-white border rounded-md place-items-center border-neutral-300 text-neutral-600 hover:border-warning-300 hover:bg-warning-50 hover:text-warning-700"
                                                 title="Suspend borrowing for {{ $user->name }}" aria-label="Suspend borrowing for {{ $user->name }}"
                                                 data-suspend-trigger
                                                 data-id="{{ $user->id }}"
@@ -333,7 +387,7 @@
 
                                 @unless($isSelf)
                                     <button type="button"
-                                            class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-600 hover:border-danger-300 hover:bg-danger-50 hover:text-danger-700"
+                                            class="grid w-10 h-10 bg-white border rounded-md place-items-center border-neutral-300 text-neutral-600 hover:border-danger-300 hover:bg-danger-50 hover:text-danger-700"
                                             title="Remove {{ $user->name }}" aria-label="Remove {{ $user->name }}"
                                             data-remove-trigger data-dialog="remove-dialog"
                                             data-title="{{ $user->isDeactivated() ? 'Restore '.$user->name.'?' : 'Remove '.$user->name.'?' }}"
@@ -442,6 +496,9 @@ document.addEventListener('DOMContentLoaded', function () {
             adminOption.hidden = !editing;
             adminOption.disabled = !editing;
             type.value = editing ? data.userType : '';
+            // What a role change is measured against — see form-modal.
+            type.dataset.current = editing ? data.userType : '';
+            type.dispatchEvent(new Event('role:reset'));
 
             modal.querySelector('[data-user-title]').textContent = editing ? 'Edit account' : 'Add account';
             modal.querySelector('[data-user-submit-label]').textContent = editing ? 'Save changes' : 'Create account';

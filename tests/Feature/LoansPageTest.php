@@ -282,4 +282,91 @@ class LoansPageTest extends TestCase
 
         $this->assertNull($loan->fresh()->voided_at);
     }
+
+    /* ---------------------------------------------------------------------
+     | Bug: "Can't edit loan on admin" (BUGS_FOUND.md #1)
+     --------------------------------------------------------------------- */
+
+    /**
+     * The edit and check-in click handlers looked up the header summary with
+     * `editForm.querySelector(...)`, but the header sits outside the <form>.
+     * The lookup came back null, the handler threw, and the modal never
+     * opened — every server test still passed.
+     *
+     * PHP cannot run the script, so this pins the invariant that broke: every
+     * `somethingForm.querySelector('[data-…]')` in the page script must name
+     * an attribute that actually exists inside that form.
+     */
+    public function test_every_form_scoped_lookup_in_the_script_finds_its_element(): void
+    {
+        $admin = $this->admin();
+        $this->loan($this->borrower(), $this->equipment());
+
+        $html = $this->actingAs($admin)->get('/admin/transaction')->assertOk()->getContent();
+
+        preg_match_all("/const (\w+Form) = document\.getElementById\('([^']+)'\)/", $html, $forms, PREG_SET_ORDER);
+        $formIds = collect($forms)->mapWithKeys(fn ($m) => [$m[1] => $m[2]]);
+        $this->assertTrue($formIds->has('editForm') && $formIds->has('checkinForm'));
+
+        preg_match_all("/(\w+Form)\.querySelector(?:All)?\('\[(data-[a-z-]+)/", $html, $lookups, PREG_SET_ORDER);
+        $this->assertNotEmpty($lookups);
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($html);
+        $xpath = new \DOMXPath($dom);
+
+        foreach ($lookups as [, $variable, $attribute]) {
+            $formId = $formIds->get($variable);
+            $this->assertNotNull($formId, "{$variable} is not bound to a form id.");
+            $this->assertGreaterThan(
+                0,
+                $xpath->query("//form[@id='{$formId}']//*[@{$attribute}]")->length,
+                "{$variable}.querySelector('[{$attribute}]') finds nothing: [{$attribute}] is outside #{$formId}."
+            );
+        }
+    }
+
+    public function test_the_edit_modal_carries_the_loans_current_values(): void
+    {
+        $admin = $this->admin();
+        $loan = $this->loan($this->borrower('Mia Santos'), $this->equipment('Projector (Epson)'));
+
+        $this->actingAs($admin)->get('/admin/transaction')
+            ->assertOk()
+            ->assertSee('data-loan-edit', false)
+            ->assertSee('data-id="'.$loan->id.'"', false)
+            ->assertSee('data-borrow="'.$loan->borrow_date->toDateString().'"', false)
+            ->assertSee('data-return="'.$loan->return_date->toDateString().'"', false)
+            ->assertSee('data-summary="Projector (Epson) · Mia Santos"', false);
+    }
+
+    public function test_an_open_loan_can_be_edited_and_stock_follows_the_new_quantity(): void
+    {
+        $admin = $this->admin();
+        $equipment = $this->equipment('Projector (Epson)', 10);
+        $equipment->update(['available_quantity' => 8]);
+        $loan = $this->loan($this->borrower(), $equipment);
+        $newDue = Carbon::today()->addDays(10)->toDateString();
+
+        $this->actingAs($admin)->from('/admin/transaction')->post('/admin/transaction/update', [
+            'id' => $loan->id,
+            'user_id' => $loan->user_id,
+            'equipment_id' => $equipment->id,
+            'borrow_date' => $loan->borrow_date->toDateString(),
+            'return_date' => $newDue,
+            'quantity' => 5,
+            'purpose' => 'Extended lab session',
+            'remarks' => '',
+            'class_schedule_id' => '',
+        ])->assertRedirect('/admin/transaction')
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success', 'Loan updated.');
+
+        $loan->refresh();
+        $this->assertSame(5, $loan->quantity);
+        $this->assertSame($newDue, $loan->return_date->toDateString());
+        $this->assertSame('Extended lab session', $loan->purpose);
+        $this->assertSame('Borrowed', $loan->status);
+        $this->assertSame(5, $equipment->fresh()->available_quantity);
+    }
 }

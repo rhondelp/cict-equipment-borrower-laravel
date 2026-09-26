@@ -61,8 +61,18 @@ class DesignRegressionTest extends TestCase
             $html = $this->get($uri)->assertOk()->getContent();
 
             // .btn-primary went undefined for a long time, leaving every public
-            // call to action rendering as bare text.
-            $this->assertStringContainsString('btn-primary', $html, "$uri lost its CTA class");
+            // call to action rendering as bare text. The landing page follows
+            // design-reference/Landing.dc.html instead — a white button on the
+            // navy hero — so it is checked for a styled sign-in link.
+            if ($uri === '/') {
+                $this->assertMatchesRegularExpression(
+                    '/<a href="'.preg_quote(route('login'), '/').'"\s+class="[^"]*bg-white[^"]*"/',
+                    $html,
+                    '/ lost its styled sign-in button'
+                );
+            } else {
+                $this->assertStringContainsString('btn-primary', $html, "$uri lost its CTA class");
+            }
 
             // Asserted as links rather than as the `lp-legal` class: the login
             // page was rebuilt on the app's Tailwind system and no longer

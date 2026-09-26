@@ -61,11 +61,11 @@ class DatabaseSeeder extends Seeder
     private function seedStudents(): void
     {
         $students = [
-            ['name' => 'Juan Dela Cruz', 'email' => 'juan.delacruz@student.nmsc.edu.ph', 'contact_number' => '09201111111'],
-            ['name' => 'Maria Garcia',   'email' => 'maria.garcia@student.nmsc.edu.ph', 'contact_number' => '09202222222'],
-            ['name' => 'Pedro Mendoza',  'email' => 'pedro.mendoza@student.nmsc.edu.ph','contact_number' => '09203333333'],
-            ['name' => 'Liza Bautista',  'email' => 'liza.bautista@student.nmsc.edu.ph','contact_number' => '09204444444'],
-            ['name' => 'Carlo Ramos',    'email' => 'carlo.ramos@student.nmsc.edu.ph',  'contact_number' => '09205555555'],
+            ['name' => 'Juan Dela Cruz', 'email' => 'juan.delacruz@nmsc.edu.ph', 'contact_number' => '09201111111'],
+            ['name' => 'Maria Garcia',   'email' => 'maria.garcia@nmsc.edu.ph', 'contact_number' => '09202222222'],
+            ['name' => 'Pedro Mendoza',  'email' => 'pedro.mendoza@nmsc.edu.ph','contact_number' => '09203333333'],
+            ['name' => 'Liza Bautista',  'email' => 'liza.bautista@nmsc.edu.ph','contact_number' => '09204444444'],
+            ['name' => 'Carlo Ramos',    'email' => 'carlo.ramos@nmsc.edu.ph',  'contact_number' => '09205555555'],
         ];
 
         foreach ($students as $row) {

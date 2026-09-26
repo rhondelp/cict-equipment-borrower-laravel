@@ -28,7 +28,7 @@ class ForgotPasswordPageTest extends TestCase
     {
         return User::factory()->create(array_merge([
             'user_type' => 'Student',
-            'email' => 'maria@student.nmsc.edu.ph',
+            'email' => 'maria@nmsc.edu.ph',
         ], $overrides));
     }
 
@@ -75,7 +75,7 @@ class ForgotPasswordPageTest extends TestCase
     {
         $html = $this->html();
 
-        $this->assertStringContainsString(config('office.hours'), $html);
+        $this->assertStringContainsString(\App\Support\OfficeHours::fromConfig()->label(), $html);
         $this->assertStringContainsString(config('office.email'), $html);
         $this->assertStringContainsString('mailto:'.config('office.email'), $html);
     }
@@ -402,7 +402,7 @@ class ForgotPasswordPageTest extends TestCase
     public function test_an_unknown_address_still_reports_the_brokers_own_message(): void
     {
         $this->from('/forgot-password')
-            ->post('/forgot-password', ['email' => 'nobody@student.nmsc.edu.ph'])
+            ->post('/forgot-password', ['email' => 'nobody@nmsc.edu.ph'])
             ->assertRedirect(route('password.request'))
             ->assertSessionHasErrors('email');
 

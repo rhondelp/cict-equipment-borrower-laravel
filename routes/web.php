@@ -11,9 +11,7 @@ use App\Http\Controllers\ReturnLogsController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [UserController::class, 'welcome']);
 
 Route::get('/login', [UserController::class, 'index'])->name('login');
 Route::post('/login', [AuthenticateUser::class, 'login'])->name('login.store');
@@ -21,12 +19,10 @@ Route::post('/logout', [AuthenticateUser::class, 'destroy'])->name('logout');
 Route::post('/register', [AuthenticateUser::class, 'registerPublic'])->name('register.store');
 Route::get('/register', [AuthenticateUser::class, 'registerUser'])->name('register');
 
-Route::get('/welcome', function () {
-    return view('welcome');
-})->name('auth.welcome');
+Route::get('/welcome', [UserController::class, 'welcome'])->name('auth.welcome');
 
-// Legal pages. Closures returning a view, matching the '/' route above: there is
-// no state and no controller worth adding. The register form links to both, and
+// Legal pages. Plain view routes: there is no state and no controller worth
+// adding. The register form links to both, and
 // its consent checkbox used to point at href="#".
 Route::view('/privacy', 'legal.privacy')->name('legal.privacy');
 Route::view('/terms', 'legal.terms')->name('legal.terms');
@@ -60,6 +56,8 @@ Route::middleware('auth')->group(function () {
         // in and cannot borrow. Enforced in ItemRequestController::store.
         Route::post('/admin/users/{id}/suspend', [UserController::class, 'suspend'])->name('admin.users.suspend');
         Route::post('/admin/users/{id}/lift-suspension', [UserController::class, 'liftSuspension'])->name('admin.users.lift');
+        Route::post('/admin/users/{id}/instructor/confirm', [UserController::class, 'confirmInstructor'])->name('admin.users.instructor.confirm');
+        Route::post('/admin/users/{id}/instructor/decline', [UserController::class, 'declineInstructor'])->name('admin.users.instructor.decline');
         Route::delete('/admin/users/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
         Route::get('/admin/transaction', [BorrowTransactionController::class, 'index'])->name('admin.transaction');
         Route::post('/admin/transaction', [BorrowTransactionController::class, 'store'])->name('admin.transaction.store');

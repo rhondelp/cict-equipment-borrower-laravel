@@ -1,5 +1,110 @@
 # Changelog
 
+## 2026-09-26
+
+- **Landing page rebuilt to `design-reference/Landing.dc.html`.** The previous two landing passes are superseded. The page now follows the reference top to bottom:
+  - a deep-navy hero, `oklch(0.22 0.06 264)`, carrying the reference's 56px hairline grid (new `.grid-hairlines`: two 1px lines at 3.5% white, no colour gradient);
+  - a nav with the CE tile, anchor links and a "Sign in" pill;
+  - a status pill, the 64px headline at -0.035em, the lede, a white "Sign in →" and an outline "Request an account";
+  - a white "On the shelf now" card with a navy reminder card overlapping its corner;
+  - a four-figure band, "How it works" with three step cards, "The rules", a closing navy "Ready when you are." panel, and a footer.
+
+  Poppins throughout, with IBM Plex Mono (loaded on this page only, as the new `font-mono`) for the shelf counts and the 01/02/03 step labels. The grain, meter animation and glass card from the earlier passes are gone, since the reference has none of them.
+
+  **Data, not mockup numbers.**
+  - **Shelf and counts:** the rows and the unit / item-type counts come from one read of the lendable equipment, classified by `Equipment::availabilityState()` like the inventory page, with retired stock excluded. That gives full = green, partly out = blue, ≤30% = amber, none left = red. There are at most five rows: none left first, then running low, then partly out, then full, scarcest first within each state.
+  - **Hours:** they are now **one structured config value**, `config('office.hours')`: days, opening and closing time. They are read through a new `App\Support\OfficeHours`, which feeds the status pill, the figures band, the visit panel, and the reminder card's "by 5:00 PM".
+    - The pill reads "open today" on a working day before closing time and "closed today" otherwise; there is no holiday calendar.
+    - The same helper now renders the hours on the sign-in panel, the register and forgot-password copy, and the **borrower dashboard**, which had "Mon–Sat" hard-coded against a Monday-to-Friday config.
+  - **Loan period:** it moved to `config('office.loan_days')`, which the approve branch now uses instead of a literal 7, so the "7 days" figure and "Loans run seven days by default" cannot drift from what approval actually does.
+  - **Contact and location:** read from `office.email` and a new `office.location`. The contact falls back to "Ask at the equipment room" when the address is empty.
+
+  **The reference's claims were checked against the code, and five were wrong.** Each is corrected on the page, and pinned by a test so it stays corrected:
+  1. "Accounts approved within one working day" (eligibility line) and "approves new accounts within a working day" (visit panel): there is no account approval step and no defined turnaround. Both sentences keep only their true half.
+  2. Step 01, "with the dates you need it": the request form takes item, quantity and remarks only. It now reads "and say what it is for".
+  3. Step 02, "usually the same working day. You hear back by email either way": nothing sets a turnaround, and approve and decline send no email. It now reads "the decision shows on your dashboard", which the borrower dashboard does.
+  4. Step 03 note, "Email reminder the day before it is due": `sendReturnAlertNotification` emails on the due date. It now reads "on the day it is due".
+  5. Rule 3, "Overdue items pause borrowing": this was **not enforced**, and the terms summary already promised it. At your direction it now is. `ItemRequestController::store` refuses a new request while the borrower has any open loan past its due date, judged by the date, not the stored status, which lags until the nightly sweep. The copy says "cannot send new requests" rather than the mockup's "are held", because nothing is queued.
+
+  The reminder card stays static and illustrative, as asked; "due tomorrow" is wording the borrower dashboard really uses (`timingLabel()`).
+
+  **Also kept.** A signed-in visitor gets "Go to your dashboard" / "Dashboard" on the same buttons, per role, instead of Sign in. There is a skip link and focus rings on every link.
+
+  **Verification.** `php artisan test` — **306 passing**.
+  - `WelcomePageTest` was rewritten, 23 tests:
+    - the six sections and their anchors, one h1 (the headline), auto-fit grids and a clamped display size, Plex Mono on figures and step labels;
+    - every link going to the existing routes, and dashboard links for signed-in admins and borrowers;
+    - shelf rows from the table, each state's colour, five rows with out and low first and retired excluded, computed counts, and an empty-inventory state;
+    - the pill open on a Monday, closed on a Sunday and closed after 17:00, one hours config driving pill, figures, visit panel and reminder, and the loan period from config;
+    - each corrected claim staying corrected, and the contact fallback.
+  - New `BorrowingRulesTest`, 6 tests: the overdue block, which keys on the date, ignores loans due today, returned or voided loans and other people's loans, and approval using `loan_days`.
+  - New `Tests\Unit\OfficeHoursTest`, 3 tests.
+  - `DesignRegressionTest` now checks the landing page for its styled white sign-in button instead of `.btn-primary`, and `ForgotPasswordPageTest` reads the hours through the helper.
+
+  **Rendered in headless Chrome** (puppeteer-core in the scratchpad, against a throwaway SQLite database) at 1440, 1024 and 390px:
+  - no horizontal overflow and no element past the viewport at any width;
+  - the reminder card overlaps the shelf card by 23px and sits 41px clear of the last shelf row at every width;
+  - the h1 computes to 64px / -2.24px at 1440 and 1024 and 40px at 390;
+  - Plex Mono and Poppins load and apply;
+  - the hero is two columns at 1440 and stacks at 1024, exactly as the reference's `minmax(460px)` dictates.
+
+  Two phone fixes came out of the screenshots. The status pill clipped its wrapped text inside a fixed 30px height; it now grows, and the hours can no longer split mid-range. The figures band now uses a 150px column minimum instead of 220px, so a phone gets 2×2 instead of four stacked rows; desktop is unchanged. `npm run build` run. `vendor/bin/pint --test` — clean on every touched file, 8-file baseline unchanged.
+
+- **Landing page, second pass: the page now shows the product instead of describing it.** The first pass got the structure right but left the navy panel as three bullet points on a flat fill. The headline now leads it at 40px with tighter tracking. Under it is an **"On the shelf now" card** with the four lendable items the room holds most of, each with an "in / total" count in tabular figures and an availability meter. The meter colours follow `Equipment::availabilityState()`, the same "All in / Partly out / Running low / Fully out" vocabulary the admin screens use, desaturated for the dark ground and spoken to screen readers through an `aria-label`. The data comes from a new query in `UserController::welcome()`. Retired items are excluded, and the card is dropped rather than faked when there is no stock or the database does not answer; the inventory total moves into its footer. The card is frosted glass: a translucent fill, a 1px inner ring, an inner top highlight and a navy-tinted drop shadow. A single soft light at the top-left and a grain overlay (new `.surface-grain`) give the panel depth. Both are the panel's own hue, so there is no purple "AI gradient" and no second accent.
+
+  **Right side.** A sentence-case eyebrow with a short rule, a larger `h1` (38px, still exactly one), and more whitespace. The primary button is 48px, with a blue-tinted shadow and an arrow that nudges on hover. "How borrowing works" is now a numbered timeline on a connecting line, because it is a sequence, not three features.
+
+  **States.** Every link and button has a visible `focus-visible` ring, and there is a "Skip to sign in" link for keyboard users. Sections rise in on a stagger using the existing `.anim-rise`. The meters grow from the left with a transform-only `.meter-fill`, and the "Live" dot pulses under `motion-safe:` only. Both new animations keep their collapsed start state inside the `prefers-reduced-motion: no-preference` query, so nothing is left hidden for people who turn motion off.
+
+  **Kept deliberately.** Poppins stays: swapping the face on one page would break the one-system rule with login and register, so any font change should be made app-wide. The frame, panel colour, 10px radii and every fact source are unchanged, and no review timeframe is claimed.
+
+  **Verification.** `php artisan test` — **291 passing**. `WelcomePageTest` grew to 17 tests, adding:
+  - the shelf card rendering real counts, the matching meter width and spoken label;
+  - retired items excluded, the card capped at four, largest first;
+  - no card when there is no stock;
+  - both animations respecting reduced motion;
+  - the skip link and focus rings being present.
+
+  `npm run build` run, and all 16 new utilities, including the arbitrary-value ones, confirmed in the compiled CSS. `vendor/bin/pint --test` — no new issues over the 8-file baseline. **Not visually checked:** the Chrome extension was not connected, so the layout, grain strength and animation timing have not been seen in a browser.
+
+- **Landing page rebuilt in the sign-in / register frame.** `welcome.blade.php` was the last public entry point still on `auth.css`: a dot-grid overlay, two ambient glow orbs and a centred logo ring, with nothing on the page that told a visitor anything they did not already know from the URL. It now uses the same two-column grid as login and register, `minmax(0,0.85fr)_minmax(0,1fr)` from `lg` up and stacked below. The left panel is the solid `#183060` one: logo lockup, one line on what the room lends, and three facts. The right side makes one choice easy.
+
+  **Facts, read rather than typed.** The inventory line ("N units tracked across N item types") comes from the same query as the sign-in page. It is now a shared `UserController::inventorySummary()`, and `/` and `/welcome` route through a new `UserController::welcome()` instead of closures, so the two pages cannot quote different figures. Retired stock is not counted, and the line is dropped rather than the page if the database does not answer. Opening hours come from `config('office.hours')` and the domain from `User::SCHOOL_DOMAIN`. There is **no review-time claim**: nothing in the application defines one.
+
+  **One primary action.** *Sign in* is the only filled button. *Request an account* follows it, outlined and unaccented, the same treatment it has under the login form. A signed-in visitor, who reaches this page through the logo on every public page, gets *Go to your dashboard* (admin or borrower, by role) with their name, instead of a sign-in button that would only bounce them. Below a rule, **How borrowing works** gives three steps written to match the code: request from the dashboard; the office approves, and stock is held only then; a reminder email goes out on the due date. The legal links and the "ask at the equipment room" line match the other public pages.
+
+  `auth.css` is still in use by `reset-password.blade.php`, so the file stays.
+
+  **Verification.** `php artisan test` — **286 passing**. A new `tests/Feature/WelcomePageTest` (12 tests) covers:
+  - no `auth.css` and no orb or overlay markup, and the shared grid and panel colour present;
+  - exactly one `h1`, naming the system;
+  - sign-in placed ahead of account creation, with a single `btn-primary`;
+  - the inventory figure excluding retired stock and matching `/login` exactly;
+  - hours following config, and the school domain being named;
+  - no review timeframe anywhere, and the steps text matching the stock and reminder behaviour;
+  - signed-in borrowers and admins each getting their own dashboard link and no register link;
+  - `/welcome` serving the same page.
+
+  `SecurityRegressionTest`'s landing-page assertion moved from `auth.css` to the two links. `npm run build` run. `vendor/bin/pint --test` — no new issues over the 8-file baseline. No browser was available for a visual check.
+
+- **Sign-up asks Student or Instructor — and an admin confirms Instructor.** Every account, student and instructor alike, is on `@nmsc.edu.ph`. The code had assumed students were on a separate `@student.nmsc.edu.ph` and derived the role from the domain. With both constants set to the same value, PHP's `match` resolved every sign-up to the second arm, so **every new account was being created as an Instructor** — students included. The domain cannot carry the role, so the form now asks. Asking is a request, not a grant, and the account is **always written as a Student**. Picking Instructor stamps a new `users.instructor_requested_at`: the person can sign in and borrow straight away, and instructor access waits for the office. The form says exactly that under the choice, and the success state shows "Instructor access — Requested, waiting for the office" with no turnaround promised, because the system sets none. `user_type` is still never read from the request, and `requested_role=Admin` is refused outright.
+
+  **Deciding a request.** The users screen gains an **Instructor requests** section above the restricted accounts, with *Confirm instructor* and *Keep as student*, plus an "Asked for Instructor" filter chip and a row marker. The dashboard queue gains an entry that links straight to that filter. Confirming writes the existing `role_overridden_*` record ("Set to Instructor by … — Confirmed instructor request from sign-up"). Deciding twice is refused, and a deactivated account's request is left out of the queue.
+
+  **Admin role edits lost their reference point.** A role change used to need a reason only when it contradicted the domain. With no domain rule, the admin edit dialog now treats *any* change from the stored role as the recorded decision: the reason field appears once the role differs from the account's current one, the server refuses a change without one, and it records who, when and why. Any manual change also settles a pending instructor request. `User::STUDENT_DOMAIN` / `STAFF_DOMAIN` became one `SCHOOL_DOMAIN`; `roleForEmail()` and `roleMatchesDomain()` are gone, along with the "does not match the email" row flag. The forgot-password page's off-domain warning uses the single domain.
+
+  **Copy.** The login page's "the CICT office approves it before the first borrow" claimed an approval gate that does not exist. It now reads "the CICT office confirms instructor access", keeping your "CICT office" wording. The register success state's opening hours now come from `config('office.hours')` instead of a hard-coded "Monday to Saturday", which had drifted from your config change to Monday to Friday.
+
+  **Schema:** `users.instructor_requested_at` (nullable timestamp), migration `2026_09_26_120000_add_instructor_request_to_users`. **Not yet run against the dev MySQL** — it was not running; run `php artisan migrate`.
+
+  **Verification.** `php artisan test` — **274 passing**, 0 failing (the 19 register/role/login failures from the previous entry are resolved). The tests that encoded domain derivation were rewritten to pin the new rule. RegisterPageTest covers the Student/Instructor-only choice, Student → no request, Instructor → a Student with a pending request, the question being required, Admin refused, the whole-domain match, and both success states. SecurityRegressionTest covers a posted `user_type` being ignored, asking for Instructor not granting it, and a borrower being unable to hit the confirm route. UsersPageTest covers any role change needing a reason and being recorded, demotion included, an unchanged role logging nothing, the section and chip rendering above the list, confirm, decline, no double decision, and a manual change clearing a request. AdminDashboardTest covers the queue entry excluding deactivated accounts. In jsdom against a running server (scratch SQLite): the register submit stays disabled with "Say whether you are a student or an instructor." until a role is picked, and the instructor note shows only for Instructor. In the users dialog the reason field appears only when the role differs from the current one, and never on the add form. The requested chip filters to the one pending row. Over real HTTP, a sign-up posting `requested_role=Instructor&user_type=Admin` produced a Student with a pending request, and the admin confirm turned it into an Instructor with the record written. `npm run build` run: the new `has-[:checked]:*` and `border-l-primary-500` utilities are in the CSS (Tailwind 3.4.17). `vendor/bin/pint --test` — no new issues over the 8-file baseline. No browser was available for a visual check.
+
+- **Fixed: the Edit button on an open loan did nothing — and Check-in was broken the same way.** Reported in `BUGS_FOUND.md` as "Can't edit loan on admin". The server was never the problem: `POST /admin/transaction/update` validated, moved the stock delta and redirected with "Loan updated." when driven over real HTTP against a running server. The failure was entirely in the page script. The click handler filled the modal's subtitle with `editForm.querySelector('[data-edit-summary]')`, but that subtitle lives in the modal *header*, above and outside `<form id="edit-loan-form">`. The lookup returned `null`, setting `.textContent` on it threw, and the handler died before `sync()` and `openModal()` ran — so the pencil icon looked live and did nothing. The Check-in handler made the identical mistake with `[data-checkin-summary]` and `[data-checkin-timing]`, which means a loan could not be returned from this screen either. Both lookups are now scoped to the modal element instead of the form. The email dialog, and the form-scoped lookups on the users screen and the borrower dashboard, were checked and already point inside their forms.
+
+  **Why no test caught it.** Every existing loan-edit test posts straight to the controller, and there was no happy-path edit test at all — only the refusal of a closed loan. PHP cannot run the page's JavaScript, so the regression test pins the invariant that actually broke rather than the markup: it renders the loans page, finds every `somethingForm.querySelector('[data-…]')` in the script, and asserts that attribute exists inside that form in the rendered HTML. With the old line restored it fails with "editForm.querySelector('[data-edit-summary]') finds nothing: [data-edit-summary] is outside #edit-loan-form." Two further tests cover the edit trigger carrying the loan's current values and a successful edit moving stock by the quantity delta.
+
+  **Verification.** The bug was reproduced by serving the app against a throwaway SQLite database in the scratchpad (the dev MySQL was untouched, and was not running), logging in as the seeded admin, fetching the loans page and executing its real inline script plus the built `app.js` in jsdom: before the fix, clicking Edit and Check-in each raised `Cannot set properties of null (setting 'textContent')` and left the modal hidden; after it, both open with no errors, the edit form reads "Stock adjusts to match" with a ceiling of 10 (7 free + 3 already on the loan), and Check-in shows "Due Oct 1 · on time". No browser was available for a visual check. `tests/Feature/LoansPageTest` — 16 passing (3 new). Full suite: **261 passing with the committed versions of `User.php`, `config/office.php`, `login.blade.php` and `register.blade.php`**; with the uncommitted working-tree edits to those files, 19 register/role/login tests fail — see the note left in `BUGS_FOUND.md`. `vendor/bin/pint --test` — no new issues over the 8-file baseline. No new Tailwind classes, so no rebuild was needed.
+
 ## 2026-09-21
 
 - **Admin dashboard: two more queues, four figures that all change behaviour, and every link arrives pre-filtered.** The work queue already led the page from the 20 September pass, and an empty one already said so in a sentence. What it did not do was cover everything that needs doing, or land you on the rows it had just counted.

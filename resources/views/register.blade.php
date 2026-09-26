@@ -14,13 +14,11 @@
     // presence is what switches this page from the form to the success state.
     $registered = session('registered');
 
-    $studentDomain = \App\Models\User::STUDENT_DOMAIN;
-    $staffDomain = \App\Models\User::STAFF_DOMAIN;
-
-    // Re-derived for the server-rendered role note, so the fact shown after a
-    // rejected submit comes from the same function that would have assigned
-    // the role — not from a second copy of the rule in the template.
-    $oldRole = \App\Models\User::roleForEmail(old('email'));
+    // Students and instructors share one domain, so the address says nothing
+    // about role. The form asks; an Instructor answer is a request an admin
+    // confirms, and the account is a Student until then.
+    $schoolDomain = \App\Models\User::SCHOOL_DOMAIN;
+    $oldRole = old('requested_role');
 @endphp
 
 {{-- Two columns from lg up, stacked below it — the same frame as the sign-in
@@ -60,7 +58,7 @@
                     <span class="min-w-0">
                         <span class="block text-[14px] font-semibold">Office verifies you</span>
                         <span class="block text-[13px] leading-[1.5] text-white/65 text-pretty mt-px">
-                            The equipment office checks new accounts against the school register.
+                            The CICT office checks new accounts and confirm it.
                         </span>
                     </span>
                 </li>
@@ -106,6 +104,12 @@
                     <dt class="text-neutral-500 shrink-0">Registered as</dt>
                     <dd class="font-semibold text-neutral-900">{{ $registered['role'] }}</dd>
                 </div>
+                @if (! empty($registered['instructor_requested']))
+                    <div class="flex items-center justify-between gap-3 text-[13px]" data-instructor-requested>
+                        <dt class="text-neutral-500 shrink-0">Instructor access</dt>
+                        <dd class="font-semibold text-warning-700">Requested — waiting for the office</dd>
+                    </div>
+                @endif
             </dl>
 
             {{-- What happens next, as this system actually behaves. It does not
@@ -120,10 +124,14 @@
                     </li>
                     <li class="flex items-start gap-2.5 text-[13px] leading-[1.55] text-neutral-600 text-pretty">
                         <span class="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-300" aria-hidden="true"></span>
-                        <span>The equipment office checks your details against the school register and confirms
-                              you as {{ strtolower($registered['role']) === 'instructor' ? 'an' : 'a' }} {{ strtolower($registered['role']) }}.
-                              Nothing in the system puts a clock on that check — ask at the equipment room if you
-                              need it looked at today (open 8:00&nbsp;AM&nbsp;–&nbsp;5:00&nbsp;PM, Monday to Saturday).</span>
+                        @if (! empty($registered['instructor_requested']))
+                            <span>You asked for instructor access. Until the equipment office confirms it, your account
+                                  works as a student account. Nothing in the system puts a clock on that check — ask at
+                                  the equipment room if you need it looked at today (open {{ \App\Support\OfficeHours::fromConfig()->label() }}).</span>
+                        @else
+                            <span>Your account is a student account. If you teach at CICT, ask at the equipment room
+                                  to have it switched to instructor (open {{ \App\Support\OfficeHours::fromConfig()->label() }}).</span>
+                        @endif
                     </li>
                     <li class="flex items-start gap-2.5 text-[13px] leading-[1.55] text-neutral-600 text-pretty">
                         <span class="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-300" aria-hidden="true"></span>
@@ -148,8 +156,7 @@
             <div class="flex flex-col gap-[5px]">
                 <h2 class="text-[24px] font-semibold tracking-[-0.015em] text-neutral-900">Request an account</h2>
                 <p class="text-[13.5px] text-neutral-600 text-pretty">
-                    Students and instructors register here. Your role is read from your school email —
-                    there is nothing to pick.
+                    Students and instructors register here with their school email.
                 </p>
             </div>
 
@@ -172,31 +179,54 @@
                     <p id="name-error" data-error-for="name" class="text-[12px] text-danger-700" @unless($errors->has('name')) hidden @endunless>{{ $errors->first('name') }}</p>
                 </div>
 
-                {{-- School email. The role note under it is a read-only fact,
-                     not a field: there is no control here that sets a role. --}}
+                {{-- School email. One domain for everyone, so the note under it
+                     only says which addresses are accepted. --}}
                 <div class="flex flex-col gap-1.5">
                     <label for="email" class="text-[12.5px] font-medium text-neutral-900">
                         School email <span class="text-danger-600" aria-hidden="true">*</span>
                     </label>
                     <input type="email" name="email" id="email" value="{{ old('email') }}"
                            autocomplete="username" required maxlength="255"
-                           placeholder="name{{ '@'.$studentDomain }}"
-                           aria-describedby="email-error email-role"
+                           placeholder="name{{ '@'.$schoolDomain }}"
+                           aria-describedby="email-error email-note"
                            @if($errors->has('email')) aria-invalid="true" @endif
                            class="h-11 rounded-[10px] border px-[13px] text-[14px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500
                                   {{ $errors->has('email') ? 'border-danger-300' : 'border-neutral-200' }}">
                     <p id="email-error" data-error-for="email" class="text-[12px] text-danger-700" @unless($errors->has('email')) hidden @endunless>{{ $errors->first('email') }}</p>
-                    <p id="email-role" data-role-note aria-live="polite"
-                       class="text-[12px] leading-[1.5] text-pretty {{ $oldRole ? 'text-success-700' : 'text-neutral-500' }}">
-                        @if($oldRole)
-                            Detected role: <span class="font-semibold">{{ $oldRole }}</span>. Based on your school email.
-                            The equipment office confirms your role during approval.
-                        @else
-                            Your role comes from your address — <span class="font-medium text-neutral-700">{{ '@'.$studentDomain }}</span> for students,
-                            <span class="font-medium text-neutral-700">{{ '@'.$staffDomain }}</span> for instructors.
-                        @endif
+                    <p id="email-note" data-email-note aria-live="polite"
+                       class="text-[12px] leading-[1.5] text-pretty text-neutral-500">
+                        Use your institutional email — <span class="font-medium text-neutral-700">{{ '@'.$schoolDomain }}</span>.
                     </p>
                 </div>
+
+                {{-- Role. Asked because the address cannot answer it — but it
+                     is a request, not a grant: the account is created as a
+                     Student either way, and Instructor waits for the office. --}}
+                <fieldset class="flex flex-col gap-1.5" aria-describedby="role-error role-note">
+                    <legend class="mb-1.5 text-[12.5px] font-medium text-neutral-900">
+                        I am a <span class="text-danger-600" aria-hidden="true">*</span>
+                    </legend>
+                    <div class="grid grid-cols-2 gap-2" data-role-options>
+                        @foreach (['Student' => 'Enrolled in a CICT course', 'Instructor' => 'Teaching at CICT'] as $value => $caption)
+                            <label class="flex cursor-pointer items-start gap-2.5 rounded-[10px] border px-3 py-[11px] transition-colors hover:bg-neutral-50 has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50
+                                          {{ $errors->has('requested_role') ? 'border-danger-300' : 'border-neutral-200' }}"
+                                   data-role-option>
+                                <input type="radio" name="requested_role" value="{{ $value }}" @checked($oldRole === $value)
+                                       class="mt-0.5 h-[15px] w-[15px] shrink-0 cursor-pointer accent-primary-600">
+                                <span class="min-w-0">
+                                    <span class="block text-[13.5px] font-semibold text-neutral-900">{{ $value }}</span>
+                                    <span class="block text-[12px] leading-[1.45] text-neutral-500">{{ $caption }}</span>
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p id="role-error" data-error-for="requested_role" class="text-[12px] text-danger-700" @unless($errors->has('requested_role')) hidden @endunless>{{ $errors->first('requested_role') }}</p>
+                    <p id="role-note" data-role-note aria-live="polite"
+                       class="text-[12px] leading-[1.5] text-pretty text-neutral-500" @unless($oldRole === 'Instructor') hidden @endunless>
+                        Your account starts as a student account, so you can sign in and borrow straight away.
+                        Instructor access is switched on once the equipment office confirms it.
+                    </p>
+                </fieldset>
 
                 {{-- Contact number. Optional in the database and optional here;
                      the note says what it is actually for, which is the admin
@@ -322,11 +352,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('register-form');
     if (!form) return;
 
-    /* The two domains, rendered from the model constants rather than written
+    /* The school domain, rendered from the model constant rather than written
        here a second time — this half only mirrors the server, and a mirror
        that disagrees with what it reflects is worse than no mirror. */
-    const STUDENT_DOMAIN = @json($studentDomain);
-    const STAFF_DOMAIN = @json($staffDomain);
+    const SCHOOL_DOMAIN = @json($schoolDomain);
 
     const name = document.getElementById('name');
     const email = document.getElementById('email');
@@ -334,7 +363,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const agree = document.getElementById('agree');
     const submit = document.getElementById('register-submit');
     const toggle = document.getElementById('password-toggle');
+    const emailNote = form.querySelector('[data-email-note]');
     const roleNote = form.querySelector('[data-role-note]');
+    const roleInputs = Array.from(form.querySelectorAll('input[name="requested_role"]'));
     const hint = form.querySelector('[data-submit-hint]');
     const agreeBox = form.querySelector('[data-agree-box]');
     const bar = form.querySelector('[data-strength-bar]');
@@ -351,21 +382,25 @@ document.addEventListener('DOMContentLoaded', function () {
         password.focus();
     });
 
-    /* ---- Role, read from the address ---------------------------------
-       Mirrors User::roleForEmail exactly, including matching the whole
-       domain rather than a suffix. Nothing here assigns a role — the
-       server derives it again from the address it receives. */
+    /* ---- The address ---------------------------------------------------
+       Mirrors User::isSchoolEmail exactly, including matching the whole
+       domain rather than a suffix. */
     function domainOf(value) {
         const parts = String(value).trim().toLowerCase().split('@');
         if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
         return parts[1];
     }
 
-    function roleFor(value) {
-        const domain = domainOf(value);
-        if (domain === STUDENT_DOMAIN) return 'Student';
-        if (domain === STAFF_DOMAIN) return 'Instructor';
-        return null;
+    function isSchool(value) {
+        return domainOf(value) === SCHOOL_DOMAIN;
+    }
+
+    /* ---- Role -----------------------------------------------------------
+       What was asked for. The server writes a Student account either way;
+       Instructor becomes a request the office confirms. */
+    function pickedRole() {
+        const picked = roleInputs.find(function (input) { return input.checked; });
+        return picked ? picked.value : '';
     }
 
     const looksLikeEmail = function (value) {
@@ -398,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function () {
         email: function (value) {
             if (value.trim() === '') return 'Enter your school email address.';
             if (!looksLikeEmail(value)) return 'That does not look like an email address.';
-            if (!roleFor(value)) return 'Use your school address — @' + STUDENT_DOMAIN + ' for students, @' + STAFF_DOMAIN + ' for instructors.';
+            if (!isSchool(value)) return 'Use your school address — @' + SCHOOL_DOMAIN + '.';
             return '';
         },
         password: function (value) {
@@ -435,27 +470,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /* ---- Live surfaces ------------------------------------------------ */
-    function paintRole() {
+    function paintEmailNote() {
         const value = email.value;
-        const role = roleFor(value);
 
-        roleNote.classList.remove('text-neutral-500', 'text-success-700', 'text-danger-700');
+        emailNote.classList.remove('text-neutral-500', 'text-success-700', 'text-danger-700');
 
-        if (role) {
-            roleNote.innerHTML = 'Detected role: <span class="font-semibold">' + role + '</span>. Based on your school email. '
-                + 'The equipment office confirms your role during approval.';
-            roleNote.classList.add('text-success-700');
-        } else if (value.trim() === '') {
-            roleNote.innerHTML = 'Your role comes from your address — <span class="font-medium text-neutral-700">@' + STUDENT_DOMAIN + '</span> for students, '
-                + '<span class="font-medium text-neutral-700">@' + STAFF_DOMAIN + '</span> for instructors.';
-            roleNote.classList.add('text-neutral-500');
+        if (value.trim() === '') {
+            emailNote.innerHTML = 'Use your institutional email — <span class="font-medium text-neutral-700">@' + SCHOOL_DOMAIN + '</span>.';
+            emailNote.classList.add('text-neutral-500');
         } else if (!looksLikeEmail(value)) {
-            roleNote.textContent = 'Keep typing your full address.';
-            roleNote.classList.add('text-neutral-500');
+            emailNote.textContent = 'Keep typing your full address.';
+            emailNote.classList.add('text-neutral-500');
+        } else if (isSchool(value)) {
+            emailNote.textContent = 'School address — accepted.';
+            emailNote.classList.add('text-success-700');
         } else {
-            roleNote.textContent = 'Personal addresses are not accepted. Use your @' + STAFF_DOMAIN + ' account.';
-            roleNote.classList.add('text-danger-700');
+            emailNote.textContent = 'Personal addresses are not accepted. Use your @' + SCHOOL_DOMAIN + ' account.';
+            emailNote.classList.add('text-danger-700');
         }
+    }
+
+    function paintRole() {
+        roleNote.hidden = pickedRole() !== 'Instructor';
     }
 
     const STRENGTH = {
@@ -500,7 +536,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (rules.name(name.value)) return 'Enter your full name to continue.';
         if (email.value.trim() === '') return 'Enter your school email address to continue.';
         if (!looksLikeEmail(email.value)) return 'Finish typing your school email address.';
-        if (!roleFor(email.value)) return 'Use an @' + STUDENT_DOMAIN + ' or @' + STAFF_DOMAIN + ' address to continue.';
+        if (!isSchool(email.value)) return 'Use an @' + SCHOOL_DOMAIN + ' address to continue.';
+        if (!pickedRole()) return 'Say whether you are a student or an instructor.';
         if (password.value === '') return 'Choose a password to continue.';
         if (!passwordOk(password.value)) return 'Your password still needs 8+ characters with letters and numbers.';
         if (!agree.checked) return 'Tick the agreement to continue.';
@@ -518,9 +555,23 @@ document.addEventListener('DOMContentLoaded', function () {
         agreeBox.classList.toggle('border-danger-300', attempted && !agree.checked);
         agreeBox.classList.toggle('border-neutral-200', !(attempted && !agree.checked));
 
+        paintEmailNote();
         paintRole();
         paintPassword();
     }
+
+    roleInputs.forEach(function (input) {
+        input.addEventListener('change', function () {
+            const note = form.querySelector('[data-error-for="requested_role"]');
+            note.textContent = '';
+            note.hidden = true;
+            form.querySelectorAll('[data-role-option]').forEach(function (option) {
+                option.classList.remove('border-danger-300');
+                option.classList.add('border-neutral-200');
+            });
+            refresh();
+        });
+    });
 
     Object.keys(fields).forEach(function (key) {
         // Nothing is flagged red while someone is still typing their first
@@ -545,7 +596,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     form.addEventListener('submit', function (event) {
         attempted = true;
-        const valid = Object.keys(fields).map(check).every(Boolean) && agree.checked;
+        const roleOk = pickedRole() !== '';
+        if (!roleOk) {
+            const note = form.querySelector('[data-error-for="requested_role"]');
+            note.textContent = 'Say whether you are a student or an instructor.';
+            note.hidden = false;
+        }
+        const valid = Object.keys(fields).map(check).every(Boolean) && roleOk && agree.checked;
 
         if (!valid) {
             event.preventDefault();
@@ -553,7 +610,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const firstBad = Object.keys(fields).find(function (key) {
                 return fields[key].getAttribute('aria-invalid') === 'true';
             });
-            (firstBad ? fields[firstBad] : agree).focus();
+            (firstBad ? fields[firstBad] : (roleOk ? agree : roleInputs[0])).focus();
             return;
         }
 

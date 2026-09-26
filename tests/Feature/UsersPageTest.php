@@ -37,7 +37,7 @@ class UsersPageTest extends TestCase
         return User::factory()->create(array_merge([
             'user_type' => 'Student',
             'name' => $name,
-            'email' => strtolower(str_replace(' ', '.', $name)).'@student.nmsc.edu.ph',
+            'email' => strtolower(str_replace(' ', '.', $name)).'@nmsc.edu.ph',
         ], $overrides));
     }
 
@@ -143,16 +143,15 @@ class UsersPageTest extends TestCase
         $this->assertStringNotContainsString('name="user_type"', $rows[1], 'The rows carry a role control');
     }
 
-    /** A stored role that contradicts the address is flagged. */
-    public function test_a_role_that_does_not_match_the_domain_is_flagged(): void
+    /** Everyone shares the domain, so an address never contradicts a role. */
+    public function test_no_row_is_flagged_against_the_email_domain(): void
     {
-        $this->student('Odd One', ['user_type' => 'Instructor', 'email' => 'odd.one@student.nmsc.edu.ph']);
+        $this->student('Odd One', ['user_type' => 'Instructor']);
 
-        $this->assertStringContainsString('does not match odd.one@student.nmsc.edu.ph', $this->html());
+        $this->assertStringNotContainsString('does not match', $this->html());
     }
 
-    /** Overriding the derivation takes a reason, and is refused without one. */
-    public function test_overriding_the_derived_role_requires_a_reason(): void
+    public function test_changing_a_role_requires_a_reason(): void
     {
         $student = $this->student('Mia Santos');
         $admin = $this->admin();
@@ -160,15 +159,14 @@ class UsersPageTest extends TestCase
         $this->actingAs($admin)->post('/admin/users/update', [
             'id' => $student->id,
             'name' => $student->name,
-            'email' => $student->email,       // implies Student
-            'user_type' => 'Instructor',      // contradicts it
+            'email' => $student->email,
+            'user_type' => 'Instructor',      // differs from the stored Student
         ])->assertSessionHasErrors('role_override_reason');
 
         $this->assertSame('Student', $student->fresh()->user_type);
     }
 
-    /** With a reason it goes through, and the decision is recorded. */
-    public function test_an_explained_override_is_recorded_with_its_author(): void
+    public function test_an_explained_role_change_is_recorded_with_its_author(): void
     {
         $student = $this->student('Mia Santos');
         $admin = $this->admin();
@@ -189,44 +187,144 @@ class UsersPageTest extends TestCase
         $this->assertStringContainsString('Teaches the lab sections', $student->roleOverrideLine());
     }
 
-    /** Back in step with the domain, the override record goes with it. */
-    public function test_returning_the_role_to_the_derived_value_clears_the_override(): void
+    /**
+     * Demoting is a role change like any other: with no domain to fall back
+     * to, it needs its own reason, and that reason replaces the old record.
+     */
+    public function test_demoting_is_recorded_like_any_other_role_change(): void
     {
-        $student = $this->student('Mia Santos', [
+        $instructor = $this->student('Mia Santos', [
             'user_type' => 'Instructor',
-            'role_overridden_at' => now(),
+            'role_overridden_at' => now()->subMonth(),
             'role_override_reason' => 'Was teaching.',
         ]);
         $admin = $this->admin();
 
         $this->actingAs($admin)->post('/admin/users/update', [
-            'id' => $student->id,
-            'name' => $student->name,
-            'email' => $student->email,
+            'id' => $instructor->id,
+            'name' => $instructor->name,
+            'email' => $instructor->email,
             'user_type' => 'Student',
-        ])->assertRedirect();
+        ])->assertSessionHasErrors('role_override_reason');
+        $this->assertSame('Instructor', $instructor->fresh()->user_type);
 
-        $student->refresh();
-        $this->assertSame('Student', $student->user_type);
-        $this->assertFalse($student->roleIsOverridden());
-        $this->assertNull($student->role_override_reason);
+        $this->actingAs($admin)->post('/admin/users/update', [
+            'id' => $instructor->id,
+            'name' => $instructor->name,
+            'email' => $instructor->email,
+            'user_type' => 'Student',
+            'role_override_reason' => 'No longer teaching this semester.',
+        ])->assertSessionHasNoErrors();
+
+        $instructor->refresh();
+        $this->assertSame('Student', $instructor->user_type);
+        $this->assertSame('No longer teaching this semester.', $instructor->role_override_reason);
+        $this->assertSame($admin->id, $instructor->role_overridden_by);
     }
 
-    /** The role always lands on the derived value when no override is asked for. */
-    public function test_the_role_is_taken_from_the_domain_not_the_payload(): void
+    /** Saving other fields with the role unchanged needs no reason and logs nothing. */
+    public function test_an_edit_that_keeps_the_role_needs_no_reason(): void
     {
         $student = $this->student('Mia Santos');
         $admin = $this->admin();
 
         $this->actingAs($admin)->post('/admin/users/update', [
             'id' => $student->id,
-            'name' => $student->name,
-            'email' => 'mia.santos@nmsc.edu.ph',   // now implies Instructor
-            'user_type' => 'Instructor',
-        ])->assertRedirect();
+            'name' => 'Mia R. Santos',
+            'email' => $student->email,
+            'user_type' => 'Student',
+        ])->assertSessionHasNoErrors();
 
-        $this->assertSame('Instructor', $student->fresh()->user_type);
-        $this->assertFalse($student->fresh()->roleIsOverridden(), 'Matching the domain was logged as an override');
+        $this->assertSame('Mia R. Santos', $student->fresh()->name);
+        $this->assertFalse($student->fresh()->roleIsOverridden(), 'An unchanged role was logged as a change');
+    }
+
+    /* ---------------------------------------------------------------------
+     | Instructor requests from sign-up
+     --------------------------------------------------------------------- */
+
+    public function test_instructor_requests_lead_the_page_with_both_decisions(): void
+    {
+        $hopeful = $this->student('Rey Mercado', ['instructor_requested_at' => now()->subDay()]);
+
+        $html = $this->html();
+
+        $this->assertStringContainsString('data-instructor-requests', $html);
+        $this->assertStringContainsString('Rey Mercado', $html);
+        $this->assertStringContainsString(route('admin.users.instructor.confirm', $hopeful->id), $html);
+        $this->assertStringContainsString(route('admin.users.instructor.decline', $hopeful->id), $html);
+        $this->assertStringContainsString('data-list-chip="requested"', $html);
+        $this->assertLessThan(
+            strpos($html, 'id="user-list"'),
+            strpos($html, 'data-instructor-requests'),
+            'Instructor requests are not above the member list'
+        );
+    }
+
+    public function test_the_section_is_absent_when_nobody_is_waiting(): void
+    {
+        $this->student('Mia Santos');
+
+        $this->assertStringNotContainsString('data-instructor-requests', $this->html());
+    }
+
+    public function test_confirming_makes_an_instructor_and_records_who(): void
+    {
+        $hopeful = $this->student('Rey Mercado', ['instructor_requested_at' => now()]);
+        $admin = $this->admin();
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.instructor.confirm', $hopeful->id))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $hopeful->refresh();
+        $this->assertSame('Instructor', $hopeful->user_type);
+        $this->assertFalse($hopeful->hasPendingInstructorRequest());
+        $this->assertSame($admin->id, $hopeful->role_overridden_by);
+        $this->assertStringContainsString('Confirmed instructor request', $hopeful->roleOverrideLine());
+    }
+
+    public function test_declining_keeps_a_student_and_clears_the_request(): void
+    {
+        $hopeful = $this->student('Rey Mercado', ['instructor_requested_at' => now()]);
+
+        $this->actingAs($this->admin())
+            ->post(route('admin.users.instructor.decline', $hopeful->id))
+            ->assertRedirect();
+
+        $hopeful->refresh();
+        $this->assertSame('Student', $hopeful->user_type);
+        $this->assertFalse($hopeful->hasPendingInstructorRequest());
+        $this->assertFalse($hopeful->roleIsOverridden());
+    }
+
+    /** A second click, or a stale page, must not flip a decided account. */
+    public function test_a_decided_request_cannot_be_confirmed_again(): void
+    {
+        $student = $this->student('Mia Santos');
+
+        $this->actingAs($this->admin())
+            ->post(route('admin.users.instructor.confirm', $student->id))
+            ->assertSessionHas('error');
+
+        $this->assertSame('Student', $student->fresh()->user_type);
+    }
+
+    /** Setting a role by hand settles a pending request too. */
+    public function test_a_manual_role_change_clears_a_pending_request(): void
+    {
+        $hopeful = $this->student('Rey Mercado', ['instructor_requested_at' => now()]);
+
+        $this->actingAs($this->admin())->post('/admin/users/update', [
+            'id' => $hopeful->id,
+            'name' => $hopeful->name,
+            'email' => $hopeful->email,
+            'user_type' => 'Instructor',
+            'role_override_reason' => 'Confirmed with the dean.',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertFalse($hopeful->fresh()->hasPendingInstructorRequest());
     }
 
     /* ------------------------------------------------------------------

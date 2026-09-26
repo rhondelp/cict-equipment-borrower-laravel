@@ -79,9 +79,11 @@ class LoginPageTest extends TestCase
         $this->assertNotFalse($register, 'No route to account creation at all');
         $this->assertGreaterThan($submit, $register, 'Account creation is competing with sign-in');
 
-        // And it says who approves one, rather than looking like a second
-        // equally valid way in.
-        $this->assertStringContainsString('the equipment office', $html);
+        // And it says who confirms instructor access, rather than looking like
+        // a second equally valid way in. It does not claim an account waits
+        // for approval: registration creates a working one.
+        $this->assertStringContainsString('the CICT office confirms instructor access', $html);
+        $this->assertStringNotContainsString('before the first borrow', $html);
         $this->assertStringContainsString('Request an account', $html);
     }
 

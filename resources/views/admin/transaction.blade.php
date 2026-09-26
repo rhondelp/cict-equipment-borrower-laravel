@@ -541,7 +541,9 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('edit-loan-purpose').value = d.purpose || '';
             document.getElementById('edit-loan-remarks').value = d.remarks || '';
             document.getElementById('edit-loan-class').value = d.class || '';
-            editForm.querySelector('[data-edit-summary]').textContent = d.summary || '';
+            // The summary sits in the modal header, outside the <form> — scope
+            // to the modal, or this lookup is null and the modal never opens.
+            document.querySelector('#edit-loan-modal [data-edit-summary]').textContent = d.summary || '';
 
             sync();
             window.appUI.openModal('edit-loan-modal');
@@ -594,8 +596,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const trigger = event.target.closest('[data-checkin-trigger]');
             if (!trigger) return;
             document.getElementById('checkin-id').value = trigger.dataset.id;
-            checkinForm.querySelector('[data-checkin-summary]').textContent = trigger.dataset.summary || '';
-            const timing = checkinForm.querySelector('[data-checkin-timing]');
+            // Summary and timing live in the modal header, outside the <form>.
+            const modal = document.getElementById('checkin-modal');
+            modal.querySelector('[data-checkin-summary]').textContent = trigger.dataset.summary || '';
+            const timing = modal.querySelector('[data-checkin-timing]');
             timing.textContent = trigger.dataset.timing || '';
             timing.classList.toggle('text-danger-700', trigger.dataset.late === '1');
             timing.classList.toggle('text-neutral-600', trigger.dataset.late !== '1');

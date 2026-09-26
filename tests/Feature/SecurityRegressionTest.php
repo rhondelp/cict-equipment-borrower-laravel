@@ -15,45 +15,42 @@ class SecurityRegressionTest extends TestCase
      * `Admin` is not an assignable role on either registration route, but the
      * two routes refuse it for different reasons now.
      *
-     * Public sign-up does not read a role from the request at all: the role is
-     * derived from the school domain of the submitted address, so a posted
-     * `user_type` is not validated, not trusted and not written. That is a
-     * stronger property than rejecting the field — there is no field.
+     * Public sign-up never reads `user_type` from the request. It asks for a
+     * `requested_role` (Student or Instructor), but writes every account as a
+     * Student; an Instructor answer only files a request an admin decides. A
+     * posted `user_type` is not validated, not trusted and not written.
      */
     public function test_public_registration_ignores_any_role_sent_by_the_client(): void
     {
         $this->post('/register', [
-            'user_type' => 'Admin',
-            'name'      => 'Evil User',
-            'email'     => 'evil.user@student.nmsc.edu.ph',
-            'password'  => 'secret123',
-            'agree'     => '1',
+            'user_type'      => 'Admin',
+            'requested_role' => 'Student',
+            'name'           => 'Evil User',
+            'email'          => 'evil.user@nmsc.edu.ph',
+            'password'       => 'secret123',
+            'agree'          => '1',
         ]);
 
-        // Written as the address says, not as the payload asked.
+        // Written as a Student, not as the payload asked.
         $this->assertDatabaseHas('users', [
-            'email'     => 'evil.user@student.nmsc.edu.ph',
+            'email'     => 'evil.user@nmsc.edu.ph',
             'user_type' => 'Student',
         ]);
         $this->assertDatabaseMissing('users', ['user_type' => 'Admin']);
     }
 
     /** The same holds for the staff domain: Instructor, never Admin. */
-    public function test_a_posted_role_cannot_override_the_domain_on_the_staff_domain_either(): void
+    public function test_requesting_admin_is_refused_outright(): void
     {
         $this->post('/register', [
-            'user_type' => 'Admin',
-            'name'      => 'Evil Staff',
-            'email'     => 'evil.staff@nmsc.edu.ph',
-            'password'  => 'secret123',
-            'agree'     => '1',
-        ]);
+            'requested_role' => 'Admin',
+            'name'           => 'Evil Staff',
+            'email'          => 'evil.staff@nmsc.edu.ph',
+            'password'       => 'secret123',
+            'agree'          => '1',
+        ])->assertSessionHasErrors('requested_role');
 
-        $this->assertDatabaseHas('users', [
-            'email'     => 'evil.staff@nmsc.edu.ph',
-            'user_type' => 'Instructor',
-        ]);
-        $this->assertDatabaseMissing('users', ['user_type' => 'Admin']);
+        $this->assertDatabaseMissing('users', ['email' => 'evil.staff@nmsc.edu.ph']);
     }
 
     /** An address outside the two school domains creates nothing at all. */
@@ -91,26 +88,40 @@ class SecurityRegressionTest extends TestCase
     }
 
     /** Public signup serves both borrower roles, one domain each. */
-    public function test_public_registration_derives_both_borrower_roles_from_the_domain(): void
+    /**
+     * Instructor is a privilege: it owns class schedules. Asking for it on a
+     * public form — even together with a posted user_type — files a request
+     * and nothing more.
+     */
+    public function test_asking_for_instructor_does_not_grant_it(): void
     {
-        $cases = [
-            'student.one@student.nmsc.edu.ph' => 'Student',
-            'instructor.one@nmsc.edu.ph'      => 'Instructor',
-        ];
+        $this->post('/register', [
+            'user_type'      => 'Instructor',
+            'requested_role' => 'Instructor',
+            'name'           => 'Hopeful Instructor',
+            'email'          => 'hopeful@nmsc.edu.ph',
+            'password'       => 'secret123',
+            'agree'          => '1',
+        ]);
 
-        foreach ($cases as $email => $role) {
-            $this->post('/register', [
-                'name'     => "Public $role",
-                'email'    => $email,
-                'password' => 'secret123',
-                'agree'    => '1',
-            ]);
+        $user = User::where('email', 'hopeful@nmsc.edu.ph')->firstOrFail();
+        $this->assertSame('Student', $user->user_type);
+        $this->assertNotNull($user->instructor_requested_at);
+    }
 
-            $this->assertDatabaseHas('users', [
-                'email'     => $email,
-                'user_type' => $role,
-            ]);
-        }
+    /** Only an admin can act on an instructor request. */
+    public function test_a_borrower_cannot_confirm_an_instructor_request(): void
+    {
+        $hopeful = User::factory()->create([
+            'user_type' => 'Student',
+            'email' => 'hopeful@nmsc.edu.ph',
+            'instructor_requested_at' => now(),
+        ]);
+
+        $this->actingAs($hopeful)->post('/admin/users/'.$hopeful->id.'/instructor/confirm');
+
+        $this->assertSame('Student', $hopeful->fresh()->user_type);
+        $this->assertNotNull($hopeful->fresh()->instructor_requested_at);
     }
 
     /**
@@ -266,11 +277,14 @@ class SecurityRegressionTest extends TestCase
 
     public function test_public_portal_pages_render_with_shared_stylesheet(): void
     {
-        // Landing page
+        // Landing page. Rebuilt on the app's Tailwind bundle like login and
+        // register, so it no longer pulls auth.css — reset-password is now the
+        // last page that does. Asserted on its two ways in instead.
         $this->get('/')
             ->assertStatus(200)
             ->assertSee('CICT Equipment Borrower System')
-            ->assertSee('auth.css');
+            ->assertSee(route('login'))
+            ->assertSee(route('register'));
 
         // Login page. It was rebuilt on the app's Tailwind bundle and no longer
         // pulls auth.css — the other three public pages still do, so the
