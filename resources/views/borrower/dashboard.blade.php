@@ -31,12 +31,28 @@
         $subline = 'Request something from the shelf when you need it.';
     }
 
-    $initials = collect(preg_split('/\s+/', trim((string) $user->name)))
-        ->filter()->take(2)
+    $nameParts = collect(preg_split('/\s+/', trim((string) $user->name)))->filter()->values();
+    $initials = $nameParts->take(2)
         ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
         ->implode('') ?: '—';
+    $firstName = $nameParts->first() ?? 'Account';
 
-    $shelf = $equipments->sortByDesc('available_quantity');
+    // The bell's dot means "act on something". Overdue is the only such state:
+    // approval hands the equipment over at once, so nothing waits to be collected.
+    $bellAlert = $overdueCount > 0;
+
+    // Fully out first, then running low (scarcest first), then the rest in
+    // name order. sortBy is stable, so equal keys keep the query's order.
+    $shelfRatio = fn ($item) => $item->quantity > 0 ? $item->available_quantity / $item->quantity : 0;
+    $shelf = $equipments->sortBy(function ($item) use ($shelfRatio) {
+        $ratio = $shelfRatio($item);
+        if ($item->available_quantity < 1) {
+            return 0;
+        }
+
+        return $ratio <= 0.3 ? 1 + $ratio : 3;
+    })->values();
+    $shelfLimit = 5;
     $lendableCount = $equipments->where('available_quantity', '>', 0)->count();
 
     $tones = [
@@ -58,7 +74,7 @@
 
     {{-- :menu="false" — this page has no sidebar, so the header's hamburger has
          nothing to toggle. See the note in components/ui/page-header. --}}
-    <x-ui.page-header logo :menu="false" eyebrow="My equipment" :title="$user->name">
+    <x-ui.page-header logo :menu="false">
         <x-slot:actions>
             {{-- Notifications bell. Read-only feed of the rows written by the
                  return-reminder job; nothing here creates or mutates them. --}}
@@ -68,8 +84,8 @@
                         aria-haspopup="true" aria-expanded="false"
                         aria-label="Notifications ({{ $notifications->count() }})">
                     <i class="text-lg fas fa-bell" aria-hidden="true"></i>
-                    @if($notifications->isNotEmpty())
-                        <span class="absolute -top-1.5 -right-1.5 grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-danger-600 px-1.5 text-[11px] font-bold text-white ring-2 ring-white tabular-nums">{{ $notifications->count() }}</span>
+                    @if($bellAlert)
+                        <span class="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-danger-600 ring-2 ring-white" data-bell-alert aria-hidden="true"></span>
                     @endif
                 </button>
 
@@ -109,23 +125,30 @@
                 </div>
             </div>
 
-            {{-- Both action buttons keep a 44px target but drop their label below sm,
-                 which is what lets the header fit a 360px viewport without the title
-                 being squeezed to nothing. The label survives for assistive tech via
-                 aria-label. --}}
-            <button type="button" data-modal-open="request-modal"
-                    class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-md bg-primary-600 px-3 py-3 text-base font-semibold text-white transition hover:bg-primary-700 sm:px-5"
-                    aria-label="Request equipment">
-                <i class="text-base fas fa-plus" aria-hidden="true"></i>
-                <span class="hidden sm:inline">Request</span>
-            </button>
-            <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden">@csrf</form>
-            <button type="button" id="logout-btn"
-                    class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-md border border-neutral-300 bg-white px-3 py-3 text-base font-semibold text-neutral-700 transition hover:bg-neutral-50 sm:px-5"
-                    aria-label="Log out">
-                <i class="text-base fas fa-right-from-bracket" aria-hidden="true"></i>
-                <span class="hidden sm:inline">Log out</span>
-            </button>
+            {{-- The user chip. There is no profile page, so "Profile" shows the
+                 account details in place rather than linking somewhere. --}}
+            <div class="relative">
+                <button type="button" id="user-btn"
+                        class="inline-flex items-center gap-2 h-9 pl-1.5 pr-2.5 rounded-[9px] border border-neutral-200 bg-white text-[13px] font-medium text-neutral-700 whitespace-nowrap transition hover:bg-neutral-50"
+                        aria-haspopup="true" aria-expanded="false" aria-controls="user-panel">
+                    <span class="grid w-[22px] h-[22px] rounded-full bg-primary-100 text-primary-700 text-[10px] font-semibold place-items-center" aria-hidden="true">{{ $initials }}</span>
+                    {{ $firstName }}
+                </button>
+                <div id="user-panel" class="absolute right-0 z-overlay mt-2 hidden w-60 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-pop">
+                    <div class="px-4 py-3 border-b border-neutral-200">
+                        <p class="text-[11px] font-semibold tracking-wider uppercase text-neutral-500">Profile</p>
+                        <p class="mt-1 text-sm font-semibold truncate text-neutral-900">{{ $user->name }}</p>
+                        <p class="text-xs truncate text-neutral-600" title="{{ $user->email }}">{{ $user->email }}</p>
+                        <p class="text-xs text-neutral-600">{{ $user->user_type }}</p>
+                    </div>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="flex items-center w-full gap-2 px-4 py-3 text-sm text-left min-h-[44px] text-neutral-700 hover:bg-neutral-100">
+                            <i class="text-sm fas fa-right-from-bracket text-neutral-600" aria-hidden="true"></i> Log out
+                        </button>
+                    </form>
+                </div>
+            </div>
         </x-slot:actions>
     </x-ui.page-header>
 
@@ -133,7 +156,7 @@
 
         {{-- Where you stand, in a sentence. This replaced three counter tiles
              that read 0 / 0 / 0 for most borrowers most of the time. --}}
-        <section class="p-5 text-white anim-rise rounded-xl bg-neutral-900 sm:p-6">
+        <section class="p-5 text-white anim-rise rounded-xl bg-[oklch(0.32_0.09_262)] sm:p-6">
             <div class="flex flex-wrap items-end justify-between gap-6">
                 <div class="min-w-0">
                     <p class="text-xs font-semibold tracking-widest uppercase text-white/60">Your standing</p>
@@ -142,15 +165,15 @@
                 </div>
                 <dl class="flex overflow-hidden rounded-lg bg-white/10">
                     <div class="px-5 py-3 min-w-[6.5rem]">
-                        <dd class="text-2xl font-semibold tabular-nums">{{ $unitsHeld }}</dd>
+                        <dd class="text-2xl font-semibold tabular-nums {{ $unitsHeld > 0 ? 'text-white' : 'text-white/50' }}">{{ $unitsHeld }}</dd>
                         <dt class="text-sm text-white/70">units held</dt>
                     </div>
                     <div class="px-5 py-3 min-w-[6.5rem] border-l border-white/10">
-                        <dd class="text-2xl font-semibold tabular-nums {{ $overdueCount > 0 ? 'text-danger-300' : 'text-white/50' }}">{{ $overdueCount }}</dd>
+                        <dd class="text-2xl font-semibold tabular-nums {{ $overdueCount > 0 ? 'text-[oklch(0.78_0.14_25)]' : 'text-white/50' }}">{{ $overdueCount }}</dd>
                         <dt class="text-sm text-white/70">overdue</dt>
                     </div>
                     <div class="px-5 py-3 min-w-[6.5rem] border-l border-white/10">
-                        <dd class="text-2xl font-semibold tabular-nums {{ $waitingCount > 0 ? 'text-warning-300' : 'text-white/50' }}">{{ $waitingCount }}</dd>
+                        <dd class="text-2xl font-semibold tabular-nums {{ $waitingCount > 0 ? 'text-[oklch(0.86_0.13_85)]' : 'text-white/50' }}">{{ $waitingCount }}</dd>
                         <dt class="text-sm text-white/70">awaiting reply</dt>
                     </div>
                 </dl>
@@ -169,20 +192,32 @@
                     </p>
                 </div>
 
+                {{-- No margin between rows: the gap is the card wrapper's bottom
+                     padding, so the rail column (and its line) stretches through it
+                     and the line runs unbroken from one card to the next. --}}
+                <div>
+                @php $previousDate = null; @endphp
                 @forelse($agenda as $item)
-                    @php $tone = $tones[$item['tone']] ?? $tones['primary']; @endphp
-                    <article class="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-3 sm:gap-4">
-                        <div class="flex flex-col items-center pt-4">
-                            <span class="text-xs font-semibold tracking-wider uppercase text-neutral-500">
-                                {{ $item['date']?->format('M') ?? '—' }}
-                            </span>
-                            <span class="text-xl font-semibold leading-tight tabular-nums {{ $tone['date'] }}">
-                                {{ $item['date']?->format('d') ?? '' }}
-                            </span>
-                            <span class="flex-1 w-0.5 mt-2 rounded bg-neutral-200" aria-hidden="true"></span>
+                    @php
+                        $tone = $tones[$item['tone']] ?? $tones['primary'];
+                        $dateKey = $item['date']?->toDateString();
+                        $showDate = $dateKey === null || $dateKey !== $previousDate;
+                        $previousDate = $dateKey;
+                    @endphp
+                    <article class="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-3 sm:gap-4" data-agenda-row>
+                        <div class="flex flex-col items-center {{ $showDate ? 'pt-4' : '' }}" data-agenda-rail>
+                            @if($showDate)
+                                <span class="text-xs font-semibold tracking-wider uppercase text-neutral-500">
+                                    {{ $item['date']?->format('M') ?? '—' }}
+                                </span>
+                                <span class="text-xl font-semibold leading-tight tabular-nums {{ $tone['date'] }}">
+                                    {{ $item['date']?->format('d') ?? '' }}
+                                </span>
+                            @endif
+                            <span class="flex-1 w-0.5 {{ $showDate ? 'mt-2' : '' }} rounded bg-neutral-200" aria-hidden="true" data-agenda-line></span>
                         </div>
 
-                        <div class="pb-2">
+                        <div class="pb-3">
                             <div class="flex flex-wrap items-start justify-between gap-4 p-4 bg-white border rounded-xl {{ $tone['border'] }}">
                                 <div class="min-w-0 flex-1 basis-56">
                                     <div class="flex flex-wrap items-center gap-2">
@@ -192,6 +227,13 @@
                                         <span class="text-sm text-neutral-600">{{ $item['when'] }}</span>
                                     </div>
                                     <h3 class="mt-1.5 text-base font-semibold text-neutral-900 text-pretty">{{ $item['title'] }}</h3>
+                                    @if(! empty($item['items']))
+                                        <ul class="mt-1 text-[13px] leading-relaxed text-neutral-500" data-booking-items>
+                                            @foreach($item['items'] as $line)
+                                                <li>{{ $line['name'] }} ×{{ $line['quantity'] }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
                                     <p class="mt-1 text-sm leading-relaxed text-neutral-600 text-pretty">{{ $item['detail'] }}</p>
                                 </div>
 
@@ -241,12 +283,13 @@
                         </button>
                     </div>
                 @endforelse
+                </div>
 
                 @if(count($history) > 0)
                     <div class="pt-1">
                         <button type="button" id="history-toggle" aria-expanded="false" aria-controls="history-panel"
                                 class="inline-flex items-center gap-2 py-1 text-sm font-semibold rounded text-neutral-600 hover:text-neutral-900">
-                            <i class="text-xs fas fa-chevron-right" aria-hidden="true"></i>
+                            <span class="text-[10px]" data-history-caret aria-hidden="true">▶</span>
                             <span id="history-label">Show earlier activity ({{ count($history) }})</span>
                         </button>
 
@@ -278,31 +321,41 @@
                 <section aria-labelledby="shelf-heading" class="overflow-hidden bg-white border rounded-xl border-neutral-200">
                     <div class="flex items-baseline justify-between gap-3 px-4 py-3 border-b border-neutral-200">
                         <h2 id="shelf-heading" class="text-base font-semibold text-neutral-900">On the shelf now</h2>
-                        <span class="text-sm text-neutral-600">{{ $lendableCount }} of {{ $equipments->count() }}</span>
+                        <span class="text-sm text-neutral-600" data-shelf-count>{{ $lendableCount }} of {{ $equipments->count() }} types</span>
                     </div>
 
                     @forelse($shelf as $item)
                         @php
                             $none = $item->available_quantity < 1;
-                            $percent = $item->quantity > 0 ? round(($item->available_quantity / $item->quantity) * 100) : 0;
-                            $barTone = $none ? 'bg-danger-500' : ($percent <= 30 ? 'bg-warning-500' : 'bg-success-500');
+                            $ratio = $shelfRatio($item);
+                            $percent = round($ratio * 100);
+                            $barTone = $none ? 'bg-danger-500' : ($ratio <= 0.3 ? 'bg-warning-500' : 'bg-success-500');
                         @endphp
-                        <button type="button" @disabled($none)
+                        <button type="button" @disabled($none) @if($loop->index >= $shelfLimit) hidden data-shelf-extra @endif
                                 data-request-equipment="{{ $item->id }}"
-                                class="flex w-full items-center gap-3 border-b border-neutral-100 px-4 py-2.5 text-left transition last:border-b-0 disabled:cursor-not-allowed enabled:hover:bg-neutral-50">
+                                class="flex w-full items-center gap-3 border-b border-neutral-100 px-4 py-2.5 text-left transition {{ $shelf->count() > $shelfLimit ? '' : 'last:border-b-0' }} disabled:cursor-not-allowed enabled:hover:bg-neutral-50">
                             <span class="flex-1 min-w-0">
                                 <span class="block text-sm font-medium truncate {{ $none ? 'text-neutral-500' : 'text-neutral-900' }}">{{ $item->equipment_name }}</span>
                                 <span class="block text-xs {{ $none ? 'text-danger-700' : 'text-neutral-600' }}">
                                     {{ $none ? 'None left' : $item->available_quantity.' of '.$item->quantity.' free' }}
                                 </span>
                             </span>
-                            <span class="w-10 h-1 overflow-hidden rounded-full shrink-0 bg-neutral-200" aria-hidden="true">
+                            <span class="w-[42px] h-1 overflow-hidden rounded-full shrink-0 bg-[oklch(0.94_0.006_258)]" aria-hidden="true" data-shelf-track>
                                 <span class="block h-full rounded-full {{ $barTone }}" style="width: {{ max($percent, 0) }}%"></span>
                             </span>
                         </button>
                     @empty
                         <p class="px-4 py-8 text-sm text-center text-neutral-600">No equipment has been added yet.</p>
                     @endforelse
+
+                    {{-- There is no borrower-facing inventory page, so "See all"
+                         reveals the remaining rows here instead of linking away. --}}
+                    @if($shelf->count() > $shelfLimit)
+                        <button type="button" id="shelf-more" aria-expanded="false"
+                                class="w-full px-4 py-2.5 text-sm font-semibold text-left text-primary-700 hover:bg-neutral-50 hover:text-primary-800">
+                            See all {{ $shelf->count() }} →
+                        </button>
+                    @endif
                 </section>
 
                 <section class="p-4 space-y-2 bg-white border rounded-xl border-neutral-200">
@@ -363,7 +416,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const open = panel.hidden;
             panel.hidden = !open;
             historyToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-            historyToggle.querySelector('i').className = open ? 'fas fa-chevron-down text-xs' : 'fas fa-chevron-right text-xs';
+            historyToggle.querySelector('[data-history-caret]').textContent = open ? '▼' : '▶';
             label.textContent = (open ? 'Hide' : 'Show') + ' earlier activity (' + count + ')';
         });
     }
@@ -497,16 +550,32 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    /* ---- logout -------------------------------------------------------- */
-    document.getElementById('logout-btn')?.addEventListener('click', function () {
-        window.showConfirm({
-            title: 'Log out?',
-            text: 'You will need to sign in again to reach your dashboard.',
-            icon: 'question',
-            confirmText: 'Yes, log out',
-        }).then(function (result) {
-            if (result.isConfirmed) document.getElementById('logout-form').submit();
+    /* ---- user chip ---------------------------------------------------- */
+    const userBtn = document.getElementById('user-btn');
+    const userPanel = document.getElementById('user-panel');
+    if (userBtn && userPanel) {
+        const setUserOpen = function (open) {
+            userPanel.classList.toggle('hidden', !open);
+            userBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+        userBtn.addEventListener('click', function () {
+            setUserOpen(userPanel.classList.contains('hidden'));
         });
+        document.addEventListener('click', function (event) {
+            if (!userBtn.contains(event.target) && !userPanel.contains(event.target)) setUserOpen(false);
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && !userPanel.classList.contains('hidden')) {
+                setUserOpen(false);
+                userBtn.focus();
+            }
+        });
+    }
+
+    /* ---- shelf: see all ------------------------------------------------ */
+    document.getElementById('shelf-more')?.addEventListener('click', function () {
+        document.querySelectorAll('[data-shelf-extra]').forEach(function (row) { row.hidden = false; });
+        this.remove();
     });
 });
 </script>

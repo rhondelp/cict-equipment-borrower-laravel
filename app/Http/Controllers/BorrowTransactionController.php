@@ -88,7 +88,11 @@ class BorrowTransactionController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        return view('borrower.receipt', compact('transaction'));
+        // The dashboard offers one slip per booking, so the slip lists every
+        // item that went out with this one.
+        $bookingLoans = $transaction->bookingLoans();
+
+        return view('borrower.receipt', compact('transaction', 'bookingLoans'));
     }
 
     /**

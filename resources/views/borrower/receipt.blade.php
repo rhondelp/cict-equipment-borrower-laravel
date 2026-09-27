@@ -97,11 +97,20 @@
             <dt>Borrower</dt>
             <dd>{{ $transaction->user->name ?? '—' }}</dd>
 
-            <dt>Equipment</dt>
-            <dd>{{ $transaction->equipment->equipment_name ?? '—' }}</dd>
+            @if(isset($bookingLoans) && $bookingLoans->count() > 1)
+                <dt>Equipment</dt>
+                <dd>
+                    @foreach($bookingLoans as $loan)
+                        {{ $loan->equipment->equipment_name ?? '—' }} × {{ $loan->quantity }} <span class="ref">#{{ $loan->id }}</span>@if(! $loop->last)<br>@endif
+                    @endforeach
+                </dd>
+            @else
+                <dt>Equipment</dt>
+                <dd>{{ $transaction->equipment->equipment_name ?? '—' }}</dd>
 
-            <dt>Quantity</dt>
-            <dd>{{ $transaction->quantity }}</dd>
+                <dt>Quantity</dt>
+                <dd>{{ $transaction->quantity }}</dd>
+            @endif
 
             <dt>Borrow date</dt>
             <dd>{{ $transaction->borrow_date ? \Carbon\Carbon::parse($transaction->borrow_date)->format('F j, Y') : '—' }}</dd>

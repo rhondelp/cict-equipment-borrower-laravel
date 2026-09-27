@@ -125,6 +125,33 @@ class BorrowTransaction extends Model
         return (int) now()->startOfDay()->diffInDays($this->return_date->startOfDay(), false);
     }
 
+    /**
+     * Loans with the same dates and purpose went out as one booking. The
+     * borrower dashboard groups by this, and the slip lists the whole booking.
+     */
+    public function bookingKey(): string
+    {
+        return $this->borrow_date?->toDateString().'|'.$this->return_date?->toDateString().'|'.trim((string) $this->purpose);
+    }
+
+    /** Every non-voided loan of this borrower in the same booking, this one included. */
+    public function bookingLoans()
+    {
+        return static::with('equipment')
+            ->where('user_id', $this->user_id)
+            ->whereNull('voided_at')
+            ->whereDate('borrow_date', $this->borrow_date)
+            ->when(
+                $this->return_date,
+                fn ($query) => $query->whereDate('return_date', $this->return_date),
+                fn ($query) => $query->whereNull('return_date')
+            )
+            ->get()
+            ->filter(fn ($loan) => $loan->bookingKey() === $this->bookingKey())
+            ->sortBy('id')
+            ->values();
+    }
+
     /** "Sep 10 → Sep 17" — never a raw ISO date. */
     public function dateRangeLabel(): string
     {

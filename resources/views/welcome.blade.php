@@ -87,8 +87,8 @@
 
         <nav class="relative mx-auto flex max-w-[1200px] items-center justify-between gap-6 px-5 py-[22px] sm:px-8" aria-label="Main">
             <a href="{{ url('/') }}" class="flex min-w-0 items-center gap-[11px] rounded-[10px] text-white {{ $focusDark }}">
-                <span class="grid h-9 w-9 flex-none place-items-center rounded-[10px] bg-white text-[13px] font-bold text-[oklch(0.22_0.06_264)]" aria-hidden="true">CE</span>
-                <span class="flex min-w-0 flex-col">
+                <span class="grid h-9 w-9 flex-none place-items-center rounded-[10px] bg-white text-[13px] font-bold text-[oklch(0.22_0.06_264)]" aria-hidden="true"><img src="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" alt="" class="object-contain w-8 h-8"></span>
+                <span class="flex flex-col min-w-0">
                     <span class="text-[14px] font-semibold leading-[1.2]">CICT Equipment</span>
                     <span class="truncate text-[11.5px] leading-[1.2] text-white/[0.58]">University of Northwestern Mindanao</span>
                 </span>
@@ -110,7 +110,7 @@
 
         <div id="landing-main" class="relative mx-auto grid max-w-[1200px] grid-cols-[repeat(auto-fit,minmax(min(100%,460px),1fr))] items-center gap-16 px-5 pb-20 pt-12 sm:px-8 sm:pb-24 sm:pt-[72px]">
 
-            <div class="flex min-w-0 flex-col gap-7">
+            <div class="flex flex-col min-w-0 gap-7">
                 {{-- Grows rather than clips when a phone wraps it, and the
                      hours never split mid-range: the break falls at the "·". --}}
                 <span class="inline-flex min-h-[30px] items-center gap-[9px] self-start rounded-[15px] border border-white/[0.12] bg-white/[0.07] py-[5px] pl-2.5 pr-[13px] text-[12.5px] leading-[1.35] text-white/[0.78]"

@@ -242,10 +242,15 @@ class AuthenticateUser extends Controller
     {
         $agenda = [];
 
-        foreach ($transactions->filter(fn ($transaction) => $transaction->isOut()) as $loan) {
+        // Loans that went out together — same dates, same purpose — are one
+        // booking: approving a multi-item request writes one loan per item, but
+        // the borrower collects and returns them as one trip.
+        foreach ($this->openBookings($transactions) as $booking) {
+            $loan = $booking->first();
             $days = $loan->daysUntilDue();
-            $overdue = $loan->isOverdue();
+            $overdue = $booking->contains(fn ($tx) => $tx->isOverdue());
             $soon = $days !== null && $days >= 0 && $days <= 1;
+            $many = $booking->count() > 1;
 
             $agenda[] = [
                 'kind' => 'loan',
@@ -253,12 +258,20 @@ class AuthenticateUser extends Controller
                 'date' => $loan->return_date,
                 'tag' => $overdue ? 'Overdue' : ($soon ? 'Due soon' : 'On loan'),
                 'tone' => $overdue ? 'danger' : ($soon ? 'warning' : 'primary'),
-                'title' => 'Return '.($loan->equipment->equipment_name ?? 'equipment')
-                    .($loan->quantity > 1 ? ' ×'.$loan->quantity : ''),
+                'title' => $many
+                    ? 'Return '.$booking->count().' items'
+                    : 'Return '.($loan->equipment->equipment_name ?? 'equipment')
+                        .($loan->quantity > 1 ? ' ×'.$loan->quantity : ''),
+                'items' => $many
+                    ? $booking->map(fn ($tx) => [
+                        'name' => $tx->equipment->equipment_name ?? 'Equipment',
+                        'quantity' => $tx->quantity,
+                    ])->values()->all()
+                    : [],
                 'when' => $loan->timingLabel(),
                 'detail' => $overdue
-                    ? 'Taken out '.$loan->borrow_date->format('M j').'. Bring it to the equipment room today — '
-                        .'anything overdue holds up your next request.'
+                    ? 'Taken out '.$loan->borrow_date->format('M j').'. Bring '.($many ? 'them' : 'it')
+                        .' to the equipment room today — anything overdue holds up your next request.'
                     : rtrim((string) $loan->purpose, '. ').'. Booked out '.$loan->dateRangeLabel().'.',
                 'action' => 'Print slip',
                 'url' => route('borrower.transaction.receipt', $loan->id),
@@ -338,21 +351,19 @@ class AuthenticateUser extends Controller
             ];
         }
 
-        foreach ($requests->whereIn('status', ['Approved', 'Declined']) as $request) {
-            $isDeclined = $request->status === 'Declined';
-
+        // Approved requests are left out: approval writes a loan, and that loan
+        // is already in this list once it comes back.
+        foreach ($requests->where('status', 'Declined') as $request) {
             // A decline inside the two-week window is already on the agenda.
-            if ($isDeclined && $this->isRecentDecision($request)) {
+            if ($this->isRecentDecision($request)) {
                 continue;
             }
 
             $history[] = [
-                'tone' => $isDeclined ? 'danger' : 'success',
+                'tone' => 'danger',
                 'title' => ($request->equipment->equipment_name ?? 'Equipment')
                     .($request->quantity > 1 ? ' ×'.$request->quantity : ''),
-                'note' => $isDeclined
-                    ? 'Declined — '.($request->decision_reason ?: 'no reason recorded')
-                    : 'Approved and handed over',
+                'note' => 'Declined — '.($request->decision_reason ?: 'no reason recorded'),
                 'when' => $this->decidedAt($request),
                 'id' => 'r'.$request->id,
                 'receipt' => null,
@@ -362,6 +373,19 @@ class AuthenticateUser extends Controller
         usort($history, fn ($a, $b) => ($b['when']?->timestamp ?? 0) <=> ($a['when']?->timestamp ?? 0));
 
         return $history;
+    }
+
+    /**
+     * Open loans grouped into bookings: one group per borrow date, return
+     * date and purpose. The receipt uses the same key to print a booking's slip.
+     */
+    private function openBookings($transactions)
+    {
+        return $transactions
+            ->filter(fn ($transaction) => $transaction->isOut())
+            ->sortBy('id')
+            ->groupBy(fn ($transaction) => $transaction->bookingKey())
+            ->values();
     }
 
     /**
