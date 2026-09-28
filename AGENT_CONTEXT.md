@@ -84,6 +84,20 @@ live in `config/office.php` (`OFFICE_EMAIL`, `OFFICE_LOCATION`, the structured `
 `loan_days`). Pinned by
 `tests/Feature/ForgotPasswordPageTest`.
 
+The **reset page** (`reset-password.blade.php`) takes its email from the link's query string and
+never lets it be edited. It is a chip on the page and a hidden input in the form. `reset()` asks
+the broker's `tokenExists()` up front and renders an **expired state** for a used, replaced,
+timed-out or email-less link. Its countdown is the token row's `created_at` plus `expire`. The
+password rule here is **`Password::min(8)->letters()->numbers()`, plus "must not contain the part
+of the email before the @"**. There is no confirmation field. Registration and the admin user form
+still use `min:4`, so the app does not agree on length yet. The page's live checklist mirrors
+these rules exactly, so change both together. A broker `INVALID_TOKEN`/`INVALID_USER` on submit
+redirects back to the link with `reset_link_expired` flashed, which shows the expired state. On
+success nobody is signed in. The remember token is rotated, the user's other `sessions` rows are
+deleted (database driver only), and the redirect to `/login` flashes `password_reset`. That flash
+draws the "Password updated" panel on the sign-in page. Pinned by
+`tests/Feature/ResetPasswordPageTest`. No page loads `resources/css/auth.css` any more.
+
 ## Admin screen states
 
 Three states were added on 21 September 2026 and are enforced on the server, not
@@ -183,8 +197,8 @@ All in `routes/web.php`. Everything under `/admin` and `/borrower` is inside `au
 - `GET /privacy` / `GET /terms` — `Route::view` (`legal.privacy`, `legal.terms`); both render through `layouts/legal`, which builds the page from one `$doc` array per document
 - `GET /forgot-password` — `PasswordResetController@request` (`password.request`); renders the confirmation state instead of the form while `reset_link_sent_to` is in the session; `?new=1` clears it ("Use a different address")
 - `POST /forgot-password` — `PasswordResetController@email` (`password.email`); also serves the Resend button, and refuses a deactivated account before the broker is called
-- `GET /reset-password/{token}` — `PasswordResetController@reset` (`password.reset`)
-- `POST /reset-password` — `PasswordResetController@update` (`password.update`)
+- `GET /reset-password/{token}` — `PasswordResetController@reset` (`password.reset`); needs `?email=`, renders the expired state when the broker's `tokenExists` fails
+- `POST /reset-password` — `PasswordResetController@update` (`password.update`); no `password_confirmation`; success → `/login` with `password_reset` flashed, dead token → back to the link with `reset_link_expired`
 
 **Admin** (`auth` + `userType:Admin`)
 - `GET /admin/dashboard` — `AuthenticateUser@adminView` (`admin.dashboard`); loads equipment, users, transactions, requests, return logs

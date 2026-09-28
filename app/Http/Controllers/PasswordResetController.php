@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 /**
  * Forgot / reset password flow.
@@ -156,42 +158,112 @@ class PasswordResetController extends Controller
             ->withErrors(['email' => __($status)]);
     }
 
-    /** Show the "choose a new password" form. */
+    /**
+     * Show the "choose a new password" form — or, when the link can no longer
+     * be used, say so instead of offering a form the broker will refuse.
+     *
+     * The email arrives in the link's query string and is not editable on the
+     * page, so the link either names a live token for that address or it does
+     * not. `tokenExists` is the broker's own check: the hash matches and the
+     * row is younger than `expire` minutes.
+     */
     public function reset(Request $request, string $token)
     {
+        $config = $this->brokerConfig();
+        $email = strtolower(trim((string) $request->query('email', '')));
+        $user = $email !== '' ? User::where('email', $email)->first() : null;
+
+        $valid = $user !== null
+            && ! $request->session()->has('reset_link_expired')
+            && Password::broker()->tokenExists($user, $token);
+
+        // Counted from the token row the broker wrote, never from a fixed
+        // number: the page and the broker have to agree on when the link dies.
+        $expiresAt = $valid ? ($this->tokenState($email)['expires_at'] ?? null) : null;
+        $secondsLeft = $expiresAt ? max(0, (int) now()->diffInSeconds($expiresAt, false)) : 0;
+
         return view('reset-password', [
             'token' => $token,
-            'email' => $request->query('email'),
+            'email' => $email,
+            'expired' => ! $valid || $secondsLeft === 0,
+            'secondsLeft' => $secondsLeft,
+            'expireMinutes' => (int) ($config['expire'] ?? 60),
+            'emailName' => Str::before($email, '@'),
+            'initials' => $user ? $this->initials($user->name) : '',
         ]);
     }
 
     /** Complete the reset. */
     public function update(Request $request)
     {
+        $email = strtolower(trim((string) $request->input('email')));
+        $emailName = Str::before($email, '@');
+
         $request->validate([
             'token' => 'required|string',
             'email' => 'required|string|email|max:255',
-            // min:4 matches the existing rule used by registration and the
-            // admin user form, so the whole app agrees on password length.
-            'password' => 'required|string|min:4|confirmed',
+            // The page ticks these off live and mirrors them exactly.
+            'password' => [
+                'required',
+                'string',
+                PasswordRule::min(8)->letters()->numbers(),
+                function (string $attribute, mixed $value, \Closure $fail) use ($emailName) {
+                    if ($emailName !== '' && str_contains(mb_strtolower((string) $value), mb_strtolower($emailName))) {
+                        $fail('The password cannot contain your email name.');
+                    }
+                },
+            ],
         ]);
 
         $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (User $user, string $password) {
+            ['email' => $email] + $request->only('password', 'token'),
+            function (User $user, string $password) use ($request) {
                 $user->forceFill([
                     'password' => Hash::make($password),
+                    // Kills every "keep me signed in" cookie.
                     'remember_token' => Str::random(60),
                 ])->save();
+
+                // The left panel promises other sessions are signed out, and
+                // with the database driver that is these rows. Other drivers
+                // keep no index by user, so only the remember token applies.
+                if (config('session.driver') === 'database') {
+                    DB::table(config('session.table', 'sessions'))
+                        ->where('user_id', $user->getAuthIdentifier())
+                        ->where('id', '!=', $request->session()->getId())
+                        ->delete();
+                }
+
+                event(new PasswordReset($user));
             }
         );
 
+        // Not signed in automatically: signing in with the new password is
+        // the proof it was typed the way it was meant to be.
         if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('login')->with('status', __($status));
+            return redirect()->route('login')
+                ->with('password_reset', true)
+                ->withInput(['email' => $email]);
         }
 
-        return back()
-            ->withInput($request->only('email'))
-            ->withErrors(['email' => __($status)]);
+        // A used, replaced or timed-out token. The form cannot fix that, so
+        // the page swaps to the expired state rather than a field error.
+        if (in_array($status, [Password::INVALID_TOKEN, Password::INVALID_USER], true)) {
+            return redirect()
+                ->route('password.reset', ['token' => (string) $request->input('token'), 'email' => $email])
+                ->with('reset_link_expired', true);
+        }
+
+        return back()->withErrors(['password' => __($status)]);
+    }
+
+    /** "Maria Santos" → "MS", as the sidebar's user card does it. */
+    private function initials(?string $name): string
+    {
+        return collect(preg_split('/\s+/', trim((string) $name)))
+            ->filter()
+            ->take(2)
+            ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
+            ->implode('');
     }
 }

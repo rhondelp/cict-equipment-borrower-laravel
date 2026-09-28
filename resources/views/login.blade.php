@@ -69,6 +69,32 @@
     <main class="flex items-center justify-center px-6 py-10 sm:px-8 lg:px-8 lg:py-12">
         <div class="flex w-full max-w-[392px] flex-col gap-[22px]">
 
+            {{-- Landed here from a completed reset. The reset does not sign
+                 anyone in, so this says what changed and what to do next. --}}
+            @if(session('password_reset'))
+                @php($officeEmail = config('office.email'))
+                <div role="status" data-password-reset-done
+                     class="flex items-start gap-3 rounded-[11px] border border-success-200 bg-success-50 px-4 py-3.5">
+                    <span class="grid w-7 h-7 mt-px rounded-full shrink-0 place-items-center bg-success-100 text-success-700" aria-hidden="true">
+                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3.4 8.4 6.4 11.4l6.2-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <div class="flex flex-col min-w-0 gap-1">
+                        <p class="text-[14px] font-semibold text-neutral-900">Password updated</p>
+                        <p class="text-[13px] leading-[1.55] text-neutral-700 text-pretty">
+                            Sign in with your new password. Anywhere else you were signed in has been logged out.
+                        </p>
+                        <p class="text-[12.5px] leading-[1.55] text-neutral-600 text-pretty">
+                            Didn't make this change? Tell the equipment office
+                            @if($officeEmail)
+                                at <a href="mailto:{{ $officeEmail }}" class="font-medium text-primary-700 [overflow-wrap:anywhere] hover:text-primary-800">{{ $officeEmail }}</a>.
+                            @else
+                                at the equipment room.
+                            @endif
+                        </p>
+                    </div>
+                </div>
+            @endif
+
             <div class="flex flex-col gap-[5px]">
                 <h2 class="text-[24px] font-semibold tracking-[-0.015em] text-neutral-900">Sign in</h2>
                 {{-- "Students and instructors both sign in here" answers the

@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026-09-28
+
+- **Reset-password page rebuilt to `design-reference/Reset Password.dc.html`, and the last page off `auth.css`.** The page the emailed link opens now uses the same frame as sign-in, register and forgot-password. That frame is two columns from `lg` up (`minmax(0,0.85fr)_minmax(0,1fr)`) and stacked below. The `#183060` panel has the brand block and "What happens when you save" with three numbered points. The heading is "Choose a new password" at 24px/600. The pale background, floating seal, "Account Recovery" label and 52px heading are gone. There is no shared auth layout to reuse, since each auth page inlines the frame, so this page copies forgot-password's markup exactly. It does not add a new style. IBM Plex Mono is loaded on this page for the countdown only.
+
+  **The email is the link's, not a field.** It shows as a read-only chip: the account's initials, "Resetting the password for", then the address. It is posted from a hidden input next to the token. A hidden `username` field lets password managers save the new password against the right account.
+
+  **One password field, held to new rules.** "Confirm new password" and `confirmed` are gone. The rule is now `Password::min(8)->letters()->numbers()`, plus a closure refusing any password that contains the part of the email before the @, case-insensitively. The field has a text Show/Hide toggle, like sign-in. It also has a 3-segment strength bar and three requirements that tick off live, and they mirror the server exactly. Length counts characters, as `mb_strlen` does. Letters and numbers are `\p{L}` and `\p{N}`, as the rule uses `\pL` and `\pN`. The name check is the same "contains". Submitting with a requirement unmet stops on the client with "Meet all three requirements to continue." While a valid submit is sending, the button is disabled and reads "Saving…". **This page's minimum is now 8 while registration and the admin user form are still `min:4`.** That mismatch is deliberate for now and flagged, not fixed.
+
+  **Expiry, from the broker.** "This link expires in MM:SS" is counted from the token row's `created_at` plus `config('auth.passwords.users.expire')`, which is 60. It is not the mockup's 30. The page gets the seconds left and counts down against the wall clock, so a backgrounded tab does not drift. `reset()` now asks the broker's `tokenExists()` before rendering. A used, replaced, timed-out or email-less link gets the **expired state** instead of a form: "This link has expired", "Reset links work once and last 60 minutes. Your password has not been changed.", a primary "Send a new link" to `password.request`, and "Back to sign in". The countdown reaching 0:00 swaps to the same state without a reload. A broker `INVALID_TOKEN` or `INVALID_USER` on submit no longer comes back as a red email error. It redirects to the link with `reset_link_expired` flashed, which renders the expired state.
+
+  **Success signs nobody in, and signs everyone else out.** After `PASSWORD_RESET` the user goes to `/login` with their email pre-filled. A `password_reset` flash draws a green panel there: "Password updated. Sign in with your new password. Anywhere else you were signed in has been logged out." It adds "Didn't make this change? Tell the equipment office at …". The remember token was already rotated. The user's other rows in `sessions` are now deleted too, with the database driver only, which is what `.env.example` uses. The `PasswordReset` event is fired. Routes, the broker, CSRF and the forgot-password throttle are unchanged.
+
+  **Office address: config, not the prompt.** The request quoted `cict.equipment@nmsc.edu.ph`, but `config('office.email')` currently defaults to `quincyjane.oliver@nmsc.edu.ph`. The panel reads the config, like every other public page, and falls back to "at the equipment room" when it is empty. Set `OFFICE_EMAIL` to change it.
+
+  **Verification.** `php artisan test` passed with **333 tests**, up from 319. The new `ResetPasswordPageTest` has 14 tests covering:
+  - the frame and removed furniture;
+  - the chip and hidden inputs;
+  - one password field with no confirmation;
+  - the rules and bar;
+  - the countdown from token and config, checked with `expire` at 45 and a frozen clock;
+  - an expired token, a wrong token and a missing email;
+  - a broker refusal on submit landing on the expired state with the password unchanged;
+  - each server rule;
+  - an inline error;
+  - redirect without sign-in;
+  - the sign-in panel, which appears only after a reset;
+  - other sessions deleted while another user's session survives, and the remember token rotated;
+  - the new password working and the old one failing.
+
+  `ForgotPasswordPageTest`'s end-to-end reset passes unchanged. `npm run build` was run, and the new utilities are in the built CSS. `vendor/bin/pint --test` shows no new issues over the 8-file baseline. In headless Chrome on a scratch SQLite database, at 1280 and 390px:
+  - a valid link counted down (59:10 → 59:09), ticked rules live, toggled Show/Hide, kept the expired block hidden and set the clock in Plex Mono;
+  - a token backdated 61 minutes rendered the expired state with no form;
+  - a real submit landed on `/login` with the panel and the email filled in;
+  - reopening the used link showed the expired state.
+
+  There was no horizontal overflow and there were no page errors.
+
 ## 2026-09-27
 
 - **Admin sidebar polish: outline icons, one left edge, and a brand block that continues the page header's line.** Font Awesome in the nav is replaced by a new anonymous component, `<x-icon name="…">` (`components/icon.blade.php`): six 16px outline SVGs drawn with `currentColor`. Icons are `text-neutral-400`, go to `text-neutral-600` on link hover (`group`), and are `text-primary-600` when active. The aside now carries `px-3`, and the nav, group labels and user card sit inside it, so the logo, both labels, all six icons and the user card start at **x=24**. The brand block is `-mx-3 px-6` rather than `px-3`, which keeps the logo at 24 but lets its `border-b` run the full 256px to meet the sidebar's right border. With plain `px-3` the line would have stopped 12px short of the page header's. Its height is the page header's measured height, **114.59375px**, set exactly because the header's height comes from font metrics and a rounded 115px can land the two borders on different pixel rows. Labels are `pt-5` for the first group and `pt-6` after, `pb-2`. Links are `py-2.5`. The user card's container lost its `border-t`. The ellipsis and logout icons in the user card are still Font Awesome, since only the nav was in scope.

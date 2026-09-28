@@ -278,8 +278,8 @@ class SecurityRegressionTest extends TestCase
     public function test_public_portal_pages_render_with_shared_stylesheet(): void
     {
         // Landing page. Rebuilt on the app's Tailwind bundle like login and
-        // register, so it no longer pulls auth.css — reset-password is now the
-        // last page that does. Asserted on its two ways in instead.
+        // register, so it no longer pulls auth.css. Since the reset-password
+        // rebuild no page does. Asserted on its two ways in instead.
         $this->get('/')
             ->assertStatus(200)
             ->assertSee('CICT Equipment Borrower System')
@@ -297,8 +297,7 @@ class SecurityRegressionTest extends TestCase
 
         // Register page. Rebuilt on the app's Tailwind bundle alongside the
         // login and forgot-password pages, so it no longer pulls auth.css
-        // either — the landing page and reset-password still do, which is what
-        // keeps the file shared.
+        // either.
         $this->get('/register')
             ->assertStatus(200)
             ->assertSee('Request an account')
