@@ -2,6 +2,10 @@
 
 ## 2026-10-01
 
+- **Fixed: Decline on the requests queue did nothing.** Clicking **Decline** threw `TypeError: Cannot set properties of null (setting 'textContent')` and the reason dialog never opened, so no request could be declined. The click handler in `admin/request.blade.php` filled the dialog's summary line with `form.querySelector('[data-decline-summary]')`, but that line sits in the dialog header, outside `#decline-form`. The lookup returned `null`, the handler threw, and `openModal` was never reached. It is now scoped to `#decline-modal`. The server side, `ItemRequestController::requestActions`, was always correct.
+
+  **Verification.** Reproduced in headless Chrome against a scratch SQLite database with the TypeError and a zero-size, still-hidden dialog. After the fix, the dialog opens, Decline enables at 5 characters, and `POST /admin/request/decline` returns 302. The row reads `Declined` with the reason and `decided_by`, and the page shows no JS errors. `RequestQueuePageTest` gains two tests: one pins that the summary is not looked up inside the form, and one checks that a decline with a reason is recorded. `php artisan test`: **345 passed**.
+
 - **Admins can now create another admin (staff) account from the users screen.** Until now an Admin had no web path: `POST /admin/users` capped `user_type` at `in:Instructor,Student`, and a new admin meant a seed or tinker. The "Add user" dialog's role select now offers **Admin (staff)** alongside Instructor and Student, and `AuthenticateUser::register` accepts `Admin`. No route was added or changed.
 
   **A new admin is held to more than a borrower account**, because it is the one account that can mint further admins. Choosing Admin on the add form brings up two fields, and the server enforces four rules (none of them apply to Student or Instructor):

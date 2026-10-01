@@ -296,7 +296,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const trigger = event.target.closest('[data-decline-trigger]');
             if (!trigger) return;
             document.getElementById('decline-id').value = trigger.dataset.id;
-            form.querySelector('[data-decline-summary]').textContent = trigger.dataset.summary || '';
+            // The summary sits in the dialog header, outside the form —
+            // looking it up on `form` returned null and the throw stopped
+            // the dialog from ever opening.
+            const summary = document.querySelector('#decline-modal [data-decline-summary]');
+            if (summary) summary.textContent = trigger.dataset.summary || '';
             reason.value = '';
             sync();
             window.appUI.openModal('decline-modal');

@@ -263,6 +263,41 @@ class RequestQueuePageTest extends TestCase
         $this->assertStringNotContainsString('name="status"', $html, 'The queue offers a status control');
     }
 
+    /**
+     * Regression (1 Oct 2026): the Decline button did nothing. The dialog's
+     * summary line sits in its header, outside #decline-form, and the script
+     * looked it up with form.querySelector — null, a TypeError, and openModal
+     * was never reached. The lookup must be scoped to the dialog.
+     */
+    public function test_the_decline_dialog_summary_is_not_looked_up_inside_the_form(): void
+    {
+        $this->request($this->borrower(), $this->equipment(10, 10), 1);
+        $html = $this->html();
+
+        $form = substr($html, strpos($html, 'id="decline-form"'));
+        $form = substr($form, 0, strpos($form, '</form>'));
+        $this->assertStringNotContainsString('data-decline-summary', $form, 'The summary moved into the form; the lookup can be simplified');
+
+        $this->assertStringNotContainsString("form.querySelector('[data-decline-summary]')", $html);
+        $this->assertStringContainsString('#decline-modal [data-decline-summary]', $html);
+    }
+
+    public function test_declining_with_a_reason_records_it(): void
+    {
+        $admin = $this->admin();
+        $request = $this->request($this->borrower(), $this->equipment(10, 10), 1);
+
+        $this->actingAs($admin)
+            ->post(route('admin.request.decline'), ['id' => $request->id, 'reason' => 'Not available this week.'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $request->refresh();
+        $this->assertSame('Declined', $request->status);
+        $this->assertSame('Not available this week.', $request->decision_reason);
+        $this->assertSame($admin->id, $request->decided_by);
+    }
+
     /* ------------------------------------------------------------------
      | Queries
      ------------------------------------------------------------------ */

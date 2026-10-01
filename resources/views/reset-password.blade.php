@@ -71,7 +71,7 @@
              can swap to it at 0:00 without a round trip. A class, not the
              `hidden` attribute: preflight's [hidden] loses to `.flex`. --}}
         <div class="{{ $expired ? 'flex' : 'hidden' }} w-full max-w-[396px] flex-col gap-5" data-reset-expired>
-            <span class="grid w-11 h-11 rounded-full shrink-0 place-items-center bg-warning-50 text-warning-700" aria-hidden="true">
+            <span class="grid rounded-full w-11 h-11 shrink-0 place-items-center bg-warning-50 text-warning-700" aria-hidden="true">
                 <svg width="22" height="22" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.6V8l2.2 1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             </span>
             <div class="flex flex-col gap-2">
