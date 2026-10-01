@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-10-01
+
+- **Admins can now create another admin (staff) account from the users screen.** Until now an Admin had no web path: `POST /admin/users` capped `user_type` at `in:Instructor,Student`, and a new admin meant a seed or tinker. The "Add user" dialog's role select now offers **Admin (staff)** alongside Instructor and Student, and `AuthenticateUser::register` accepts `Admin`. No route was added or changed.
+
+  **A new admin is held to more than a borrower account**, because it is the one account that can mint further admins. Choosing Admin on the add form brings up two fields, and the server enforces four rules (none of them apply to Student or Instructor):
+  - the email must be on `@nmsc.edu.ph`, matched whole by `User::isSchoolEmail()`, so `not-nmsc.edu.ph` is refused;
+  - the password follows the reset page's rule, `Password::min(8)->letters()->numbers()`, not the borrower form's `min:4`;
+  - a reason, "Why they need admin access" (`role_override_reason`, 5–500 characters), is required;
+  - **the creating admin's own password** (`current_password`, Laravel's `current_password` rule) is required. A signed-in session left open on a shared lab PC can no longer quietly create a second, permanent admin.
+
+  The new account is written with `role_overridden_at` / `_by` / `_reason`, the record every role change already uses, so the row reads "Set to Admin by Quincy Jane Oliver on Oct 1 — new lab custodian…". The dialog's live hint mirrors each rule in order, and the submit button stays disabled until they are met. Student and Instructor creation is unchanged. A staff account is removed the same way as any other: the existing Deactivate/Delete dialog already worked on admin rows, and Suspend stays hidden for admins as before.
+
+  **Verification.** `php artisan test` passed with **343 tests**, up from 333. The new `StaffAccountTest` has 9 tests:
+  - creation succeeds with the right password hash;
+  - who made the admin and why are recorded;
+  - the new admin can sign in and lands on `/admin/dashboard`;
+  - a wrong own password is refused;
+  - a missing reason is refused;
+  - a non-school or suffix-spoofed domain is refused;
+  - each of three weak passwords is refused;
+  - borrower accounts keep the lighter rules and get no override record;
+  - the form offers the option and the step-up field.
+
+  In `SecurityRegressionTest`, `test_admin_users_form_cannot_create_admin_accounts` is replaced by two tests: an admin posted without reason or step-up is refused with no row written, and a Student posting the same is a 403. `vendor/bin/pint --test`: no new issues over the baseline. Note that the baseline now reads 9 files plus `SecurityRegressionTest`, because `AdminSeeder` arrived in 318feef. `npm run build` was run; it added no new utilities. The rendered users page's 6 inline scripts parse cleanly under Node. **Not verified in a browser:** the field show/hide and live hint were not clicked through.
+
 ## 2026-09-28
 
 - **Reset-password page rebuilt to `design-reference/Reset Password.dc.html`, and the last page off `auth.css`.** The page the emailed link opens now uses the same frame as sign-in, register and forgot-password. That frame is two columns from `lg` up (`minmax(0,0.85fr)_minmax(0,1fr)`) and stacked below. The `#183060` panel has the brand block and "What happens when you save" with three numbered points. The heading is "Choose a new password" at 24px/600. The pale background, floating seal, "Account Recovery" label and 52px heading are gone. There is no shared auth layout to reuse, since each auth page inlines the frame, so this page copies forgot-password's markup exactly. It does not add a new style. IBM Plex Mono is loaded on this page for the countdown only.

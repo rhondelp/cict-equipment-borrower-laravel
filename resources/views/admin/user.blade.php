@@ -453,29 +453,43 @@ document.addEventListener('DOMContentLoaded', function () {
         const submit = userForm.querySelector('[data-user-submit]');
         const hint = userForm.querySelector('[data-user-hint]');
         const passwordNote = userForm.querySelector('[data-password-note]');
-        const adminOption = type.querySelector('option[value="Admin"]');
+        const reason = document.getElementById('role-override-reason');
+        const currentPassword = document.getElementById('user-current-password');
+        const SCHOOL_DOMAIN = @json(\App\Models\User::SCHOOL_DOMAIN);
 
         const ADD_URL = @json(route('admin.user.register'));
         const UPDATE_URL = @json(route('admin.users.update'));
         let editing = false;
 
         function sync() {
+            // Mirrors AuthenticateUser::register's stricter rules for a new admin.
+            const addingAdmin = !editing && type.value === 'Admin';
+            const minLength = addingAdmin ? 8 : 4;
             const nameOk = name.value.trim().length > 1;
             const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
+            const schoolOk = !addingAdmin || email.value.trim().toLowerCase().split('@')[1] === SCHOOL_DOMAIN;
             const typeOk = !!type.value;
             const wantsPassword = password.value.length > 0;
+            const strongOk = !addingAdmin || (/\p{L}/u.test(password.value) && /\p{N}/u.test(password.value));
             const passwordOk = editing
                 ? (!wantsPassword || (password.value.length >= 4 && password.value === confirmation.value))
-                : (password.value.length >= 4 && password.value === confirmation.value);
-            const ok = nameOk && emailOk && typeOk && passwordOk;
+                : (password.value.length >= minLength && strongOk && password.value === confirmation.value);
+            const reasonOk = !addingAdmin || (reason && reason.value.trim().length >= 5);
+            const stepUpOk = !addingAdmin || (currentPassword && currentPassword.value.length > 0);
+            const ok = nameOk && emailOk && schoolOk && typeOk && passwordOk && reasonOk && stepUpOk;
 
             submit.disabled = !ok;
             hint.textContent = !nameOk ? 'Name required'
                 : !emailOk ? 'A valid email address is required'
+                : !schoolOk ? 'Staff accounts must use an @' + SCHOOL_DOMAIN + ' address'
                 : !typeOk ? 'Pick a role'
                 : !passwordOk
-                    ? (password.value.length < 4 ? 'Password needs at least 4 characters' : 'The two passwords do not match')
-                    : (editing ? 'Changes apply immediately' : 'The account can sign in straight away');
+                    ? (password.value.length < minLength ? 'Password needs at least ' + minLength + ' characters'
+                        : !strongOk ? 'Admin passwords need both letters and numbers'
+                        : 'The two passwords do not match')
+                : !reasonOk ? 'Say why they need admin access'
+                : !stepUpOk ? 'Enter your own password to confirm'
+                : (editing ? 'Changes apply immediately' : 'The account can sign in straight away');
             hint.classList.toggle('text-danger-700', !ok);
             hint.classList.toggle('text-neutral-600', ok);
         }
@@ -490,11 +504,6 @@ document.addEventListener('DOMContentLoaded', function () {
             password.value = '';
             confirmation.value = '';
 
-            // Admin is a database-only role: AuthenticateUser::register rejects
-            // it outright, so offering it on the add form would only ever
-            // produce a validation error.
-            adminOption.hidden = !editing;
-            adminOption.disabled = !editing;
             type.value = editing ? data.userType : '';
             // What a role change is measured against — see form-modal.
             type.dataset.current = editing ? data.userType : '';
@@ -503,12 +512,17 @@ document.addEventListener('DOMContentLoaded', function () {
             modal.querySelector('[data-user-title]').textContent = editing ? 'Edit account' : 'Add account';
             modal.querySelector('[data-user-submit-label]').textContent = editing ? 'Save changes' : 'Create account';
             passwordNote.textContent = editing ? 'leave blank to keep the current one' : 'at least 4 characters';
+            if (currentPassword) currentPassword.value = '';
 
             sync();
             window.appUI.openModal('user-modal');
         }
 
-        [name, email, type, password, confirmation].forEach(function (field) {
+        type.addEventListener('change', function () {
+            if (!editing) passwordNote.textContent = type.value === 'Admin' ? '8+ characters, letters and numbers' : 'at least 4 characters';
+        });
+
+        [name, email, type, password, confirmation, reason, currentPassword].filter(Boolean).forEach(function (field) {
             field.addEventListener('input', sync);
             field.addEventListener('change', sync);
         });

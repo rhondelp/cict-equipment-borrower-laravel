@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class AuthenticateUser extends Controller
 {
@@ -540,28 +541,63 @@ class AuthenticateUser extends Controller
     }
 
     /**
-     * The admin users form (`POST /admin/users`). Still takes an explicit
-     * user_type, capped at the two borrower roles — an Admin account has no
-     * web path by design.
+     * The admin users form (`POST /admin/users`). Takes an explicit user_type:
+     * Student, Instructor, or Admin for another member of staff.
+     *
+     * A new Admin is the one account here that can make further admins, so it
+     * is held to more than a borrower account: a school address, the reset
+     * page's password rule, a reason that is recorded with the creator's name
+     * (the same role_overridden_* record any role change writes), and the
+     * creating admin's own password — so an unattended signed-in session
+     * cannot quietly mint a second, permanent admin.
      */
     public function register(Request $request)
     {
-        $validatedData = $request->validate([
-            'user_type' => 'required|in:Instructor,Student',
+        $makingAdmin = $request->input('user_type') === 'Admin';
+
+        $rules = [
+            'user_type' => 'required|in:Admin,Instructor,Student',
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:4|confirmed',
             'contact_number' => 'nullable|string|max:15',
+        ];
+
+        if ($makingAdmin) {
+            $rules['email'] = [
+                'required', 'string', 'email', 'max:255', 'unique:users',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (! User::isSchoolEmail($value)) {
+                        $fail('Staff accounts must use a school address — @'.User::SCHOOL_DOMAIN.'.');
+                    }
+                },
+            ];
+            $rules['password'] = ['required', 'string', 'confirmed', Password::min(8)->letters()->numbers()];
+            $rules['role_override_reason'] = 'required|string|min:5|max:500';
+            $rules['current_password'] = 'required|current_password';
+        }
+
+        $validatedData = $request->validate($rules, [
+            'role_override_reason.required' => 'Say why this person needs admin access — the reason is recorded.',
+            'role_override_reason.min' => 'Give a usable reason (at least 5 characters).',
+            'current_password.required' => 'Enter your own password to create an admin account.',
+            'current_password.current_password' => 'That is not your password.',
         ]);
 
         $user = User::create([
             'user_type' => $validatedData['user_type'],
             'name' => $validatedData['name'],
-            'email' => $validatedData['email'],
+            'email' => strtolower(trim($validatedData['email'])),
             'password' => Hash::make($validatedData['password']),
             'contact_number' => $validatedData['contact_number'] ?? null,
-        ]);
+        ] + ($makingAdmin ? [
+            'role_overridden_at' => now(),
+            'role_overridden_by' => auth()->id(),
+            'role_override_reason' => $validatedData['role_override_reason'],
+        ] : []));
 
-        return redirect()->back()->with('success', $user->name.' added as a '.strtolower($user->user_type).'.');
+        return redirect()->back()->with('success', $makingAdmin
+            ? $user->name.' added as an admin — they can sign in to the admin dashboard now.'
+            : $user->name.' added as a '.strtolower($user->user_type).'.');
     }
 }

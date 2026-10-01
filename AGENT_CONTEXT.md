@@ -41,7 +41,7 @@ always sit inside the `auth` middleware group.
 - **Admin** — full CRUD on equipment, users, class schedules and borrow transactions; approves/declines item requests; views notifications and return logs. Lands on `/admin/dashboard`.
 - **Instructor** / **Student** — collectively "borrowers". Same routes and same dashboard view; they create, update and delete only their *own* item requests (ownership enforced by `ItemRequestController::assertOwner`). Land on `/borrower/dashboard`. Instructors additionally own `ClassSchedule` rows that Admins attach to transactions.
 
-No web route can create an `Admin`, and the two registration routes refuse it differently.
+Only an Admin can create an `Admin`, through the admin users form with extra checks (below). Public sign-up can never create one.
 
 **Every account — student and instructor — is on `@nmsc.edu.ph`** (`User::SCHOOL_DOMAIN`), so the
 address says nothing about role. (Until 26 Sept 2026 the code assumed a separate
@@ -60,13 +60,17 @@ never as a suffix — `str_ends_with($email, 'nmsc.edu.ph')` would accept `not-n
 Pending requests appear in the dashboard queue and as a "Instructor requests" section and
 `requested` filter chip on `/admin/users`.
 
-**The admin users form (`POST /admin/users` → `AuthenticateUser::register`)** still takes an
-explicit `user_type`, capped at `in:Instructor,Student` — an admin uses that form to add
-borrowers, not staff, and they are behind `userType:Admin` to do it. Posting `Admin` there is
-**rejected** (a `user_type` validation error, no row written) rather than downgraded.
+**The admin users form (`POST /admin/users` → `AuthenticateUser::register`)** takes an
+explicit `user_type`, `in:Admin,Instructor,Student`, behind `userType:Admin`. Since 1 Oct 2026 it
+can create another **Admin (staff)**, but only with all four of:
+- a whole-domain `@nmsc.edu.ph` email;
+- `Password::min(8)->letters()->numbers()`;
+- a `role_override_reason`;
+- the creating admin's own password (`current_password`).
 
-Creating an Admin is a deliberate DB/seed/tinker action with no web path. All of this is pinned
-by `tests/Feature/SecurityRegressionTest` and `tests/Feature/RegisterPageTest`.
+The new admin is stamped with `role_overridden_*` (who, when, why). Borrower accounts keep the
+lighter `min:4` rules. Pinned by `tests/Feature/StaffAccountTest`,
+`tests/Feature/SecurityRegressionTest` and `tests/Feature/RegisterPageTest`.
 
 ## Password reset
 
@@ -209,7 +213,7 @@ All in `routes/web.php`. Everything under `/admin` and `/borrower` is inside `au
 - `POST /admin/equipment/{id}/restore` — `EquipmentController@restore` (`admin.equipment.restore`)
 - `DELETE /admin/equipment/{id}` — `EquipmentController@destroy` (`admin.equipment.destroy`); refused while any loan or request references the row
 - `GET /admin/users` — `UserController@adminUser` (`admin.users`)
-- `POST /admin/users` — `AuthenticateUser@register` (`admin.user.register`); the one route that still takes an explicit `user_type`
+- `POST /admin/users` — `AuthenticateUser@register` (`admin.user.register`); the one route that still takes an explicit `user_type`; creating an `Admin` needs a reason and the creator's own password
 - `POST /admin/users/update` — `UserController@update` (`admin.users.update`); id in body
 - `POST /admin/users/add-sched` — `ClassScheduleController@store` (`admin.add-sched`)
 - `POST /admin/users/{id}/deactivate` — `UserController@deactivate` (`admin.users.deactivate`); the non-destructive default, and it blocks login

@@ -125,27 +125,43 @@ class SecurityRegressionTest extends TestCase
     }
 
     /**
-     * POST /admin/users keeps AuthenticateUser::register, which still takes an
-     * explicit user_type capped at the two borrower roles — an admin choosing a
-     * borrower's role is a decision they are entitled to make, and they are
-     * behind `userType:Admin` to make it. Admin accounts are made directly in
-     * the database (seed or tinker) by design — see AGENT_CONTEXT.md. This pins
-     * that decision so the cap is not widened by accident.
+     * POST /admin/users can create another admin (staff) since 1 Oct 2026, but
+     * never on the borrower form's terms: without a recorded reason and the
+     * creating admin's own password it is refused outright, no row written.
+     * The full rules are pinned in StaffAccountTest.
      */
-    public function test_admin_users_form_cannot_create_admin_accounts(): void
+    public function test_admin_users_form_refuses_an_admin_without_reason_or_step_up(): void
     {
         $admin = User::factory()->create(['user_type' => 'Admin']);
 
         $response = $this->actingAs($admin)->post('/admin/users', [
             'user_type' => 'Admin',
             'name'      => 'New Admin',
-            'email'     => 'new-admin@example.com',
+            'email'     => 'new-admin@nmsc.edu.ph',
             'password'  => 'secret123',
             'password_confirmation' => 'secret123',
         ]);
 
-        $response->assertSessionHasErrors('user_type');
-        $this->assertDatabaseMissing('users', ['email' => 'new-admin@example.com']);
+        $response->assertSessionHasErrors(['role_override_reason', 'current_password']);
+        $this->assertDatabaseMissing('users', ['email' => 'new-admin@nmsc.edu.ph']);
+    }
+
+    /** A borrower cannot reach the form at all, let alone make an admin. */
+    public function test_a_borrower_cannot_create_an_admin(): void
+    {
+        $student = User::factory()->create(['user_type' => 'Student']);
+
+        $this->actingAs($student)->post('/admin/users', [
+            'user_type' => 'Admin',
+            'name'      => 'Sneaky',
+            'email'     => 'sneaky@nmsc.edu.ph',
+            'password'  => 'secret123',
+            'password_confirmation' => 'secret123',
+            'role_override_reason' => 'I want admin',
+            'current_password' => 'password',
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('users', ['email' => 'sneaky@nmsc.edu.ph']);
     }
 
     /** The same form does create the two roles it is meant to. */

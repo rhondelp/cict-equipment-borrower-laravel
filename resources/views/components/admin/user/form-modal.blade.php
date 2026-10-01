@@ -1,10 +1,10 @@
 {{-- Add / edit an account — one modal for both.
 
-     The role select drops "Admin" on the add form. AuthenticateUser::register
-     caps user_type at Instructor/Student and rejects anything else, so the
-     option could only ever produce a validation error; an Admin account is a
-     deliberate database action with no web path, and the form now says that
-     rather than pretending otherwise. --}}
+     Adding an Admin (another member of staff) asks for more than a borrower
+     account: a reason, which is recorded, and the creating admin's own
+     password. AuthenticateUser::register enforces both, plus a school address
+     and an 8-character letters-and-numbers password; the fields below only
+     appear when Admin is picked on the add form. --}}
 <div id="user-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
@@ -53,7 +53,7 @@
                         <option value="" disabled selected>Select a role</option>
                         <option value="Instructor">Instructor</option>
                         <option value="Student">Student</option>
-                        <option value="Admin" hidden disabled>Admin</option>
+                        <option value="Admin">Admin (staff)</option>
                     </select>
                     {{-- Everyone shares one email domain, so nothing derives a
                          role: changing one on an existing account is a
@@ -62,7 +62,7 @@
                          not a field anyone can quietly skip. --}}
                     <p class="mt-2 text-sm text-neutral-600" data-role-derived></p>
                     <div class="mt-2 hidden" data-role-override-box>
-                        <label for="role-override-reason" class="block text-base font-medium text-neutral-800">
+                        <label for="role-override-reason" data-role-reason-label class="block text-base font-medium text-neutral-800">
                             Why this role change
                         </label>
                         <input type="text" id="role-override-reason" name="role_override_reason" maxlength="500"
@@ -71,6 +71,18 @@
                         <p class="mt-1 text-sm text-neutral-600">Recorded with your name and today&rsquo;s date.</p>
                     </div>
                     @error('role_override_reason')
+                        <p class="mt-1 text-sm text-danger-700">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Step-up check for a new admin: proves the person at the
+                     keyboard is the signed-in admin, not just their session. --}}
+                <div class="hidden" data-admin-confirm-box>
+                    <label for="user-current-password" class="block text-base font-medium text-neutral-800">Your password</label>
+                    <input type="password" id="user-current-password" name="current_password" autocomplete="current-password"
+                           class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                    <p class="mt-1 text-sm text-neutral-600">Admins can manage every account and loan. Confirm it&rsquo;s you.</p>
+                    @error('current_password')
                         <p class="mt-1 text-sm text-danger-700">{{ $message }}</p>
                     @enderror
                 </div>
@@ -119,19 +131,36 @@ document.addEventListener('DOMContentLoaded', function () {
     // `data-current` is the stored role, set by the users page when it opens
     // the dialog for an existing account; empty on the add form. Mirrors
     // UserController::update, which requires a reason when the two differ.
+    const reasonLabel = box.querySelector('[data-role-reason-label]');
+    const confirmBox = document.querySelector('[data-admin-confirm-box]');
+    const confirmInput = document.getElementById('user-current-password');
+
     function sync() {
         const current = role.dataset.current || '';
         const changing = current !== '' && role.value !== '' && role.value !== current;
+        // Adding a new admin: also reasoned and recorded, plus a step-up.
+        const addingAdmin = current === '' && role.value === 'Admin';
+        const needsReason = changing || addingAdmin;
 
-        note.textContent = changing ? 'Changing from ' + current + ' to ' + role.value + '.' : '';
-        note.classList.toggle('hidden', !changing);
-        note.classList.toggle('text-warning-700', changing);
+        note.textContent = changing ? 'Changing from ' + current + ' to ' + role.value + '.'
+            : addingAdmin ? 'Admins can manage equipment, loans and every account — including other admins.'
+            : '';
+        note.classList.toggle('hidden', !needsReason);
+        note.classList.toggle('text-warning-700', needsReason);
 
-        box.classList.toggle('hidden', !changing);
+        if (reasonLabel) reasonLabel.textContent = addingAdmin ? 'Why they need admin access' : 'Why this role change';
+        box.classList.toggle('hidden', !needsReason);
         const input = document.getElementById('role-override-reason');
         if (input) {
-            input.required = changing;
-            if (!changing) input.value = '';
+            input.required = needsReason;
+            if (!needsReason) input.value = '';
+        }
+
+        if (confirmBox && confirmInput) {
+            confirmBox.classList.toggle('hidden', !addingAdmin);
+            confirmInput.required = addingAdmin;
+            confirmInput.disabled = !addingAdmin;
+            if (!addingAdmin) confirmInput.value = '';
         }
     }
 
