@@ -11,7 +11,7 @@ class Equipment extends Model
     //
     protected $table = 'equipment';
 
-    protected $fillable = ['equipment_name', 'description', 'quantity', 'available_quantity', 'status', 'retired_at'];
+    protected $fillable = ['equipment_name', 'description', 'category', 'quantity', 'available_quantity', 'status', 'retired_at'];
 
     protected function casts(): array
     {
@@ -63,6 +63,38 @@ class Equipment extends Model
     public function lendableStatus(): string
     {
         return (! $this->isRetired() && $this->available_quantity > 0) ? 'Available' : 'Unavailable';
+    }
+
+    /**
+     * Tidy a typed category and reuse the spelling already on file.
+     *
+     * Whitespace is trimmed and collapsed, an empty value means "none", and a
+     * match against an existing category ignores case — so typing "cables"
+     * when "Cables" exists files the item under "Cables" rather than starting
+     * a second group. A genuinely new name is kept exactly as typed, because
+     * "HDMI" or "USB-C adapters" would be mangled by any automatic casing.
+     */
+    public static function canonicalCategory(?string $category): ?string
+    {
+        $category = trim(preg_replace('/\s+/u', ' ', (string) $category));
+
+        if ($category === '') {
+            return null;
+        }
+
+        return static::categoriesInUse()
+            ->first(fn ($existing) => mb_strtolower($existing) === mb_strtolower($category))
+            ?? $category;
+    }
+
+    /** Every distinct category on file, A–Z — the suggestions the form offers. */
+    public static function categoriesInUse()
+    {
+        return static::query()
+            ->whereNotNull('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
     }
 
     public function isRetired(): bool

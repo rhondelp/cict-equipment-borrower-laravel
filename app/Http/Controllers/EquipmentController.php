@@ -11,8 +11,9 @@ class EquipmentController extends Controller
     public function index()
     {
         $equipment = $this->withLoanAggregates()->orderBy('equipment_name')->get();
+        $categories = Equipment::categoriesInUse();
 
-        return view('admin.equipment', compact('equipment'));
+        return view('admin.equipment', compact('equipment', 'categories'));
     }
 
     /**
@@ -25,8 +26,10 @@ class EquipmentController extends Controller
         $validated = $request->validate([
             'equipment_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
+            'category' => 'nullable|string|max:60',
             'quantity' => 'required|integer|min:1',
         ]);
+        $validated['category'] = Equipment::canonicalCategory($validated['category'] ?? null);
 
         $equipment = new Equipment($validated);
         $equipment->available_quantity = $validated['quantity'];
@@ -48,8 +51,10 @@ class EquipmentController extends Controller
             'id' => 'required|integer|exists:equipment,id',
             'equipment_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
+            'category' => 'nullable|string|max:60',
             'quantity' => 'required|integer|min:0',
         ]);
+        $validated['category'] = Equipment::canonicalCategory($validated['category'] ?? null);
 
         $result = DB::transaction(function () use ($validated) {
             $equipment = Equipment::where('id', $validated['id'])->lockForUpdate()->firstOrFail();
@@ -62,6 +67,7 @@ class EquipmentController extends Controller
 
             $equipment->equipment_name = $validated['equipment_name'];
             $equipment->description = $validated['description'] ?? null;
+            $equipment->category = $validated['category'];
             $equipment->quantity = $validated['quantity'];
             $equipment->available_quantity = $validated['quantity'] - $out;
             $equipment->status = $equipment->lendableStatus();

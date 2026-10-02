@@ -111,6 +111,14 @@ by hiding controls:
   always derived from open loans; `Equipment::availabilityState()` is the single
   source for the four labels (All in / Partly out / Running low / Fully out, low
   being under 30%).
+- **`equipment.category`** (added 2 October 2026) — free text, no categories table.
+  The admin form offers the categories in use (`Equipment::categoriesInUse()`, a
+  `<datalist>`) and accepts a new one; `EquipmentController` passes every value
+  through `Equipment::canonicalCategory()`, which trims, collapses spaces, maps
+  blank to `null`, and reuses an existing spelling case-insensitively. Borrowers
+  see it as group headings in the request modal (A–Z, uncategorised last as
+  "Other", no headings at all when nothing has a category) and after the stock
+  count on the dashboard shelf. The admin inventory list does not show it yet.
 - **`return_logs.resolution` / `resolved_at` / `resolved_by`** — the outcome of a
   damaged or lost return. `needsFollowUp()` is `isIncident() && ! isResolved()`
   and is what the return-logs screen and the dashboard both lead with. Return
@@ -176,7 +184,7 @@ offer instead of a hard delete: `equipment.retired_at`, `users.deactivated_at`,
 | Model | Table | Key fields | Relationships |
 |---|---|---|---|
 | `User` | `users` | `user_type` (enum Admin/Instructor/Student), `name`, `email` (unique), `password` (hashed cast), `contact_number`, `deactivated_at`, `instructor_requested_at` | hasMany `borrowTransactions`, `itemRequests`, `notifications`, `classSchedules` |
-| `Equipment` | `equipment` (explicit `$table`) | `equipment_name`, `description`, `quantity` (total owned), `available_quantity` (on shelf), `status` (enum Available/Unavailable, **derived**), `retired_at` (nullable) | hasMany `borrowTransactions`, `itemRequests` |
+| `Equipment` | `equipment` (explicit `$table`) | `equipment_name`, `description`, `category` (nullable free text, max 60, indexed; set only through `Equipment::canonicalCategory()`), `quantity` (total owned), `available_quantity` (on shelf), `status` (enum Available/Unavailable, **derived**), `retired_at` (nullable) | hasMany `borrowTransactions`, `itemRequests` |
 | `ItemRequest` | `item_requests` | `user_id`, `equipment_id`, `quantity`, `status` (string: Pending/Approved/Declined), `requested_date`, `remarks`, `decision_reason`, `decided_at`, `decided_by` | belongsTo `user`, `equipment`, `decider` |
 | `BorrowTransaction` | `borrow_transactions` | `user_id`, `equipment_id`, `borrow_date`, `return_date` (nullable), `quantity`, `purpose`, `status` (enum Borrowed/Returned/Overdue), `remarks`, `class_schedule_id` (nullable, `onDelete('set null')`), `voided_at`, `void_reason` | belongsTo `user`, `equipment`, `classSchedule`; hasOne `returnLog` |
 | `ReturnLog` | `return_logs` | `borrow_transaction_id`, `user_id` (the *staff receiver*, nullable, `set null`), `return_date`, `condition`, `remarks` | belongsTo `borrowTransaction`, `receiver` (User via `user_id`); hasOneThrough `borrower` (User via transaction) and `equipment` (via transaction) |

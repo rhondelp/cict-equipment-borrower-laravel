@@ -27,21 +27,41 @@
             <div class="px-6 pb-5 space-y-4">
                 <div>
                     <span class="block text-base font-medium text-neutral-800">What do you need?</span>
-                    <div class="flex flex-col gap-2 mt-2 overflow-y-auto max-h-56">
-                        @forelse ($equipments as $item)
-                            @php $none = $item->available_quantity < 1; @endphp
-                            <label class="flex items-center gap-3 rounded-lg border px-3 py-2.5 transition
-                                          {{ $none ? 'cursor-not-allowed border-neutral-200 bg-neutral-50' : 'cursor-pointer border-neutral-300 hover:border-primary-300 has-[:checked]:border-primary-400 has-[:checked]:bg-primary-50' }}">
-                                <input type="radio" name="equipment_id" value="{{ $item->id }}" required @disabled($none)
-                                       data-available="{{ $item->available_quantity }}"
-                                       class="w-4 h-4 shrink-0 accent-primary-600 request-equipment">
-                                <span class="flex-1 min-w-0 text-base {{ $none ? 'text-neutral-500' : 'text-neutral-900' }}">
-                                    {{ $item->equipment_name }}
-                                </span>
-                                <span class="text-sm shrink-0 {{ $none ? 'text-danger-700' : 'text-neutral-600' }}">
-                                    {{ $none ? 'None left' : $item->available_quantity.' of '.$item->quantity.' free' }}
-                                </span>
-                            </label>
+                    {{-- Grouped by category, named groups A–Z and anything without one
+                         last under "Other". When nothing has a category yet there
+                         is only one group, so no heading is drawn and the list
+                         reads exactly as it did before categories existed. --}}
+                    @php
+                        $groups = $equipments
+                            ->groupBy(fn ($item) => $item->category ?? '')
+                            ->sortBy(fn ($items, $category) => $category === '' ? [1, ''] : [0, mb_strtolower($category)]);
+                        $showHeadings = $groups->count() > 1 || $groups->keys()->first() !== '';
+                    @endphp
+                    <div class="flex flex-col gap-2 mt-2 overflow-y-auto max-h-72">
+                        @forelse ($groups as $category => $items)
+                            <div class="flex flex-col gap-2" @if($showHeadings) role="group" aria-labelledby="request-group-{{ $loop->index }}" @endif data-request-group>
+                                @if($showHeadings)
+                                    <p id="request-group-{{ $loop->index }}"
+                                       class="sticky top-0 z-10 pt-1 pb-0.5 text-xs font-semibold tracking-widest uppercase bg-white text-neutral-600 {{ $loop->first ? '' : 'mt-2' }}">
+                                        {{ $category === '' ? 'Other' : $category }}
+                                    </p>
+                                @endif
+                                @foreach ($items as $item)
+                                    @php $none = $item->available_quantity < 1; @endphp
+                                    <label class="flex items-center gap-3 rounded-lg border px-3 py-2.5 transition
+                                                  {{ $none ? 'cursor-not-allowed border-neutral-200 bg-neutral-50' : 'cursor-pointer border-neutral-300 hover:border-primary-300 has-[:checked]:border-primary-400 has-[:checked]:bg-primary-50' }}">
+                                        <input type="radio" name="equipment_id" value="{{ $item->id }}" required @disabled($none)
+                                               data-available="{{ $item->available_quantity }}"
+                                               class="w-4 h-4 shrink-0 accent-primary-600 request-equipment">
+                                        <span class="flex-1 min-w-0 text-base {{ $none ? 'text-neutral-500' : 'text-neutral-900' }}">
+                                            {{ $item->equipment_name }}
+                                        </span>
+                                        <span class="text-sm shrink-0 {{ $none ? 'text-danger-700' : 'text-neutral-600' }}">
+                                            {{ $none ? 'None left' : $item->available_quantity.' of '.$item->quantity.' free' }}
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
                         @empty
                             <p class="px-3 py-4 text-base text-neutral-600">There is no equipment on the shelf right now.</p>
                         @endforelse

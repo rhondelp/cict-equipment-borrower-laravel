@@ -84,14 +84,14 @@ class DatabaseSeeder extends Seeder
     private function seedEquipment(): void
     {
         $items = [
-            ['equipment_name' => 'Laptop (Dell Latitude)',  'description' => '14-inch laptop for classroom use',                 'quantity' => 10, 'available_quantity' => 10, 'status' => 'Available'],
-            ['equipment_name' => 'Projector (Epson)',      'description' => 'Portable projector for presentations',              'quantity' => 4,  'available_quantity' => 4,  'status' => 'Available'],
-            ['equipment_name' => 'HDMI Cable',             'description' => '3m HDMI cable for projector / monitor hookups',     'quantity' => 20, 'available_quantity' => 20, 'status' => 'Available'],
-            ['equipment_name' => 'Wireless Presenter',     'description' => 'Slide advancer with USB receiver',                 'quantity' => 8,  'available_quantity' => 8,  'status' => 'Available'],
-            ['equipment_name' => 'Extension Cord',         'description' => '5m heavy-duty extension cord',                     'quantity' => 12, 'available_quantity' => 12, 'status' => 'Available'],
-            ['equipment_name' => 'Document Camera',        'description' => 'Visualizer for projecting documents',              'quantity' => 2,  'available_quantity' => 2,  'status' => 'Available'],
-            ['equipment_name' => 'Microphone Set',         'description' => 'Wireless lapel + handheld microphone pair',        'quantity' => 3,  'available_quantity' => 3,  'status' => 'Available'],
-            ['equipment_name' => 'Whiteboard Markers',     'description' => 'Pack of 4 assorted colors',                        'quantity' => 30, 'available_quantity' => 30, 'status' => 'Available'],
+            ['equipment_name' => 'Laptop (Dell Latitude)',  'description' => '14-inch laptop for classroom use',                 'category' => 'Computers', 'quantity' => 10, 'available_quantity' => 10, 'status' => 'Available'],
+            ['equipment_name' => 'Projector (Epson)',      'description' => 'Portable projector for presentations',              'category' => 'Display', 'quantity' => 4,  'available_quantity' => 4,  'status' => 'Available'],
+            ['equipment_name' => 'HDMI Cable',             'description' => '3m HDMI cable for projector / monitor hookups',     'category' => 'Cables & power', 'quantity' => 20, 'available_quantity' => 20, 'status' => 'Available'],
+            ['equipment_name' => 'Wireless Presenter',     'description' => 'Slide advancer with USB receiver',                 'category' => 'Presenting & audio', 'quantity' => 8,  'available_quantity' => 8,  'status' => 'Available'],
+            ['equipment_name' => 'Extension Cord',         'description' => '5m heavy-duty extension cord',                     'category' => 'Cables & power', 'quantity' => 12, 'available_quantity' => 12, 'status' => 'Available'],
+            ['equipment_name' => 'Document Camera',        'description' => 'Visualizer for projecting documents',              'category' => 'Display', 'quantity' => 2,  'available_quantity' => 2,  'status' => 'Available'],
+            ['equipment_name' => 'Microphone Set',         'description' => 'Wireless lapel + handheld microphone pair',        'category' => 'Presenting & audio', 'quantity' => 3,  'available_quantity' => 3,  'status' => 'Available'],
+            ['equipment_name' => 'Whiteboard Markers',     'description' => 'Pack of 4 assorted colors',                        'category' => 'Classroom supplies', 'quantity' => 30, 'available_quantity' => 30, 'status' => 'Available'],
         ];
 
         foreach ($items as $row) {
@@ -99,6 +99,7 @@ class DatabaseSeeder extends Seeder
                 ['equipment_name' => $row['equipment_name']],
                 [
                     'description'        => $row['description'],
+                    'category'           => $row['category'],
                     'quantity'           => $row['quantity'],
                     'available_quantity' => $row['available_quantity'],
                     'status'             => $row['status'],

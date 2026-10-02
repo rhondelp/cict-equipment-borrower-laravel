@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-10-02
+
+- **Equipment now has a category, and borrowers see the request list grouped by it.** The equipment form has a new optional **Category** field. It suggests the categories already in use and also accepts a new one, so there is no separate screen for managing categories. The value lives in a new nullable `equipment.category` column (60 characters, indexed; migration `2026_10_02_120000_add_category_to_equipment`). A column was chosen over a categories table because the department has a handful of item types, and a dedicated add/rename/delete screen would cost more than it saves.
+
+  **The list cannot quietly split.** Free text normally drifts: "Cables", "cables" and "Cables " become three groups on the borrower's screen. `Equipment::canonicalCategory()` runs on every create and update. It trims, collapses inner whitespace and stores a blank as `null`. If the value matches an existing category ignoring case, it saves the existing spelling, so typing `presenting & AUDIO` files the item under `Presenting & audio`. A genuinely new name is kept exactly as typed rather than auto-cased, because title-casing would mangle "HDMI" or "USB-C adapters". Validation is `nullable|string|max:60`, on the existing admin-only routes.
+
+  **Where borrowers see it.** In the **Request equipment** modal, items now sit under small uppercase headings: named groups A–Z, then anything without a category under "Other". The headings stick to the top of the list while it scrolls, and the list is a little taller (`max-h-72`, was `max-h-56`) to make room for them. Each group is a `role="group"` labelled by its heading. When no item has a category, no heading is drawn and the list reads exactly as before, so an install that never sets categories sees no change. Items with nothing left stay disabled inside their group. On the dashboard's **On the shelf now** panel, the category follows the stock count ("12 of 12 free · Cables & power"). The count comes first, so a long category is what gets truncated, not the number. The admin inventory list does not show categories yet; the field is visible in the add/edit dialog only. The seeder gives its eight demo items categories.
+
+  **Verification.** `php artisan test`: **357 passed**, up from 345. The new `EquipmentCategoryTest` has 12 tests:
+  - the category saves on create;
+  - a typed variant reuses the existing spelling, and a new name keeps its casing with spaces collapsed;
+  - a blank is stored as `null`;
+  - editing changes and clears it;
+  - 61 characters is refused;
+  - a borrower posting to the update route cannot change it;
+  - the form's datalist and the edit button's prefill render;
+  - the request list orders groups A–Z with "Other" last;
+  - no headings render when nothing is categorised;
+  - an item with none left stays disabled;
+  - the shelf label follows the count.
+
+  In headless Chrome at 1280px and 390px against a scratch SQLite database: the five headings render in order, the first stays pinned while the list scrolls, the shelf labels show, there is no horizontal overflow and no JS errors. The admin dialog prefilled on edit, and saving `presenting & AUDIO` stored `Presenting & audio`. `vendor/bin/pint --test`: no new issues over the 9-file baseline. `npm run build` was run.
+
 ## 2026-10-01
 
 - **Fixed: Decline on the requests queue did nothing.** Clicking **Decline** threw `TypeError: Cannot set properties of null (setting 'textContent')` and the reason dialog never opened, so no request could be declined. The click handler in `admin/request.blade.php` filled the dialog's summary line with `form.querySelector('[data-decline-summary]')`, but that line sits in the dialog header, outside `#decline-form`. The lookup returned `null`, the handler threw, and `openModal` was never reached. It is now scoped to `#decline-modal`. The server side, `ItemRequestController::requestActions`, was always correct.

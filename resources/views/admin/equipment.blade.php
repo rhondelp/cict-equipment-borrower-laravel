@@ -166,6 +166,7 @@
                                         data-id="{{ $item->id }}"
                                         data-name="{{ $item->equipment_name }}"
                                         data-description="{{ $item->description }}"
+                                        data-category="{{ $item->category }}"
                                         data-quantity="{{ $item->quantity }}"
                                         data-out="{{ $out }}">
                                     <i class="text-base fas fa-pen" aria-hidden="true"></i>
@@ -226,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const idField = document.getElementById('equipment-id');
     const nameField = document.getElementById('equipment-name');
     const descField = document.getElementById('equipment-description');
+    const categoryField = document.getElementById('equipment-category');
     const qtyField = document.getElementById('equipment-quantity');
     const submit = modal.querySelector('[data-equipment-submit]');
     const hint = modal.querySelector('[data-equipment-hint]');
@@ -286,6 +288,7 @@ document.addEventListener('DOMContentLoaded', function () {
         idField.value = editing ? data.id : '';
         nameField.value = editing ? data.name : '';
         descField.value = editing ? (data.description || '') : '';
+        categoryField.value = editing ? (data.category || '') : '';
         qtyField.value = editing ? data.quantity : 1;
         qtyField.min = editing ? Math.max(unitsOut, 0) : 1;
 

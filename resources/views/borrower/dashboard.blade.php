@@ -336,8 +336,13 @@
                                 class="flex w-full items-center gap-3 border-b border-neutral-100 px-4 py-2.5 text-left transition {{ $shelf->count() > $shelfLimit ? '' : 'last:border-b-0' }} disabled:cursor-not-allowed enabled:hover:bg-neutral-50">
                             <span class="flex-1 min-w-0">
                                 <span class="block text-sm font-medium truncate {{ $none ? 'text-neutral-500' : 'text-neutral-900' }}">{{ $item->equipment_name }}</span>
-                                <span class="block text-xs {{ $none ? 'text-danger-700' : 'text-neutral-600' }}">
-                                    {{ $none ? 'None left' : $item->available_quantity.' of '.$item->quantity.' free' }}
+                                <span class="block text-xs truncate">
+                                    {{-- Stock first: when a long category runs out of
+                                         room, the truncation eats the label, not the count. --}}
+                                    <span class="{{ $none ? 'text-danger-700' : 'text-neutral-600' }}">{{ $none ? 'None left' : $item->available_quantity.' of '.$item->quantity.' free' }}</span>
+                                    @if($item->category)
+                                        <span class="text-neutral-500" data-shelf-category>· {{ $item->category }}</span>
+                                    @endif
                                 </span>
                             </span>
                             <span class="w-[42px] h-1 overflow-hidden rounded-full shrink-0 bg-[oklch(0.94_0.006_258)]" aria-hidden="true" data-shelf-track>

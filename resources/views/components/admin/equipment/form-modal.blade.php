@@ -1,5 +1,5 @@
 {{-- Add / edit equipment — one modal for both, because they ask for the same
-     three things.
+     four things.
 
      Two fields that used to be here are gone:
 
@@ -40,6 +40,24 @@
                            placeholder="e.g. Projector (Epson)"
                            class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
                     <p data-error-for="equipment-name" class="mt-2 text-sm font-medium text-danger-700" hidden></p>
+                </div>
+
+                {{-- Pick one already in use or type a new one. The server folds
+                     "cables" onto an existing "Cables", so a slip of the shift
+                     key does not split the borrower's list into two groups. --}}
+                <div>
+                    <label for="equipment-category" class="flex items-baseline gap-2 text-base font-medium text-neutral-800">
+                        Category <span class="text-sm font-normal text-neutral-600">optional</span>
+                    </label>
+                    <input type="text" id="equipment-category" name="category" maxlength="60" list="equipment-categories"
+                           autocomplete="off" placeholder="e.g. Projectors"
+                           class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                    <datalist id="equipment-categories">
+                        @foreach($categories ?? [] as $category)
+                            <option value="{{ $category }}"></option>
+                        @endforeach
+                    </datalist>
+                    <p class="mt-2 text-sm text-neutral-600">Borrowers see equipment grouped by this when they make a request.</p>
                 </div>
 
                 <div>
