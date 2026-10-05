@@ -11,7 +11,28 @@ class Equipment extends Model
     //
     protected $table = 'equipment';
 
-    protected $fillable = ['equipment_name', 'description', 'category', 'quantity', 'available_quantity', 'status', 'retired_at'];
+    protected $fillable = ['equipment_name', 'description', 'category', 'loan_type', 'quantity', 'available_quantity', 'status', 'retired_at'];
+
+    /**
+     * How an item leaves the room. Returnable is lent and brought back by a due
+     * date; time-limited is lent for hours and due back at a time of day;
+     * non-returnable is handed over for good and recorded as Issued.
+     */
+    public const LOAN_RETURNABLE = 'returnable';
+
+    public const LOAN_TIME_LIMITED = 'time_limited';
+
+    public const LOAN_NON_RETURNABLE = 'non_returnable';
+
+    /** Stored key => the label a screen shows. */
+    public const LOAN_TYPES = [
+        self::LOAN_RETURNABLE => 'Returnable',
+        self::LOAN_TIME_LIMITED => 'Time-Limited',
+        self::LOAN_NON_RETURNABLE => 'Non-Returnable',
+    ];
+
+    /** Mirrors the column default, so an unsaved model answers the same way. */
+    protected $attributes = ['loan_type' => self::LOAN_RETURNABLE];
 
     protected function casts(): array
     {
@@ -97,6 +118,26 @@ class Equipment extends Model
             ->pluck('category');
     }
 
+    public function isReturnable(): bool
+    {
+        return $this->loan_type === self::LOAN_RETURNABLE;
+    }
+
+    public function isTimeLimited(): bool
+    {
+        return $this->loan_type === self::LOAN_TIME_LIMITED;
+    }
+
+    public function isNonReturnable(): bool
+    {
+        return $this->loan_type === self::LOAN_NON_RETURNABLE;
+    }
+
+    public function loanTypeLabel(): string
+    {
+        return self::LOAN_TYPES[$this->loan_type] ?? self::LOAN_TYPES[self::LOAN_RETURNABLE];
+    }
+
     public function isRetired(): bool
     {
         return $this->retired_at !== null;
@@ -121,6 +162,31 @@ class Equipment extends Model
             ->sum('quantity');
     }
 
+    /**
+     * Units handed over for good on non-voided Issued transactions. They are
+     * not "out" — nothing is coming back — but they have left the shelf, so
+     * they come off the available figure for as long as the hand-over stands.
+     * Voiding the transaction puts them back.
+     */
+    public function unitsIssued(): int
+    {
+        return (int) $this->borrowTransactions()
+            ->whereNull('voided_at')
+            ->where('status', 'Issued')
+            ->sum('quantity');
+    }
+
+    /**
+     * What available_quantity should read, worked out from the transactions
+     * rather than trusted: total owned, less units on loan, less units issued.
+     * EquipmentController::update writes this on every edit, which also
+     * repairs drift.
+     */
+    public function derivedAvailableQuantity(): int
+    {
+        return (int) $this->quantity - $this->unitsOut() - $this->unitsIssued();
+    }
+
     /** Loans and requests that would disappear with a hard delete. */
     public function historyCount(): int
     {
@@ -135,6 +201,11 @@ class Equipment extends Model
     public function outNow(): int
     {
         return isset($this->attributes['units_out']) ? (int) $this->attributes['units_out'] : $this->unitsOut();
+    }
+
+    public function issuedNow(): int
+    {
+        return isset($this->attributes['units_issued']) ? (int) $this->attributes['units_issued'] : $this->unitsIssued();
     }
 
     public function referencesCount(): int

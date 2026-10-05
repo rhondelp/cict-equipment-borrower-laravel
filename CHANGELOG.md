@@ -1,5 +1,49 @@
 # Changelog
 
+## 2026-10-05
+
+- **Foundation for loan types: time-limited loans, non-returnable items, and an `Issued` status.** This is schema and model logic only. No screen, form or route offers any of it yet, and every existing screen reads exactly as before. Three migrations:
+  - `2026_10_05_120000_add_loan_type_to_equipment` adds `equipment.loan_type` (string 20, indexed, default `returnable`), after `category`. `category` is untouched: it is free-text grouping and says nothing about whether an item comes back.
+  - `2026_10_05_120100_add_times_to_borrow_transactions` turns `borrow_date` and `return_date` into DATETIME (`return_date` stays nullable) and adds `timed`, a boolean defaulting to false. MySQL keeps every existing date at `00:00:00`.
+  - `2026_10_05_120200_add_issued_to_borrow_transaction_status` widens the status enum to Borrowed, Returned, Overdue, Issued, using `->change()`, which needs no raw SQL on MariaDB 10.4 or SQLite.
+
+  **A rollback refuses rather than truncates.** Going back to DATE would discard the due time of every timed loan, and shrinking the enum would reject or blank every Issued row. Neither has an honest fallback, so each `down()` counts the affected rows and throws with the number if there are any. With none, it rolls back cleanly.
+
+  **Two kinds of due date, one place that tells them apart.** `BorrowTransaction::dueAt()` returns `return_date` for a timed loan and `return_date->endOfDay()` for a date-only one. `isOverdue()` is now `isOut() && dueAt() < now()`. For a date-only loan that is the same rule as before, "overdue from the day after it is due", only stated as a moment. The casts moved from `date` to `datetime`, and `timed` is cast to boolean and fillable.
+
+  **Issued is not out.** A non-returnable hand-over has nothing coming back, so `isIssued()` is true for a non-voided `Issued` row, `isOut()` is unchanged and excludes it, and it can never be overdue. `derivedStatus()` checks Void, then Issued, then Returned, then Overdue/Out, and `statusTone('Issued')` is `neutral`. The units still leave the shelf. `Equipment::unitsIssued()` sums non-voided Issued quantities, `derivedAvailableQuantity()` is `quantity − unitsOut() − unitsIssued()`, and voiding the row puts them back in that figure. `quantity` keeps counting issued units as owned.
+
+  **The one controller change.** `EquipmentController::update` recomputes `available_quantity` on every edit, and it now subtracts issued units too. Without that, the next edit of an item would quietly put issued units back on the shelf. It also refuses a total below out + issued; the existing "still out on loan" message is unchanged, and a second message names the issued units. The index query gains a `units_issued` `withSum` next to `units_out`, read by `Equipment::issuedNow()`. Both changes are no-ops while no Issued rows exist, which is the case today.
+
+  **Equipment loan types.** Three constants, `LOAN_RETURNABLE`, `LOAN_TIME_LIMITED` and `LOAN_NON_RETURNABLE`, plus `LOAN_TYPES` mapping each to its label: Returnable, Time-Limited, Non-Returnable. There are `isReturnable()`, `isTimeLimited()`, `isNonReturnable()` and `loanTypeLabel()`, and `loan_type` is fillable. The model's `$attributes` default matches the column's, so an unsaved item answers Returnable too.
+
+  **Labels.** Date-only loans render exactly as before. Timed loans carry times: "Oct 5, 2:30 PM → 3:30 PM", or both dates when the loan crosses midnight. Their timing reads "due in 25 min", "due at 3:30 PM", "due tomorrow, 9:00 AM", "10 min late", "2 hr late", then days. A returned timed loan is judged by the return log's `created_at`, because `return_logs.return_date` is still a DATE column and would make every same-day late return look on time. Issued rows read "Issued Oct 5" and "issued". Their `dateLine()` is just "Issued Oct 5", since "Issued Oct 5 · issued" says it twice. `daysUntilDue()` stays in calendar days for both kinds, so the "due today" counters keep their meaning, and it is null for Issued. `bookingKey()` is unchanged for date-only loans; a timed loan is keyed to the minute, so a morning and an afternoon session on the same day are two bookings, while loans saved seconds apart in one submit stay together.
+
+  **Not handled yet, on purpose.** `BorrowTransactionController::void` releases stock only for an open loan, so voiding an Issued row would not restore `available_quantity` until the item is next edited. The overdue queries that compare against a date string (`return_date < today` in the borrowing block, the nightly sweep, the users screen) work for date-only loans but cannot see a timed loan's time. Both belong with the screens that create these rows.
+
+  **Verification.** `php artisan test`: **370 passed**, up from 357. The new `LoanTypesModelTest` has 13 tests:
+  - the schema, including the column default on a raw insert;
+  - the loan type labels and predicates;
+  - a date-only loan due today is not overdue at 23:59:59 and is at 00:00:01 the next day;
+  - a timed loan due an hour ago is overdue and reads "1 hr late";
+  - "due in 25 min", "10 min late", "due at 3:30 PM" and "2 days late";
+  - a cross-midnight range;
+  - a timed return logged 15 minutes late reading late;
+  - Issued never out or overdue, even with a past timed due date;
+  - Void winning over Issued;
+  - issued units reducing derived availability and voiding restoring it;
+  - the edit route recomputing without issued units and refusing a total below out + issued, with the index aggregate agreeing;
+  - existing date-only rows, including one inserted as `00:00:00` behind the model, rendering the same lines as before;
+  - booking keys.
+
+  **Migration run on a copy, not the dev database.** XAMPP's MySQL was not running. The data directory was copied to the scratchpad and served by a separate `mysqld` on port 3307, with every InnoDB path redirected to the copy. Two results on that copy:
+  - The pending 2 Oct category migration and the three new ones ran. The five existing loans were rendered through the **committed** models before, and through the new models after: `dateLine()`, `derivedStatus()` and `bookingKey()` are byte-identical. All three foreign keys survived the ALTER.
+  - Each rollback guard fired on a probe row. A clean rollback restored DATE columns, and re-migrating worked.
+
+  **Your dev database has not been migrated.** Run `php artisan migrate` once MySQL is up. Separately, `C:\xampp\mysql\data\multi-master.info` holds InnoDB error-log lines from 27 Sept, which stopped the copy from starting until it was moved aside there, and is likely why MySQL won't start. The same log shows "log sequence number is in the future" warnings since then. Neither was touched in the real directory.
+
+  `npm run build` was run and changed nothing tracked. `vendor/bin/pint --test`: all 7 touched files pass, and the 9-file baseline is unchanged.
+
 ## 2026-10-02
 
 - **Equipment now has a category, and borrowers see the request list grouped by it.** The equipment form has a new optional **Category** field. It suggests the categories already in use and also accepts a new one, so there is no separate screen for managing categories. The value lives in a new nullable `equipment.category` column (60 characters, indexed; migration `2026_10_02_120000_add_category_to_equipment`). A column was chosen over a categories table because the department has a handful of item types, and a dedicated add/rename/delete screen would cost more than it saves.

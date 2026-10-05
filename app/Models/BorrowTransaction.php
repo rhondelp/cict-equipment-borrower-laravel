@@ -8,13 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 class BorrowTransaction extends Model
 {
     //
-    protected $fillable = ['user_id', 'equipment_id', 'borrow_date', 'return_date', 'quantity', 'purpose', 'status', 'remarks', 'class_schedule_id', 'voided_at', 'void_reason'];
+    protected $fillable = ['user_id', 'equipment_id', 'borrow_date', 'return_date', 'quantity', 'purpose', 'status', 'remarks', 'class_schedule_id', 'voided_at', 'void_reason', 'timed'];
 
     protected function casts(): array
     {
         return [
-            'borrow_date' => 'date',
-            'return_date' => 'date',
+            'borrow_date' => 'datetime',
+            'return_date' => 'datetime',
+            'timed' => 'boolean',
             'voided_at' => 'datetime',
         ];
     }
@@ -57,6 +58,11 @@ class BorrowTransaction extends Model
      | targets. What a screen *shows*, though, is worked out here from the due
      | date every time it renders — so a loan reads as overdue the morning it
      | becomes overdue, not the morning after the job next runs.
+     |
+     | Two kinds of due date. A date-only loan (`timed` false, stored at
+     | 00:00:00) is due by the end of its return day. A timed loan is due at the
+     | exact return_date. dueAt() is the one place that tells them apart.
+     | An Issued transaction is a hand-over for good: never out, never overdue.
      --------------------------------------------------------------------- */
 
     public function isVoided(): bool
@@ -75,18 +81,40 @@ class BorrowTransaction extends Model
         return ! $this->isVoided() && in_array($this->status, ['Borrowed', 'Overdue'], true);
     }
 
-    public function isOverdue(): bool
+    /** Handed over for good: the units left the shelf and nothing is due back. */
+    public function isIssued(): bool
     {
-        return $this->isOut()
-            && $this->return_date !== null
-            && $this->return_date->startOfDay()->lt(now()->startOfDay());
+        return ! $this->isVoided() && $this->status === 'Issued';
     }
 
-    /** 'Void' | 'Returned' | 'Overdue' | 'Out' */
+    /**
+     * The moment the loan becomes late. Timed loans are due at return_date
+     * itself; date-only loans have the whole of their return day.
+     */
+    public function dueAt(): ?CarbonInterface
+    {
+        if ($this->return_date === null) {
+            return null;
+        }
+
+        return $this->timed ? $this->return_date->copy() : $this->return_date->copy()->endOfDay();
+    }
+
+    public function isOverdue(): bool
+    {
+        $due = $this->dueAt();
+
+        return $this->isOut() && $due !== null && $due->lt(now());
+    }
+
+    /** 'Void' | 'Issued' | 'Returned' | 'Overdue' | 'Out' */
     public function derivedStatus(): string
     {
         if ($this->isVoided()) {
             return 'Void';
+        }
+        if ($this->isIssued()) {
+            return 'Issued';
         }
         if ($this->isReturned()) {
             return 'Returned';
@@ -100,29 +128,41 @@ class BorrowTransaction extends Model
         return match ($this->derivedStatus()) {
             'Overdue' => 'danger',
             'Returned' => 'success',
-            'Void' => 'neutral',
+            'Void', 'Issued' => 'neutral',
             default => 'primary',
         };
     }
 
-    /** Whole days past the due date; 0 when not overdue. */
+    /**
+     * Whole days past the due date; 0 when not overdue. Date-only loans count
+     * calendar days. Timed loans count whole 24-hour periods since dueAt(), so
+     * one that is 40 minutes late reads 0 here and timingLabel() says the rest.
+     */
     public function daysLate(): int
     {
         if (! $this->isOverdue()) {
             return 0;
         }
 
-        return (int) $this->return_date->startOfDay()->diffInDays(now()->startOfDay());
+        if ($this->timed) {
+            return (int) floor($this->dueAt()->diffInDays(now()));
+        }
+
+        return (int) $this->return_date->copy()->startOfDay()->diffInDays(now()->startOfDay());
     }
 
-    /** Whole days until the due date; negative once it has passed. */
+    /**
+     * Calendar days from today to the due day; negative once that day has
+     * passed, null with no due date or for an issued item. Calendar days for
+     * both kinds of loan, so the "due today" counters mean the same thing.
+     */
     public function daysUntilDue(): ?int
     {
-        if ($this->return_date === null) {
+        if ($this->return_date === null || $this->isIssued()) {
             return null;
         }
 
-        return (int) now()->startOfDay()->diffInDays($this->return_date->startOfDay(), false);
+        return (int) now()->startOfDay()->diffInDays($this->return_date->copy()->startOfDay(), false);
     }
 
     /**
@@ -131,7 +171,18 @@ class BorrowTransaction extends Model
      */
     public function bookingKey(): string
     {
-        return $this->borrow_date?->toDateString().'|'.$this->return_date?->toDateString().'|'.trim((string) $this->purpose);
+        return $this->bookingMoment($this->borrow_date).'|'.$this->bookingMoment($this->return_date).'|'.trim((string) $this->purpose);
+    }
+
+    /**
+     * A date-only loan keys on its day, exactly as before the columns became
+     * datetimes. A timed loan keys on the minute, so two sessions on the same
+     * day are two bookings while loans saved seconds apart in one submit
+     * still fall together.
+     */
+    private function bookingMoment(?CarbonInterface $date): ?string
+    {
+        return $this->timed ? $date?->format('Y-m-d H:i') : $date?->toDateString();
     }
 
     /** Every non-voided loan of this borrower in the same booking, this one included. */
@@ -152,9 +203,28 @@ class BorrowTransaction extends Model
             ->values();
     }
 
-    /** "Sep 10 → Sep 17" — never a raw ISO date. */
+    /**
+     * "Sep 10 → Sep 17" — never a raw ISO date. A timed loan carries times,
+     * and drops the second date when it comes back the same day:
+     * "Oct 5, 2:30 PM → 3:30 PM". An issued item reads "Issued Oct 5".
+     */
     public function dateRangeLabel(): string
     {
+        if ($this->status === 'Issued') {
+            return 'Issued '.$this->formatDay($this->borrow_date);
+        }
+
+        if ($this->timed) {
+            $from = $this->formatMoment($this->borrow_date);
+            $to = match (true) {
+                $this->return_date === null => 'open',
+                $this->borrow_date?->isSameDay($this->return_date) === true => $this->return_date->format('g:i A'),
+                default => $this->formatMoment($this->return_date),
+            };
+
+            return $from.' → '.$to;
+        }
+
         $from = $this->formatDay($this->borrow_date);
         $to = $this->return_date ? $this->formatDay($this->return_date) : 'open';
 
@@ -169,6 +239,14 @@ class BorrowTransaction extends Model
     {
         if ($this->isVoided()) {
             return 'voided';
+        }
+
+        if ($this->isIssued()) {
+            return 'issued';
+        }
+
+        if ($this->timed) {
+            return $this->timedTimingLabel();
         }
 
         if ($this->isReturned()) {
@@ -202,14 +280,89 @@ class BorrowTransaction extends Model
         };
     }
 
-    /** The whole line: "Sep 10 → Sep 17 · 3 days late". */
+    /**
+     * The whole line: "Sep 10 → Sep 17 · 3 days late". An issued item has no
+     * timing to report, so its line is just "Issued Oct 5".
+     */
     public function dateLine(): string
     {
+        if ($this->isIssued()) {
+            return $this->dateRangeLabel();
+        }
+
         return $this->dateRangeLabel().' · '.$this->timingLabel();
+    }
+
+    /**
+     * timingLabel() for a loan due at a time of day: "due in 25 min",
+     * "due at 3:30 PM", "10 min late", "2 hr late", "3 days late".
+     *
+     * A return is judged against the moment it was logged (the log's
+     * created_at), because return_logs.return_date is a DATE column and would
+     * make every same-day return look on time.
+     */
+    private function timedTimingLabel(): string
+    {
+        $due = $this->dueAt();
+
+        if ($this->isReturned()) {
+            $log = $this->relationLoaded('returnLog') ? $this->returnLog : $this->returnLog()->first();
+            $returnedAt = $log?->created_at;
+
+            if ($returnedAt && $due && $returnedAt->gt($due)) {
+                return $this->lateLabel($due, $returnedAt);
+            }
+
+            return 'returned on time';
+        }
+
+        if ($due === null) {
+            return 'no due date';
+        }
+
+        $now = now();
+
+        if ($due->lt($now)) {
+            return $this->lateLabel($due, $now);
+        }
+
+        $minutes = (int) ceil($now->diffInMinutes($due));
+
+        return match (true) {
+            $minutes === 0 => 'due now',
+            $minutes < 60 => 'due in '.$minutes.' min',
+            $due->isSameDay($now) => 'due at '.$due->format('g:i A'),
+            $due->isSameDay($now->copy()->addDay()) => 'due tomorrow, '.$due->format('g:i A'),
+            default => 'due '.$this->formatMoment($due),
+        };
+    }
+
+    /** "10 min late" under an hour, "2 hr late" under a day, then days. */
+    private function lateLabel(CarbonInterface $due, CarbonInterface $at): string
+    {
+        $minutes = (int) ceil($due->diffInMinutes($at));
+
+        if ($minutes < 60) {
+            return $minutes.' min late';
+        }
+
+        if ($minutes < 24 * 60) {
+            return intdiv($minutes, 60).' hr late';
+        }
+
+        $days = intdiv($minutes, 24 * 60);
+
+        return $days.' '.str('day')->plural($days).' late';
     }
 
     private function formatDay(?CarbonInterface $date): string
     {
         return $date ? $date->format('M j') : '—';
+    }
+
+    /** "Oct 5, 2:30 PM" */
+    private function formatMoment(?CarbonInterface $date): string
+    {
+        return $date ? $date->format('M j, g:i A') : '—';
     }
 }

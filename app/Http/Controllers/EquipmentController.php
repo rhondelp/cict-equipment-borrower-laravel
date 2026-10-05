@@ -43,7 +43,7 @@ class EquipmentController extends Controller
      * Only the total owned is editable, and it cannot be pushed below the units
      * that are out with borrowers: "3 units are out on loan" is a fact about
      * the loans, not a number an admin gets to overrule. Availability is then
-     * recomputed as total − out, which also repairs any drift.
+     * recomputed as total − out − issued, which also repairs any drift.
      */
     public function update(Request $request)
     {
@@ -65,11 +65,19 @@ class EquipmentController extends Controller
                     .' '.($out === 1 ? 'is' : 'are').' still out on loan, so the total cannot go below '.$out.'. Check them in first.'];
             }
 
+            // Issued units left for good but still count in the total owned.
+            $issued = $equipment->unitsIssued();
+            if ($validated['quantity'] < $out + $issued) {
+                return ['error' => $issued.' '.str('unit')->plural($issued).' of '.$equipment->equipment_name
+                    .' '.($issued === 1 ? 'has' : 'have').' been issued and '.$out.' '.($out === 1 ? 'is' : 'are')
+                    .' out on loan, so the total cannot go below '.($out + $issued).'.'];
+            }
+
             $equipment->equipment_name = $validated['equipment_name'];
             $equipment->description = $validated['description'] ?? null;
             $equipment->category = $validated['category'];
             $equipment->quantity = $validated['quantity'];
-            $equipment->available_quantity = $validated['quantity'] - $out;
+            $equipment->available_quantity = $validated['quantity'] - $out - $issued;
             $equipment->status = $equipment->lendableStatus();
             $equipment->save();
 
@@ -162,6 +170,10 @@ class EquipmentController extends Controller
             ->withSum([
                 'borrowTransactions as units_out' => fn ($query) => $query->whereNull('voided_at')
                     ->whereIn('status', ['Borrowed', 'Overdue']),
+            ], 'quantity')
+            ->withSum([
+                'borrowTransactions as units_issued' => fn ($query) => $query->whereNull('voided_at')
+                    ->where('status', 'Issued'),
             ], 'quantity');
     }
 }

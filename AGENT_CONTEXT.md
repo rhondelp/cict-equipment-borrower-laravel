@@ -184,12 +184,24 @@ offer instead of a hard delete: `equipment.retired_at`, `users.deactivated_at`,
 | Model | Table | Key fields | Relationships |
 |---|---|---|---|
 | `User` | `users` | `user_type` (enum Admin/Instructor/Student), `name`, `email` (unique), `password` (hashed cast), `contact_number`, `deactivated_at`, `instructor_requested_at` | hasMany `borrowTransactions`, `itemRequests`, `notifications`, `classSchedules` |
-| `Equipment` | `equipment` (explicit `$table`) | `equipment_name`, `description`, `category` (nullable free text, max 60, indexed; set only through `Equipment::canonicalCategory()`), `quantity` (total owned), `available_quantity` (on shelf), `status` (enum Available/Unavailable, **derived**), `retired_at` (nullable) | hasMany `borrowTransactions`, `itemRequests` |
+| `Equipment` | `equipment` (explicit `$table`) | `equipment_name`, `description`, `category` (nullable free text, max 60, indexed; set only through `Equipment::canonicalCategory()`), `loan_type` (string 20, indexed, default `returnable`; one of `Equipment::LOAN_TYPES`: `returnable` / `time_limited` / `non_returnable`, labels Returnable / Time-Limited / Non-Returnable), `quantity` (total owned, issued units included), `available_quantity` (on shelf), `status` (enum Available/Unavailable, **derived**), `retired_at` (nullable) | hasMany `borrowTransactions`, `itemRequests` |
 | `ItemRequest` | `item_requests` | `user_id`, `equipment_id`, `quantity`, `status` (string: Pending/Approved/Declined), `requested_date`, `remarks`, `decision_reason`, `decided_at`, `decided_by` | belongsTo `user`, `equipment`, `decider` |
-| `BorrowTransaction` | `borrow_transactions` | `user_id`, `equipment_id`, `borrow_date`, `return_date` (nullable), `quantity`, `purpose`, `status` (enum Borrowed/Returned/Overdue), `remarks`, `class_schedule_id` (nullable, `onDelete('set null')`), `voided_at`, `void_reason` | belongsTo `user`, `equipment`, `classSchedule`; hasOne `returnLog` |
+| `BorrowTransaction` | `borrow_transactions` | `user_id`, `equipment_id`, `borrow_date` (DATETIME), `return_date` (DATETIME, nullable), `timed` (bool, default false), `quantity`, `purpose`, `status` (enum Borrowed/Returned/Overdue/Issued), `remarks`, `class_schedule_id` (nullable, `onDelete('set null')`), `voided_at`, `void_reason` | belongsTo `user`, `equipment`, `classSchedule`; hasOne `returnLog` |
 | `ReturnLog` | `return_logs` | `borrow_transaction_id`, `user_id` (the *staff receiver*, nullable, `set null`), `return_date`, `condition`, `remarks` | belongsTo `borrowTransaction`, `receiver` (User via `user_id`); hasOneThrough `borrower` (User via transaction) and `equipment` (via transaction) |
 | `ClassSchedule` | `class_schedules` | `user_id` (the instructor), `year_level`, `block_name`, `subject_code`, `subject_name`, `schedule_time`, `room` | belongsTo `instructor` (User via `user_id`); hasMany `borrowTransactions` |
 | `Notification` | `notifications` | `user_id`, `message`, `notification_type` (e.g. `Return Notice`), `send_date` (dateTime) | belongsTo `user` |
+
+**Loan dates are DATETIME since 5 Oct 2026** (migration `2026_10_05_120100_add_times_to_borrow_transactions`),
+cast `datetime`. A date-only loan (`timed` false) is stored at `00:00:00` and is due by the end of
+that day; a timed loan (`timed` true) is due at the exact `return_date`. Ask `dueAt()`, never compare
+`return_date` yourself. Queries that compare against a date string (`whereDate`, `return_date < ?today`)
+still behave as before for date-only rows, but they **do not see the time of a timed loan**: a
+timed loan due at 2 PM today is not caught by `return_date < today` until tomorrow. Both `down()`s
+of the 5 Oct migrations refuse to run while timed or `Issued` rows exist, rather than truncating them.
+`return_logs.return_date` is still a DATE column (cast `datetime`), so it holds no time of day.
+
+**`Issued`** is the status of a non-returnable hand-over. Nothing writes it yet: the model,
+schema and stock arithmetic are in place, and no controller or screen offers it.
 
 `App\Models\Notification` is a custom table, unrelated to the framework notifications table;
 `User` still uses the `Notifiable` trait but nothing dispatches framework notifications.
@@ -264,6 +276,7 @@ with every `borrow_transactions.status` change. The invariant:
 
 - **"out"** = status `Borrowed` **or** `Overdue`, and `voided_at IS NULL` — units are off the shelf, stock is deducted. Every aggregate that counts units out filters on both; `BorrowTransaction::isOut()` is the one place that decides.
 - **"in"** = status `Returned` — units are back, stock is restored
+- **"issued"** = status `Issued`, `voided_at IS NULL` — units left for good. **Not "out"**: `isOut()`, `unitsOut()` and every `Borrowed`/`Overdue` aggregate exclude it, so it is never overdue and never chased. It still comes off the shelf: `Equipment::unitsIssued()` sums it, and the derived figure is `available_quantity = quantity − unitsOut() − unitsIssued()` (`Equipment::derivedAvailableQuantity()`). `quantity` keeps counting issued units. Voiding an Issued row drops it out of `unitsIssued()`. **Not yet handled:** `BorrowTransactionController::void` only releases stock for an open ("out") loan, so voiding an Issued row would not put its units back on `available_quantity` until the next equipment edit recomputes it. Fix that when the issue flow is built.
 - `Borrowed` to `Overdue` (either direction) is a transition *within* "out" — **no stock change**. This is the rule most easily broken; always test `in_array($status, ['Borrowed','Overdue'])`, never `=== 'Borrowed'`.
 - After every mutation: `status = $equipment->lendableStatus()`, which is `Available` only when the item has units on the shelf **and** has not been retired
 - `quantity` (total owned) is **never** touched by transactions — only by `EquipmentController`
@@ -285,7 +298,7 @@ Where it happens:
 - `ItemRequestController::requestActions`, approve branch — locks the equipment, rejects if short, deducts, flips the request to `Approved`, **and auto-creates a `BorrowTransaction`** (`borrow_date` today, `return_date` today + `config('office.loan_days')`, default 7, status `Borrowed`, `purpose` falling back to the request remarks). Decline only flips the request status, no stock movement. Both are idempotent: a request whose status is not `Pending` is rejected up front.
 - `BorrowTransactionController::sendReturnAlertNotification` — bulk-updates `Borrowed` rows whose `return_date` is past to `Overdue`. Because both are "out", this deliberately performs no stock change. It then emails borrowers whose `return_date` is today, skipping anyone already given a `Return Notice` notification today (checked twice: before sending, and again inside the DB transaction). Invoked by `php artisan notifications:return` (`App\Console\Commands\SendReturnNotifications`), scheduled daily at 08:00 in `bootstrap/app.php`, and reachable manually at `GET /admin/send-return-alerts`.
 
-- `EquipmentController::store` / `::update` — neither takes `available_quantity` or `status` any more. A new item starts fully available; an edit recomputes `available_quantity = quantity − unitsOut()` under a row lock, which also repairs drift, and refuses a total below the units currently out. `EquipmentController::destroy` is refused while any loan or request references the item, so the cascade can no longer take history with it.
+- `EquipmentController::store` / `::update` — neither takes `available_quantity` or `status` any more. A new item starts fully available; an edit recomputes `available_quantity = quantity − unitsOut() − unitsIssued()` under a row lock, which also repairs drift, and refuses a total below the units currently out, or below out + issued. The index query loads `units_out` and `units_issued` with `withSum`; `outNow()` / `issuedNow()` read them. Neither form takes `loan_type` yet. `EquipmentController::destroy` is refused while any loan or request references the item, so the cascade can no longer take history with it.
 
 ## Opening hours and office config
 
@@ -306,11 +319,24 @@ Three things are computed, never stored-and-trusted, and the screens read them o
 
 - `Equipment::lendableStatus()` — `Available` when not retired and `available_quantity > 0`. The two stock helpers call it, so the enum cannot drift from the shelf.
 - `Equipment::availabilityState()` — the label a row shows (`All in` / `Partly out` / `Running low` / `Fully out` / `Retired`) plus its tone.
-- `BorrowTransaction::derivedStatus()` — `Void` / `Returned` / `Overdue` / `Out`, with `Overdue` decided by comparing `return_date` to today. The stored `Overdue` enum still exists and `sendReturnAlertNotification` still writes it, because the reminder queries key off it — but no screen depends on that job having run.
+- `BorrowTransaction::derivedStatus()` — `Void` / `Issued` / `Returned` / `Overdue` / `Out`, checked in that order. `Overdue` is `isOut() && dueAt() < now()`. `dueAt()` is `return_date` for a timed loan and `return_date->endOfDay()` for a date-only one, so a date-only loan due today turns overdue at midnight, exactly as before. `Issued` is never out and never overdue, and its `statusTone()` is `neutral`. The stored `Overdue` enum still exists and `sendReturnAlertNotification` still writes it, because the reminder queries key off it — but no screen depends on that job having run.
+- `Equipment::loanTypeLabel()`, `isReturnable()`, `isTimeLimited()`, `isNonReturnable()` read `loan_type`. The model's `$attributes` default matches the column, so an unsaved item is Returnable too.
 
 Date strings come from the model too: `dateRangeLabel()` ("Sep 10 → Sep 17"), `timingLabel()`
 ("3 days late", "due tomorrow", "returned on time") and `dateLine()`, which joins them. Views
-never format a borrow or return date by hand, and never render a raw ISO date.
+never format a borrow or return date by hand, and never render a raw ISO date. Date-only loans
+render exactly as they did before the columns became datetimes. Timed and issued loans read differently:
+- **Timed:** "Oct 5, 2:30 PM → 3:30 PM" (both dates when the loan crosses midnight), then
+  "due in 25 min", "due at 3:30 PM", "due tomorrow, 9:00 AM", "10 min late", "2 hr late" or
+  "3 days late". A timed return is judged by the return log's `created_at`, because the log's
+  `return_date` has no time of day.
+- **Issued:** `dateRangeLabel()` is "Issued Oct 5", `timingLabel()` is "issued", and `dateLine()`
+  is just "Issued Oct 5".
+- **Counts:** `daysUntilDue()` stays calendar days for both kinds, so the "due today" counters keep
+  their meaning. It is null for an issued item. `daysLate()` counts whole 24-hour periods for a timed loan.
+
+`bookingKey()` keys a date-only loan on its day, unchanged. A timed loan is keyed on the minute, so
+two sessions on one day are two bookings.
 
 ## Conventions
 
