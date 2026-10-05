@@ -24,9 +24,10 @@
     // three separate tables.
     $activity = collect()
         ->concat($transactions->map(fn ($loan) => [
-            'tag' => 'Borrowed', 'tone' => 'primary',
+            'tag' => $loan->status === 'Issued' ? 'Issued' : 'Borrowed',
+            'tone' => $loan->status === 'Issued' ? 'neutral' : 'primary',
             'item' => ($loan->equipment->equipment_name ?? 'Equipment').($loan->quantity > 1 ? ' ×'.$loan->quantity : ''),
-            'verb' => 'checked out to', 'person' => $loan->user->name ?? 'a deleted user',
+            'verb' => $loan->status === 'Issued' ? 'issued to' : 'checked out to', 'person' => $loan->user->name ?? 'a deleted user',
             'at' => $loan->created_at,
             // Every entry goes to its own record. An activity feed you cannot
             // click through is a list of things you now have to go and find.
@@ -121,7 +122,7 @@
 
         <x-ui.stat-strip class="anim-rise [animation-delay:70ms]" :stats="[
             ['label' => 'Units out on loan', 'value' => $unitsOut, 'unit' => 'of '.$totalUnits, 'sub' => 'Across '.$typesOut.' item '.str('type')->plural($typesOut), 'url' => route('admin.transaction', ['filter' => 'active'])],
-            ['label' => 'Overdue', 'value' => $overdueLoans->count(), 'unit' => str('loan')->plural($overdueLoans->count()), 'sub' => $overdueLoans->isEmpty() ? 'Nothing past its due date' : 'Longest: '.$overdueLoans->max(fn ($loan) => $loan->daysLate()).' days late', 'tone' => $overdueLoans->isEmpty() ? 'neutral' : 'danger', 'url' => route('admin.transaction', ['filter' => 'overdue'])],
+            ['label' => 'Overdue', 'value' => $overdueLoans->count(), 'unit' => str('loan')->plural($overdueLoans->count()), 'sub' => $overdueLoans->isEmpty() ? 'Nothing past its due date' : 'Longest: '.$overdueLoans->sortBy(fn ($loan) => $loan->dueAt()?->timestamp)->first()->timingLabel(), 'tone' => $overdueLoans->isEmpty() ? 'neutral' : 'danger', 'url' => route('admin.transaction', ['filter' => 'overdue'])],
             ['label' => 'Pending requests', 'value' => $pendingRequests->count(), 'unit' => '', 'sub' => $pendingRequests->isEmpty() ? 'Queue is clear' : 'Waiting on a decision', 'url' => route('admin.request')],
             ['label' => 'Items fully out', 'value' => $fullyOut, 'unit' => str('item')->plural($fullyOut), 'sub' => $fullyOut === 0 ? 'Everything has something on the shelf' : 'Nothing left to lend — blocks approvals', 'tone' => $fullyOut === 0 ? 'neutral' : 'danger', 'url' => route('admin.equipment', ['filter' => 'out'])],
         ]" />

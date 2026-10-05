@@ -269,4 +269,117 @@ class BorrowerDashboardTest extends TestCase
         $this->assertStringContainsString('Declined — All tripods are booked for the fair.', $html);
         $this->assertStringNotContainsString('Approved and handed over', $html);
     }
+
+    /* ---- Loan types ------------------------------------------------------ */
+
+    private function typed(string $name, string $type, int $quantity = 10): Equipment
+    {
+        $item = $this->equipment($name, $quantity);
+        $item->update(['loan_type' => $type]);
+
+        return $item;
+    }
+
+    /** The clock is 10:00 on Sep 28: a one-hour loan out at 9:30 is due in 30 min. */
+    public function test_the_dashboard_renders_all_three_loan_types(): void
+    {
+        $this->loan($this->typed('Projector', Equipment::LOAN_RETURNABLE));
+        $this->loan($this->typed('Clicker', Equipment::LOAN_TIME_LIMITED), [
+            'borrow_date' => '2026-09-28 09:30:00', 'return_date' => '2026-09-28 10:30:00', 'timed' => true,
+            'purpose' => 'Thesis defense',
+        ]);
+        $this->loan($this->typed('Patch cable', Equipment::LOAN_NON_RETURNABLE), [
+            'status' => 'Issued', 'return_date' => null, 'borrow_date' => '2026-09-27', 'quantity' => 3,
+        ]);
+
+        $html = $this->dashboard();
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($html);
+        $xpath = new \DOMXPath($dom);
+        $agenda = collect(iterator_to_array($xpath->query('//*[@data-agenda-row]')))->map(fn ($n) => preg_replace('/\s+/', ' ', $n->textContent));
+
+        // Returnable and timed loans are on the agenda; the timed one with its times.
+        $this->assertCount(2, $agenda);
+        $timed = $agenda->first(fn ($text) => str_contains($text, 'Clicker'));
+        $this->assertStringContainsString('due in 30 min', $timed);
+        $this->assertStringContainsString('Booked out Sep 28, 9:30 AM → 10:30 AM', $timed);
+
+        // The issue is not something to do: no agenda row, no "due" anywhere near it.
+        $this->assertFalse($agenda->contains(fn ($text) => str_contains($text, 'Patch cable')));
+        $issueRow = collect(iterator_to_array($xpath->query("//*[@id='history-panel']/div")))
+            ->map(fn ($n) => preg_replace('/\s+/', ' ', $n->textContent))
+            ->first(fn ($text) => str_contains($text, 'Patch cable'));
+        $this->assertNotNull($issueRow, 'The issue is in earlier activity');
+        $this->assertStringContainsString('Patch cable ×3 Issued to you — no return needed', $issueRow);
+        $this->assertStringNotContainsStringIgnoringCase('due', $issueRow);
+
+        // Units held counts the two out, not the three issued.
+        $this->assertMatchesRegularExpression('/>\s*2\s*<\/dd>\s*<dt[^>]*>units held/', $html);
+    }
+
+    public function test_the_request_form_says_what_happens_after_approval(): void
+    {
+        config(['office.time_limited_minutes' => 90]);
+        $this->typed('Projector', Equipment::LOAN_RETURNABLE);
+        $this->typed('Clicker', Equipment::LOAN_TIME_LIMITED);
+        $this->typed('Patch cable', Equipment::LOAN_NON_RETURNABLE);
+
+        $html = $this->dashboard();
+
+        $this->assertMatchesRegularExpression('/data-loan-type="returnable"\s+data-loan-note="Return by a date"/', $html);
+        $this->assertMatchesRegularExpression('/data-loan-type="time_limited"\s+data-loan-note="Return within 90 minutes"/', $html);
+        $this->assertMatchesRegularExpression('/data-loan-type="non_returnable"\s+data-loan-note="Given to you — no return needed"/', $html);
+
+        // Said on the row too, for the two types that differ from a normal loan.
+        $this->assertSame(2, substr_count($html, 'data-request-row-note'));
+        $this->assertStringContainsString('data-request-loan-note-text', $html);
+
+        // No review time is promised anywhere on the page.
+        $this->assertStringNotContainsString('within one working day', $html);
+    }
+
+    public function test_the_time_limited_note_follows_the_configured_period(): void
+    {
+        config(['office.time_limited_minutes' => 60]);
+        $this->assertSame('Return within 1 hour', $this->typed('Clicker', Equipment::LOAN_TIME_LIMITED)->borrowerReturnNote());
+
+        config(['office.time_limited_minutes' => 120]);
+        $this->assertSame('Return within 2 hours', Equipment::firstWhere('equipment_name', 'Clicker')->borrowerReturnNote());
+    }
+
+    public function test_the_slip_shows_times_for_a_timed_loan_and_no_return_line_for_an_issue(): void
+    {
+        $timed = $this->loan($this->typed('Clicker', Equipment::LOAN_TIME_LIMITED), [
+            'borrow_date' => '2026-09-28 09:30:00', 'return_date' => '2026-09-28 10:30:00', 'timed' => true,
+        ]);
+        $issue = $this->loan($this->typed('Patch cable', Equipment::LOAN_NON_RETURNABLE), [
+            'status' => 'Issued', 'return_date' => null, 'borrow_date' => '2026-09-27',
+        ]);
+
+        $slip = $this->actingAs($this->borrower)->get(route('borrower.transaction.receipt', $timed->id))->assertOk()->getContent();
+        $this->assertStringContainsString('September 28, 2026 at 9:30 AM', $slip);
+        $this->assertMatchesRegularExpression('/<dt>Due back<\/dt>\s*<dd>September 28, 2026 at 10:30 AM<\/dd>/', $slip);
+
+        $slip = $this->actingAs($this->borrower)->get(route('borrower.transaction.receipt', $issue->id))->assertOk()->getContent();
+        $this->assertStringContainsString('<h1>Issue Slip</h1>', $slip);
+        $this->assertMatchesRegularExpression('/<dt>Issued on<\/dt>\s*<dd>September 27, 2026<\/dd>/', $slip);
+        $this->assertStringNotContainsString('Return date', $slip);
+        $this->assertStringNotContainsString('Due back', $slip);
+        $this->assertStringContainsString('badge-issued', $slip);
+        $this->assertStringContainsString('Not expected back', $slip);
+    }
+
+    public function test_the_edit_request_dialog_carries_the_items_note(): void
+    {
+        $clicker = $this->typed('Clicker', Equipment::LOAN_TIME_LIMITED);
+        ItemRequest::create([
+            'user_id' => $this->borrower->id, 'equipment_id' => $clicker->id, 'quantity' => 1,
+            'status' => 'Pending', 'requested_date' => '2026-09-28',
+        ]);
+
+        $html = $this->dashboard();
+
+        $this->assertMatchesRegularExpression('/data-request-edit[^>]*data-loan-note="Return within 1 hour"/s', $html);
+        $this->assertStringContainsString('id="edit-request-loan-note"', $html);
+    }
 }

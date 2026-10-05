@@ -3,7 +3,14 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Borrow Slip #{{ $transaction->id }} - CICT Equipment Borrower System</title>
+    @php
+        // An issue is a hand-over for good: the slip is titled for it and
+        // carries no return date, and a timed loan's dates carry their times.
+        $issued = $transaction->status === 'Issued';
+        $slipTitle = $issued ? 'Issue Slip' : 'Borrow Slip';
+        $dateFormat = $transaction->timed ? 'F j, Y \a\t g:i A' : 'F j, Y';
+    @endphp
+    <title>{{ $slipTitle }} #{{ $transaction->id }} - CICT Equipment Borrower System</title>
 
     {{-- Self-contained on purpose: this page must print cleanly without pulling in
          the app shell's navbar/sidebar styles. --}}
@@ -54,6 +61,7 @@
         .badge-borrowed { background: #fef3c7; color: #b45309; border-color: #fde68a; }
         .badge-returned { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
         .badge-overdue  { background: #fee2e2; color: var(--danger); border-color: #fecaca; }
+        .badge-issued   { background: #f3f4f6; color: #374151; border-color: #d1d5db; }
         .sigs { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 48px; }
         .sig-line { border-top: 1px solid var(--ink); padding-top: 8px; font-size: 14px; color: var(--muted); }
         .foot { margin-top: 32px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
@@ -89,7 +97,7 @@
         </div>
 
         <div class="title-row">
-            <h1>Borrow Slip</h1>
+            <h1>{{ $slipTitle }}</h1>
             <span class="ref">Reference #{{ $transaction->id }}</span>
         </div>
 
@@ -112,11 +120,17 @@
                 <dd>{{ $transaction->quantity }}</dd>
             @endif
 
-            <dt>Borrow date</dt>
-            <dd>{{ $transaction->borrow_date ? \Carbon\Carbon::parse($transaction->borrow_date)->format('F j, Y') : '—' }}</dd>
+            <dt>{{ $issued ? 'Issued on' : 'Borrow date' }}</dt>
+            <dd>{{ $transaction->borrow_date?->format($issued ? 'F j, Y' : $dateFormat) ?? '—' }}</dd>
 
-            <dt>Return date</dt>
-            <dd>{{ $transaction->return_date ? \Carbon\Carbon::parse($transaction->return_date)->format('F j, Y') : '—' }}</dd>
+            {{-- Nothing is due back on an issue, so there is no return line to fill in. --}}
+            @if($issued)
+                <dt>Return</dt>
+                <dd>Not expected back — given out for good</dd>
+            @else
+                <dt>{{ $transaction->timed ? 'Due back' : 'Return date' }}</dt>
+                <dd>{{ $transaction->return_date?->format($dateFormat) ?? '—' }}</dd>
+            @endif
 
             <dt>Purpose</dt>
             <dd>{{ $transaction->purpose }}</dd>
@@ -124,7 +138,7 @@
             <dt>Status</dt>
             <dd>
                 @php
-                    $badgeClass = ['Borrowed' => 'badge-borrowed', 'Returned' => 'badge-returned', 'Overdue' => 'badge-overdue'][$transaction->status] ?? '';
+                    $badgeClass = ['Borrowed' => 'badge-borrowed', 'Returned' => 'badge-returned', 'Overdue' => 'badge-overdue', 'Issued' => 'badge-issued'][$transaction->status] ?? '';
                 @endphp
                 <span class="badge {{ $badgeClass }}">{{ $transaction->status }}</span>
             </dd>
@@ -141,7 +155,7 @@
         </div>
 
         <p class="foot">
-            Issued {{ now()->format('F j, Y \a\t g:i A') }}. Please present this slip when returning the equipment.
+            Printed {{ now()->format('F j, Y \a\t g:i A') }}. {{ $issued ? 'Keep this slip as the record of what you were given.' : 'Please present this slip when returning the equipment.' }}
         </p>
     </div>
 </body>

@@ -138,6 +138,34 @@ class Equipment extends Model
         return self::LOAN_TYPES[$this->loan_type] ?? self::LOAN_TYPES[self::LOAN_RETURNABLE];
     }
 
+    /**
+     * What the borrower is told before asking for this item: "Return by a
+     * date", "Return within 1 hour" (from config('office.time_limited_minutes')),
+     * or "Given to you — no return needed".
+     */
+    public function borrowerReturnNote(): string
+    {
+        return match ($this->loan_type) {
+            self::LOAN_TIME_LIMITED => 'Return within '.static::timeLimitLabel(),
+            self::LOAN_NON_RETURNABLE => 'Given to you — no return needed',
+            default => 'Return by a date',
+        };
+    }
+
+    /** config('office.time_limited_minutes') in words: "1 hour", "90 minutes", "2 hours". */
+    public static function timeLimitLabel(): string
+    {
+        $minutes = max(1, (int) config('office.time_limited_minutes', 60));
+
+        if ($minutes % 60 === 0) {
+            $hours = intdiv($minutes, 60);
+
+            return $hours.' '.str('hour')->plural($hours);
+        }
+
+        return $minutes.' '.str('minute')->plural($minutes);
+    }
+
     public function isRetired(): bool
     {
         return $this->retired_at !== null;

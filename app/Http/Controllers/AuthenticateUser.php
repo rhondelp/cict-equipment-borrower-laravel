@@ -24,8 +24,7 @@ class AuthenticateUser extends Controller
     {
         $equipments = Equipment::query()
             ->withSum([
-                'borrowTransactions as units_out' => fn ($query) => $query->whereNull('voided_at')
-                    ->whereIn('status', ['Borrowed', 'Overdue']),
+                'borrowTransactions as units_out' => fn ($query) => $query->out(),
             ], 'quantity')
             ->orderBy('equipment_name')
             ->get();
@@ -62,8 +61,10 @@ class AuthenticateUser extends Controller
         // the activity feed and so could never report more than six.
         $returnedThisWeek = ReturnLog::where('return_date', '>=', now()->subWeek())->count();
 
+        // Out now means isOut(): an Issued row is not with anyone to chase.
+        // Ordered by dueAt(), so a loan due at 2 PM today leads one due "today".
         $openLoans = $transactions->filter(fn ($transaction) => $transaction->isOut())
-            ->sortBy(fn ($transaction) => $transaction->return_date?->timestamp ?? PHP_INT_MAX)
+            ->sortBy(fn ($transaction) => $transaction->dueAt()?->timestamp ?? PHP_INT_MAX)
             ->values();
 
         $attention = $this->adminAttention(
@@ -102,7 +103,9 @@ class AuthenticateUser extends Controller
 
         $overdue = $openLoans->filter(fn ($loan) => $loan->isOverdue())->values();
         if ($overdue->isNotEmpty()) {
-            $worst = $overdue->sortByDesc(fn ($loan) => $loan->daysLate())->first();
+            // The one whose due moment passed first. daysLate() would call a
+            // timed loan three hours late "0 days" and rank it last.
+            $worst = $overdue->sortBy(fn ($loan) => $loan->dueAt()?->timestamp)->first();
             $attention[] = [
                 'tone' => 'danger',
                 'title' => $overdue->count().' '.str('loan')->plural($overdue->count()).' overdue',
@@ -349,6 +352,20 @@ class AuthenticateUser extends Controller
                 'when' => $loan->returnLog?->return_date ?? $loan->return_date,
                 'id' => $loan->id,
                 'receipt' => route('borrower.transaction.receipt', $loan->id),
+            ];
+        }
+
+        // Something handed over for good is settled the moment it is issued:
+        // nothing is due back, so it belongs here and never on the agenda.
+        foreach ($transactions->filter(fn ($transaction) => $transaction->isIssued()) as $issue) {
+            $history[] = [
+                'tone' => 'neutral',
+                'title' => ($issue->equipment->equipment_name ?? 'Equipment')
+                    .($issue->quantity > 1 ? ' ×'.$issue->quantity : ''),
+                'note' => 'Issued to you — no return needed',
+                'when' => $issue->borrow_date,
+                'id' => $issue->id,
+                'receipt' => route('borrower.transaction.receipt', $issue->id),
             ];
         }
 

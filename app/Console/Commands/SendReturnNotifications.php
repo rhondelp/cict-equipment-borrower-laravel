@@ -17,17 +17,22 @@ class SendReturnNotifications extends Command
     /**
      * The console command description.
      */
-    protected $description = 'Send return reminder notifications to users';
+    protected $description = 'Mark overdue loans and email reminders for loans due back today';
 
     /**
      * Execute the console command.
+     *
+     * Scheduled once a day (bootstrap/app.php). The sweep marks a loan Overdue
+     * by BorrowTransaction::overdue() — timed loans by their time, others by
+     * their day, Issued never — so a timed loan that falls due after this runs
+     * is marked on the next run. No screen waits for that: derivedStatus()
+     * reads overdue off dueAt() on every render.
      */
     public function handle()
     {
-        // Call the controller method
         $controller = new BorrowTransactionController;
-        $controller->sendReturnAlertNotification();
+        $summary = $controller->sendReturnAlertNotification();
 
-        $this->info('Return notifications sent successfully.');
+        $this->info($summary);
     }
 }

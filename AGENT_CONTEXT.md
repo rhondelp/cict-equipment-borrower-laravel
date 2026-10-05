@@ -130,8 +130,11 @@ by hiding controls:
   row as All / Lendable / Running low / Fully out, because `ui.js` holds one
   active chip per list, and they carry counts. A type no item uses is rendered
   `disabled`. `?filter=time_limited` etc. work through the existing mechanism.
-  The admin loan screen reads it (see "Loans screen" below); the borrower screens and request
-  approval do not yet.
+  The admin loan screen reads it (see "Loans screen" below), request approval
+  shapes the loan it creates from it, and the borrower's request form states it
+  per item via `Equipment::borrowerReturnNote()` ("Return by a date", "Return
+  within 1 hour" from `config('office.time_limited_minutes')`, "Given to you —
+  no return needed"), on non-returnable rows and under the list.
 - **`return_logs.resolution` / `resolved_at` / `resolved_by`** — the outcome of a
   damaged or lost return. `needsFollowUp()` is `isIncident() && ! isResolved()`
   and is what the return-logs screen and the dashboard both lead with. Return
@@ -207,19 +210,25 @@ offer instead of a hard delete: `equipment.retired_at`, `users.deactivated_at`,
 **Loan dates are DATETIME since 5 Oct 2026** (migration `2026_10_05_120100_add_times_to_borrow_transactions`),
 cast `datetime`. A date-only loan (`timed` false) is stored at `00:00:00` and is due by the end of
 that day; a timed loan (`timed` true) is due at the exact `return_date`. Ask `dueAt()`, never compare
-`return_date` yourself. Queries that compare against a date string (`whereDate`, `return_date < ?today`)
-still behave as before for date-only rows, but they **do not see the time of a timed loan**: a
-timed loan due at 2 PM today is not caught by `return_date < today` until tomorrow. Both `down()`s
+`return_date` yourself. In SQL, use the scopes: `BorrowTransaction::out()` (not voided,
+`Borrowed`/`Overdue`, so never Issued) and `BorrowTransaction::overdue(?now)` (out, and timed with
+`return_date < now` or date-only with `return_date < today 00:00`). For a `SUM(CASE …)` there is
+`BorrowTransaction::overdueCaseSql()` → `[sql, bindings]`. Since 5 Oct 2026 every overdue aggregate
+goes through these: the borrowing block, the nightly sweep, the users screen's `overdue_count`, the
+request queue's standing, and the dashboards. A test asserts that the scope and `isOverdue()` agree
+row by row. A raw `whereDate('return_date', '<', today)` would miss a timed loan due earlier today,
+so don't write one. Both `down()`s
 of the 5 Oct migrations refuse to run while timed or `Issued` rows exist, rather than truncating them.
 `return_logs.return_date` is still a DATE column (cast `datetime`), so it holds no time of day.
 
-**`Issued`** is the status of a non-returnable hand-over. Since 5 Oct 2026 the only writer is the
-admin **New loan** form (`BorrowTransactionController::store`), which sets it from the item's
-`loan_type`, never from the request. An Issued row has `return_date` null and `timed` false; it is
-never checked in, never edited (it is **void-only**), and never hard-deleted until voided. **The
-request-approval path (`ItemRequestController::requestActions`) does not read loan types yet:**
-approving a request for a time-limited or non-returnable item still creates an ordinary
-date-only `Borrowed` loan due in `loan_days`.
+**`Issued`** is the status of a non-returnable hand-over. Two paths write it, both from the item's
+`loan_type` and never from the request: the admin **New loan** form (`BorrowTransactionController::store`)
+and **request approval** (`ItemRequestController::requestActions`). An Issued row has `return_date`
+null and `timed` false. It is never checked in, never edited (it is **void-only**), never hard-deleted
+until voided, never swept to Overdue, never reminded (`sendManualEmail` refuses the canned
+reminder with a 422 and allows a custom message), and never blocks a new request. On the borrower
+side it shows only in earlier activity ("Issued to you — no return needed") and on an **Issue Slip**
+with no return line.
 
 `App\Models\Notification` is a custom table, unrelated to the framework notifications table;
 `User` still uses the `Notifiable` trait but nothing dispatches framework notifications.
@@ -324,9 +333,14 @@ Where it happens:
 - `BorrowTransactionController::void` — restores stock if the loan was open **or Issued**, then stamps `voided_at` + `void_reason`. Voided rows are excluded from every "out" aggregate and from `unitsIssued()`.
 - `BorrowTransactionController::destroy` — a hard delete, refused while the loan is open, while an Issued row is un-voided (deleting it would drop it from `unitsIssued()` and leave the shelf short), or while a `ReturnLog` points at it. By the time it can run, the row is voided and holds no stock, so there is nothing to restore.
 - **Loans screen** (`admin/transaction.blade.php`) — the queue sorts on `dueAt()` (controller and `data-sort-urgency` / `data-sort-due`). Issued rows rank with the settled records. They have an `issued` chip key and their own chip when any exist, and they read "Issued Oct 5 · Not expected back". They have **no** Check-in, Edit or Email button, because the only email template is a return reminder. The overdue figure says "Longest: …" via the worst loan's `timingLabel()`, so a timed loan reads in minutes. The new-loan modal reads `data-loan-type` on each checkbox and switches between `date` and `datetime-local`, or hides **and disables** the due field. In time mode it shows +30 min / +1 hour / +2 hours presets counted from the borrow moment. The edit modal sets its input type from the trigger's `data-timed` **before** setting the value, since a `date` input drops a value with a time. It also disables equipment options of another loan type. `LoansPageTest` checks every `xForm.querySelector('[data-…]')`, every literal `getElementById`, and every `#modal [data-…]` lookup in the script.
-- `ItemRequestController::store` — refuses a new request from a **suspended** account, and (since 26 Sept 2026) from a borrower with **any open loan past its due date** (`return_date < today`, not voided, `Borrowed`/`Overdue` — the due date decides, not the stored status, which lags until the nightly sweep). This is the "overdue items pause borrowing" rule the terms summary and the landing page state. Editing an existing pending request is not blocked. Pinned by `tests/Feature/BorrowingRulesTest`.
-- `ItemRequestController::requestActions`, approve branch — locks the equipment, rejects if short, deducts, flips the request to `Approved`, **and auto-creates a `BorrowTransaction`** (`borrow_date` today, `return_date` today + `config('office.loan_days')`, default 7, status `Borrowed`, `purpose` falling back to the request remarks). Decline only flips the request status, no stock movement. Both are idempotent: a request whose status is not `Pending` is rejected up front.
-- `BorrowTransactionController::sendReturnAlertNotification` — bulk-updates `Borrowed` rows whose `return_date` is past to `Overdue`. Because both are "out", this deliberately performs no stock change. It then emails borrowers whose `return_date` is today, skipping anyone already given a `Return Notice` notification today (checked twice: before sending, and again inside the DB transaction). Invoked by `php artisan notifications:return` (`App\Console\Commands\SendReturnNotifications`), scheduled daily at 08:00 in `bootstrap/app.php`, and reachable manually at `GET /admin/send-return-alerts`.
+- `ItemRequestController::store` — refuses a new request from a **suspended** account, and (since 26 Sept 2026) from a borrower with **any loan that is `overdue()`**. The due moment decides, not the stored status, which lags until the nightly sweep: a one-hour loan ten minutes late blocks, a date-only loan due today does not, and an Issued row never does. This is the "overdue items pause borrowing" rule the terms summary and the landing page state. Editing an existing pending request is not blocked. Pinned by `tests/Feature/BorrowingRulesTest`.
+- `ItemRequestController::requestActions`, approve branch — locks the equipment, rejects if short, deducts with `reserveStock()` (the same arithmetic for every type, since `available_quantity` is quantity − out − issued), flips the request to `Approved`, **and auto-creates a `BorrowTransaction`** shaped by the locked item's `loan_type`:
+  - returnable: `borrow_date` today, `return_date` today + `config('office.loan_days')` (7), `timed` false, `Borrowed`;
+  - time-limited: `borrow_date` now, `return_date` now + `config('office.time_limited_minutes')` (60, env `OFFICE_TIME_LIMITED_MINUTES`), `timed` true, `Borrowed`. **The clock starts at approval**;
+  - non-returnable: `Issued`, `borrow_date` today, no `return_date`, `timed` false.
+
+  `purpose` falls back to the request remarks. Decline only flips the request status, with no stock movement. Both are idempotent: a request whose status is not `Pending` is rejected up front.
+- `BorrowTransactionController::sendReturnAlertNotification` — bulk-updates `Borrowed` rows that are `overdue()` to `Overdue`: timed loans by their time, others by their day, never an Issued row. Because both are "out", this deliberately performs no stock change. It then emails borrowers with an `out()`, still-`Borrowed` loan whose `return_date` falls today; a timed loan's mail names its time ("due back on Oct 5 at 9:00 AM"). It skips anyone already given a `Return Notice` notification today, checked twice: before sending, and again inside the DB transaction. Invoked by `php artisan notifications:return` (`App\Console\Commands\SendReturnNotifications`, which prints the summary), scheduled **daily** at 08:00 in `bootstrap/app.php`, and reachable manually at `GET /admin/send-return-alerts`. **No hourly run exists**: a timed loan that falls due after 08:00 is stored as `Overdue` only on the next run. Screens and the borrowing block do not wait for that, because they use `dueAt()`.
 
 - `EquipmentController::store` / `::update` — neither takes `available_quantity` or `status` any more. A new item starts fully available; an edit recomputes `available_quantity = quantity − unitsOut() − unitsIssued()` under a row lock, which also repairs drift, and refuses a total below the units currently out, or below out + issued. The index query loads `units_out` and `units_issued` with `withSum`; `outNow()` / `issuedNow()` read them. Both take `loan_type` (`required`, `Rule::in(array_keys(Equipment::LOAN_TYPES))`). A store without it gets `returnable` via `mergeIfMissing`. An update without it **keeps the current type**: it is validated `sometimes` and falls back to the row's own value, so an older form cannot reset an item. `update` refuses a type change while `unitsOut() > 0`, under the same row lock, with the error on `loan_type`, and saves nothing else from that post. Changing type with only returned, voided or issued history is allowed. `EquipmentController::destroy` is refused while any loan or request references the item, so the cascade can no longer take history with it.
 
@@ -340,7 +354,10 @@ form every page used before), `closingTime()`, and `isOpenToday()` (a working da
 time). Never write the hours into a template: the landing page, sign-in panel, register and
 forgot-password copy, and the borrower dashboard all go through the helper. There is no holiday
 calendar — `isOpenToday()` knows weekdays only. `config('office.loan_days')` (7) is the default
-loan period, used by the approve branch and quoted on the landing page. `config('office.location')`
+loan period, used by the approve branch and quoted on the landing page.
+`config('office.time_limited_minutes')` (60, env `OFFICE_TIME_LIMITED_MINUTES`) is the period of a
+time-limited loan created by approval; `Equipment::timeLimitLabel()` words it ("1 hour", "90 minutes")
+for the borrower's request form. `config('office.location')`
 ("Equipment room, CICT building") came from the landing mockup and is unconfirmed.
 
 ## Derived state

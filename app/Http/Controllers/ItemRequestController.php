@@ -58,16 +58,16 @@ class ItemRequestController extends Controller
             return collect();
         }
 
-        $today = Carbon::today()->toDateString();
+        // Late by dueAt(): a timed loan by its time, a date-only one by its day.
+        [$overdueCase, $bindings] = BorrowTransaction::overdueCaseSql();
 
         return BorrowTransaction::query()
             ->whereIn('user_id', $userIds)
-            ->whereNull('voided_at')
-            ->whereIn('status', ['Borrowed', 'Overdue'])
+            ->out()
             ->groupBy('user_id')
             ->selectRaw('user_id')
             ->selectRaw('SUM(quantity) as units_out')
-            ->selectRaw('SUM(CASE WHEN return_date < ? THEN 1 ELSE 0 END) as overdue_loans', [$today])
+            ->selectRaw("SUM({$overdueCase}) as overdue_loans", $bindings)
             ->get()
             ->keyBy('user_id');
     }
@@ -165,7 +165,7 @@ class ItemRequestController extends Controller
 
         if ($isApprove) {
             try {
-                DB::transaction(function () use ($itemRequest) {
+                $loan = DB::transaction(function () use ($itemRequest) {
                     // Lock equipment to guard race on available_quantity
                     $equipment = Equipment::where('id', $itemRequest->equipment_id)->lockForUpdate()->firstOrFail();
 
@@ -175,7 +175,11 @@ class ItemRequestController extends Controller
                         ]);
                     }
 
-                    // Deduct stock
+                    // Deduct stock. The same arithmetic serves every loan type:
+                    // available_quantity is quantity − out − issued, so an issue
+                    // comes off the shelf here exactly as a loan does. What makes
+                    // it an issue is the row below — counted by unitsIssued(),
+                    // never by unitsOut(), and never released by a check-in.
                     $equipment->reserveStock(
                         $itemRequest->quantity,
                         'Cannot approve — only '.$equipment->available_quantity.' of '.$equipment->equipment_name
@@ -188,16 +192,38 @@ class ItemRequestController extends Controller
                     $itemRequest->decided_by = Auth::id();
                     $itemRequest->save();
 
-                    // Auto-create BorrowTransaction so approved requests don't sit idle.
-                    // Dates default to today / +7 days; purpose falls back to remarks.
-                    BorrowTransaction::create([
+                    // Auto-create the loan so approved requests don't sit idle,
+                    // shaped by the item's loan type as read under the lock:
+                    //   returnable      today → today + loan_days, by date
+                    //   time_limited    now → now + time_limited_minutes, timed
+                    //   non_returnable  Issued today, nothing due back
+                    // Purpose falls back to the remarks.
+                    $schedule = match ($equipment->loan_type) {
+                        Equipment::LOAN_TIME_LIMITED => [
+                            'borrow_date' => now(),
+                            'return_date' => now()->addMinutes((int) config('office.time_limited_minutes', 60)),
+                            'timed' => true,
+                            'status' => 'Borrowed',
+                        ],
+                        Equipment::LOAN_NON_RETURNABLE => [
+                            'borrow_date' => Carbon::today(),
+                            'return_date' => null,
+                            'timed' => false,
+                            'status' => 'Issued',
+                        ],
+                        default => [
+                            'borrow_date' => Carbon::today(),
+                            'return_date' => Carbon::today()->addDays((int) config('office.loan_days', 7)),
+                            'timed' => false,
+                            'status' => 'Borrowed',
+                        ],
+                    };
+
+                    return BorrowTransaction::create($schedule + [
                         'user_id' => $itemRequest->user_id,
                         'equipment_id' => $itemRequest->equipment_id,
-                        'borrow_date' => Carbon::today()->toDateString(),
-                        'return_date' => Carbon::today()->addDays((int) config('office.loan_days', 7))->toDateString(),
                         'quantity' => $itemRequest->quantity,
                         'purpose' => $itemRequest->remarks ? mb_substr($itemRequest->remarks, 0, 250) : 'Approved item request #'.$itemRequest->id,
-                        'status' => 'Borrowed',
                         'remarks' => $itemRequest->remarks,
                         'class_schedule_id' => null,
                     ]);
@@ -206,11 +232,16 @@ class ItemRequestController extends Controller
                 return back()->withErrors($e->errors())->withInput();
             }
 
-            $due = Carbon::today()->addDays((int) config('office.loan_days', 7))->format('M j');
+            $what = $itemRequest->quantity.' × '.($itemRequest->equipment->equipment_name ?? 'item');
+            $who = $itemRequest->user->name ?? 'the borrower';
 
-            return back()->with('success', 'Approved — '.$itemRequest->quantity.' × '
-                .($itemRequest->equipment->equipment_name ?? 'item').' is now out with '
-                .($itemRequest->user->name ?? 'the borrower').', due '.$due.'.');
+            if ($loan->status === 'Issued') {
+                return back()->with('success', 'Approved — '.$what.' issued to '.$who.', not expected back.');
+            }
+
+            $due = $loan->timed ? $loan->return_date->format('g:i A') : $loan->return_date->format('M j');
+
+            return back()->with('success', 'Approved — '.$what.' is now out with '.$who.', due '.$due.'.');
         }
 
         if ($isDecline) {
@@ -248,11 +279,11 @@ class ItemRequestController extends Controller
 
         // Overdue items pause borrowing — the rule the terms and the landing
         // page both state. Checked here, on the server, for the same reason as
-        // suspension: the borrower's form is not the only way in.
+        // suspension: the borrower's form is not the only way in. "Overdue" is
+        // the scope's dueAt() rule, so a one-hour loan that is ten minutes late
+        // blocks, and an Issued item, which is never due back, never does.
         $overdue = BorrowTransaction::where('user_id', Auth::id())
-            ->whereNull('voided_at')
-            ->whereIn('status', ['Borrowed', 'Overdue'])
-            ->whereDate('return_date', '<', Carbon::today()->toDateString())
+            ->overdue()
             ->with('equipment')
             ->orderBy('return_date')
             ->first();
@@ -260,7 +291,7 @@ class ItemRequestController extends Controller
         if ($overdue) {
             return back()->withErrors([
                 'quantity' => 'You have an overdue item — '.($overdue->equipment->equipment_name ?? 'equipment')
-                    .', due '.$overdue->return_date->format('M j')
+                    .', due '.$overdue->return_date->format($overdue->timed ? 'M j, g:i A' : 'M j')
                     .'. Return it before requesting more.',
             ])->withInput();
         }

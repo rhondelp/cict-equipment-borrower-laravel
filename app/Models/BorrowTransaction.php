@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class BorrowTransaction extends Model
 {
@@ -98,6 +100,54 @@ class BorrowTransaction extends Model
         }
 
         return $this->timed ? $this->return_date->copy() : $this->return_date->copy()->endOfDay();
+    }
+
+    /**
+     * isOut() as a query: units still with the borrower. Issued rows are not
+     * out, so every "out now" aggregate that uses this leaves them alone.
+     */
+    public function scopeOut(Builder $query): Builder
+    {
+        return $query->whereNull('voided_at')->whereIn('status', ['Borrowed', 'Overdue']);
+    }
+
+    /**
+     * isOverdue() as a query, so aggregates agree with what a row renders:
+     * a timed loan is overdue once its exact return moment has passed, a
+     * date-only loan once its return day has (it is stored at 00:00:00, so
+     * "the day has passed" is "return_date is before today").
+     */
+    public function scopeOverdue(Builder $query, ?CarbonInterface $now = null): Builder
+    {
+        [$moment, $today] = static::overdueBounds($now);
+
+        return $query->out()->where(fn (Builder $due) => $due
+            ->where(fn (Builder $timed) => $timed->where('timed', true)->where('return_date', '<', $moment))
+            ->orWhere(fn (Builder $dated) => $dated->where('timed', false)->where('return_date', '<', $today)));
+    }
+
+    /**
+     * The same rule for a SUM(CASE …) over loans already narrowed to out():
+     * `[sql, bindings]`, as borrowerStanding() in ItemRequestController needs.
+     *
+     * @return array{0: string, 1: list<string>}
+     */
+    public static function overdueCaseSql(?CarbonInterface $now = null): array
+    {
+        [$moment, $today] = static::overdueBounds($now);
+
+        return [
+            'CASE WHEN (timed = 1 AND return_date < ?) OR (timed = 0 AND return_date < ?) THEN 1 ELSE 0 END',
+            [$moment, $today],
+        ];
+    }
+
+    /** @return array{0: string, 1: string} now, and the start of today, as stored-format strings */
+    private static function overdueBounds(?CarbonInterface $now): array
+    {
+        $now = $now ? Carbon::instance($now) : now();
+
+        return [$now->format('Y-m-d H:i:s'), $now->copy()->startOfDay()->format('Y-m-d H:i:s')];
     }
 
     public function isOverdue(): bool

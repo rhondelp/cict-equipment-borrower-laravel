@@ -373,6 +373,13 @@ class BorrowTransactionController extends Controller
             return response()->json(['message' => 'Custom message cannot be empty.'], 422);
         }
 
+        // The canned email is a return reminder, and nothing issued is due
+        // back. The loans screen draws no email button for an issue; this is
+        // the server saying the same thing to anything that posts anyway.
+        if ($type !== 'custom' && $transaction->isIssued()) {
+            return response()->json(['message' => 'This item was issued, not lent — there is nothing to remind about.'], 422);
+        }
+
         $details = $type === 'custom'
             ? ['title' => 'Message from Admin', 'body' => $message]
             : ['title' => $transaction->isOverdue() ? 'Overdue notice' : 'Return Reminder', 'body' => $this->reminderBody($transaction)];
@@ -414,15 +421,20 @@ class BorrowTransactionController extends Controller
 
         // Keep the stored enum in step with the calendar so the reminder queries
         // below can find their targets. The screens no longer depend on this
-        // running — they read Overdue off the due date — but the mail does.
+        // running — they read Overdue off dueAt() — but the mail does. The
+        // overdue() scope is the same rule: a timed loan by its time, a
+        // date-only loan by its day, and it only ever matches loans that are
+        // out, so an Issued row is never touched. This runs once a day, so a
+        // timed loan that falls due after the run is flipped on the next one.
         BorrowTransaction::where('status', 'Borrowed')
-            ->whereNull('voided_at')
-            ->whereDate('return_date', '<', $today)
+            ->overdue()
             ->update(['status' => 'Overdue']);
 
-        // Find all borrow transactions with return_date == today and status still "Borrowed"
+        // Loans due back today that are still Borrowed. Issued rows have no
+        // return date and are not Borrowed, so they are never reminded; a timed
+        // loan's reminder names its time (reminderBody()).
         $transactions = BorrowTransaction::with(['user', 'equipment'])
-            ->whereNull('voided_at')
+            ->out()
             ->whereDate('return_date', $today)
             ->where('status', 'Borrowed')
             ->get();

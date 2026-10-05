@@ -52,9 +52,20 @@
                                                   {{ $none ? 'cursor-not-allowed border-neutral-200 bg-neutral-50' : 'cursor-pointer border-neutral-300 hover:border-primary-300 has-[:checked]:border-primary-400 has-[:checked]:bg-primary-50' }}">
                                         <input type="radio" name="equipment_id" value="{{ $item->id }}" required @disabled($none)
                                                data-available="{{ $item->available_quantity }}"
+                                               data-loan-type="{{ $item->loan_type }}"
+                                               data-loan-note="{{ $item->borrowerReturnNote() }}"
                                                class="w-4 h-4 shrink-0 accent-primary-600 request-equipment">
-                                        <span class="flex-1 min-w-0 text-base {{ $none ? 'text-neutral-500' : 'text-neutral-900' }}">
-                                            {{ $item->equipment_name }}
+                                        <span class="flex-1 min-w-0">
+                                            <span class="block text-base {{ $none ? 'text-neutral-500' : 'text-neutral-900' }}">{{ $item->equipment_name }}</span>
+                                            {{-- Said on the row as well as under the list, so the
+                                                 terms are read before choosing, not after. Plain
+                                                 returnable items are how borrowing always worked. --}}
+                                            @unless($item->isReturnable())
+                                                <span class="flex items-center gap-1.5 text-sm text-neutral-700" data-request-row-note>
+                                                    <i class="text-xs fas {{ $item->isTimeLimited() ? 'fa-clock' : 'fa-box-open' }}" aria-hidden="true"></i>
+                                                    {{ $item->borrowerReturnNote() }}
+                                                </span>
+                                            @endunless
                                         </span>
                                         <span class="text-sm shrink-0 {{ $none ? 'text-danger-700' : 'text-neutral-600' }}">
                                             {{ $none ? 'None left' : $item->available_quantity.' of '.$item->quantity.' free' }}
@@ -66,6 +77,14 @@
                             <p class="px-3 py-4 text-base text-neutral-600">There is no equipment on the shelf right now.</p>
                         @endforelse
                     </div>
+
+                    {{-- What happens after approval, for the item chosen: "Return by
+                         a date", "Return within 1 hour", or "Given to you — no
+                         return needed". Filled from the radio's data-loan-note. --}}
+                    <p data-request-loan-note class="items-center hidden gap-2 px-3 py-2 mt-2 text-base font-medium rounded-lg bg-neutral-50 text-neutral-800">
+                        <i data-request-loan-note-icon class="text-sm fas fa-rotate-left text-neutral-600" aria-hidden="true"></i>
+                        <span data-request-loan-note-text></span>
+                    </p>
                 </div>
 
                 <div>

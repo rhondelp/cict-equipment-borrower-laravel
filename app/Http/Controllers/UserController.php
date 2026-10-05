@@ -99,13 +99,12 @@ class UserController extends Controller
         $users = UserModel::with(['classSchedules' => fn ($query) => $query->withCount('borrowTransactions')])
             ->withCount(['borrowTransactions', 'itemRequests', 'classSchedules'])
             ->withSum([
-                'borrowTransactions as units_out' => fn ($query) => $query->whereNull('voided_at')
-                    ->whereIn('status', ['Borrowed', 'Overdue']),
+                'borrowTransactions as units_out' => fn ($query) => $query->out(),
             ], 'quantity')
             ->withCount([
-                'borrowTransactions as overdue_count' => fn ($query) => $query->whereNull('voided_at')
-                    ->whereIn('status', ['Borrowed', 'Overdue'])
-                    ->whereDate('return_date', '<', now()->toDateString()),
+                // dueAt() as SQL: a timed loan is late by its time, a date-only
+                // one by its day, and an Issued row never.
+                'borrowTransactions as overdue_count' => fn ($query) => $query->overdue(),
                 // A person's standing is not just what they hold — it is also
                 // what they are waiting on. Counted here so the row can say it
                 // without firing a query of its own.

@@ -59,4 +59,18 @@ return [
 
     'loan_days' => 7,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Time-limited loan period
+    |--------------------------------------------------------------------------
+    |
+    | Minutes between approval and the due time on the loan an approved
+    | request for a Time-Limited item creates. The clock starts at approval,
+    | because approval is when the item is handed over. The borrower's request
+    | form quotes the same value ("Return within 1 hour").
+    |
+    */
+
+    'time_limited_minutes' => (int) env('OFFICE_TIME_LIMITED_MINUTES', 60),
+
 ];

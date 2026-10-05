@@ -31,6 +31,8 @@
                     <span class="block text-base font-medium text-neutral-800">Equipment</span>
                     <p id="edit-request-equipment"
                        class="px-4 py-3 mt-2 text-base font-medium border rounded-md bg-neutral-50 border-neutral-200 text-neutral-900"></p>
+                    {{-- The item's loan terms, as on the request form. --}}
+                    <p id="edit-request-loan-note" class="mt-2 text-sm text-neutral-700"></p>
                 </div>
 
                 <div>

@@ -2,6 +2,68 @@
 
 ## 2026-10-05
 
+- **Loan types reach requests, the borrower's side, reminders and the overdue rule.** Until now only the admin's New loan form knew about loan types. Approving a borrower's request still created a seven-day date-only loan whatever the item was, and every overdue count judged loans by day.
+
+  **One overdue rule, in SQL as well as PHP.** `BorrowTransaction` gains two query scopes:
+  - `out()`: not voided and `Borrowed`/`Overdue`, so never Issued;
+  - `overdue(?now)`: out, and either timed with `return_date` before now, or date-only with `return_date` before the start of today. That is `dueAt()` written as a query.
+
+  `overdueCaseSql()` gives the same rule for a `SUM(CASE …)`. A test builds seven loans (dated, timed, returned, voided and issued, either side of the line) and asserts that the scope and `isOverdue()` pick the same rows. Every aggregate that counted overdue loans by date alone now uses the scopes:
+  - the borrowing block in `ItemRequestController::store`;
+  - the nightly sweep;
+  - the users screen's `overdue_count` and `units_out`;
+  - the request queue's per-borrower standing;
+  - the admin dashboard's units-out sum.
+
+  The dashboard's open loans are ordered by `dueAt()`, its worst overdue loan is the one whose due moment passed first, and "Longest: …" uses that loan's own label. A loan three hours late used to read "0 days" and rank last.
+
+  **Approval builds the loan from the item's type.** The equipment row is read under the same lock as before, and the idempotency check and `ValidationException` handling are unchanged:
+  - **Returnable:** as before, today to today + `loan_days`, `timed` false.
+  - **Time-Limited:** out now, due now + `config('office.time_limited_minutes')`, `timed` true. The new config value defaults to 60 and comes from `OFFICE_TIME_LIMITED_MINUTES`. The flash reads "…due 11:05 AM."
+  - **Non-Returnable:** `Issued`, `return_date` null, `timed` false. The flash reads "…issued to Mia Santos, not expected back."
+
+  Stock for an issue comes off with the same `reserveStock()` as a loan, because `available_quantity` is already quantity − out − issued. What makes it an issue is the row: `unitsIssued()` counts it, `unitsOut()` never does, and a check-in never releases it. A test asserts that the stored and derived availability are equal after approving one. **The clock for a time-limited request starts at approval**, which is when the item is handed over. If approvals happen before the borrower reaches the counter, the hour is already running when they collect.
+
+  **The overdue block.** A one-hour loan that is ten minutes late now blocks new requests. Before, it only blocked from the next day. A timed loan inside its time does not block, and an Issued item never does. The refusal names the due time: "Clicker, due Oct 5, 1:00 PM".
+
+  **Reminders and the nightly sweep.** The sweep flips `Borrowed` to `Overdue` with the `overdue()` scope, so a timed loan due at 07:00 is marked at the 08:00 run. An Issued row cannot match. "Due today" reminders go only to loans that are out and still `Borrowed`, and a timed one names its time: "due back on Oct 5 at 9:00 AM". `sendManualEmail` now refuses the canned reminder for an issue with a 422, and a custom message still sends. `notifications:return` prints the controller's summary instead of a fixed line.
+
+  **Not done, deliberately: the sweep still runs once a day.** No hourly scheduler was added. A timed loan that falls due after 08:00 is stored as `Overdue` only at the next morning's run, and gets no "due today" reminder if it was created after that run. This affects only the stored enum and the mails. Every screen, the dashboards and the borrowing block read overdue from `dueAt()` when they render or check, so a late one-hour loan shows as overdue and blocks requests within the minute.
+
+  **Borrower side.**
+  - **Request form:** under the list, the chosen item's terms appear in a note with an icon: "Return by a date", "Return within 1 hour" (worded from the config, so 90 reads "90 minutes"), or "Given to you — no return needed". The two non-returnable types also say it on their own row, so it is read before choosing. The change-request dialog shows the same note.
+  - **Dashboard:** timed loans already read "due in 39 min" and "Booked out Oct 5, 5:59 PM → 6:59 PM" through the model. An issue never appears on the agenda, because there is nothing to do. It is listed in earlier activity as "Issued to you — no return needed", with its slip and a grey dot. "Units held" counts only loans that are out. The due-soon line now says "by the date or time on each card".
+  - **Slip:** a timed loan's slip shows "September 28, 2026 at 9:30 AM" and a "Due back" line with the time. An issue gets an **Issue Slip** with "Issued on", "Not expected back — given out for good" in place of a return line, a grey Issued badge, and a footer asking the borrower to keep the slip. The footer's "Issued <date>" stamp, which meant when it was printed, now says "Printed".
+  - **Admin dashboard activity:** issues are tagged "Issued … issued to".
+
+  **One claim corrected on the way.** The request form's ready hint said "Reviewed within one working day". Nothing in the system sets a review time, the same false promise the landing page had removed. It now reads "Nothing is held until an admin approves it", and a test asserts the phrase is gone. **Not fixed: the sign-in page (`login.blade.php`, line 60) still says "Requests are reviewed within one working day".** It is outside this prompt.
+
+  **Verification.** `php artisan test`: **420 passed**, up from 404.
+
+  `BorrowingRulesTest` gains 11 tests:
+  - approving each type produces the right loan, stock and flash, with the time-limited period read from config;
+  - approval still refuses a short shelf for the new types;
+  - a late timed loan blocks requests, one inside its time does not, and an issue never does;
+  - the sweep, run through `artisan notifications:return` at 08:00, marks overdue by due moment, leaves the issue alone, and sends exactly two reminders, the timed one naming its time;
+  - a manual reminder for an issue is refused while a custom message sends;
+  - the dashboard, users screen and request queue count a late timed loan and ignore an issue;
+  - the scope matches `isOverdue()` row by row.
+
+  `BorrowerDashboardTest` gains 5 tests:
+  - the dashboard with all three types;
+  - the request form's per-type notes and the absence of a review-time promise;
+  - the time-limited wording following config;
+  - the timed and issue slips;
+  - the change-request dialog's note.
+
+  In headless Chrome at 1280px and 390px against a scratch SQLite database, signed in as a borrower holding a one-hour loan and an issue:
+  - the agenda showed only the loan, "due in 39 min" with its times;
+  - earlier activity showed the issue with no due line;
+  - the request dialog's note was hidden until an item was picked, then read correctly for each type;
+  - there was no overflow and there were no JS errors.
+
+  `npm run build` was run. `vendor/bin/pint --test`: no new issues over the 9-file baseline.
+
 - **The admin loan forms now follow each item's loan type: time-limited items get a date-and-time picker, and non-returnable items are recorded as Issued with no due date.**
 
   **New loan.** Each item in the picker now carries its loan type, and the two non-default types are labelled ("Time-Limited · due back at a set time", "Non-Returnable · given out for good"). The date fields follow what is ticked:

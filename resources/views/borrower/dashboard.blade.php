@@ -19,7 +19,7 @@
         $subline = 'Bring it back to the equipment room today — overdue items hold up your next request.';
     } elseif ($dueSoonCount > 0) {
         $headline = $dueSoonCount === 1 ? 'Something is due back' : $dueSoonCount.' things are due back';
-        $subline = 'Return them by the date on each card and nothing goes late.';
+        $subline = 'Return them by the date or time on each card and nothing goes late.';
     } elseif ($waitingCount > 0) {
         $headline = $waitingCount === 1 ? 'One request is waiting' : $waitingCount.' requests are waiting';
         $subline = 'Nothing is held for you until an administrator approves it.';
@@ -247,7 +247,8 @@
                                                     data-equipment="{{ $requests->firstWhere('id', $item['id'])?->equipment?->equipment_name }}"
                                                     data-quantity="{{ $requests->firstWhere('id', $item['id'])?->quantity }}"
                                                     data-remarks="{{ $requests->firstWhere('id', $item['id'])?->remarks }}"
-                                                    data-available="{{ $requests->firstWhere('id', $item['id'])?->equipment?->available_quantity }}">
+                                                    data-available="{{ $requests->firstWhere('id', $item['id'])?->equipment?->available_quantity }}"
+                                                    data-loan-note="{{ $requests->firstWhere('id', $item['id'])?->equipment?->borrowerReturnNote() }}">
                                                 <i class="text-sm fas fa-pen" aria-hidden="true"></i> Edit
                                             </button>
                                             <button type="button"
@@ -296,7 +297,7 @@
                         <div id="history-panel" hidden class="mt-3 overflow-hidden bg-white border divide-y rounded-xl border-neutral-200 divide-neutral-200">
                             @foreach($history as $entry)
                                 <div class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
-                                    <span class="w-1.5 h-1.5 rounded-full shrink-0 {{ $entry['tone'] === 'danger' ? 'bg-danger-600' : 'bg-success-600' }}" aria-hidden="true"></span>
+                                    <span class="w-1.5 h-1.5 rounded-full shrink-0 {{ ['danger' => 'bg-danger-600', 'neutral' => 'bg-neutral-400'][$entry['tone']] ?? 'bg-success-600' }}" aria-hidden="true"></span>
                                     <span class="text-sm font-medium truncate text-neutral-900">{{ $entry['title'] }}</span>
                                     <span class="flex-1 min-w-0 text-sm text-neutral-600 text-pretty">{{ $entry['note'] }}</span>
                                     <span class="text-sm shrink-0 text-neutral-500 tabular-nums">{{ $entry['when']?->format('M j') ?? '' }}</span>
@@ -436,6 +437,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const maxNote = requestForm.querySelector('[data-request-max]');
         const previewText = requestForm.querySelector('[data-request-preview-text]');
         const previewDot = requestForm.querySelector('[data-request-preview-dot]');
+        const loanNote = requestForm.querySelector('[data-request-loan-note]');
+        const loanNoteText = requestForm.querySelector('[data-request-loan-note-text]');
+        const loanNoteIcon = requestForm.querySelector('[data-request-loan-note-icon]');
+        const noteIcons = { returnable: 'fa-rotate-left', time_limited: 'fa-clock', non_returnable: 'fa-box-open' };
 
         function picked() {
             return requestForm.querySelector('.request-equipment:checked');
@@ -450,6 +455,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
             quantity.max = Math.max(available, 1);
             maxNote.textContent = choice ? '(max ' + available + ')' : '';
+
+            // What happens after approval, for the item chosen: the note text
+            // is rendered by the server from the item's loan type and config.
+            loanNote.classList.toggle('hidden', !choice);
+            loanNote.classList.toggle('flex', !!choice);
+            if (choice) {
+                loanNoteText.textContent = choice.dataset.loanNote || '';
+                loanNoteIcon.className = 'text-sm fas ' + (noteIcons[choice.dataset.loanType] || noteIcons.returnable) + ' text-neutral-600';
+            }
 
             const qtyOk = choice && !isNaN(qty) && qty >= 1 && qty <= available;
             const purposeOk = remarks.value.trim().length > 3;
@@ -470,7 +484,8 @@ document.addEventListener('DOMContentLoaded', function () {
             hint.textContent = !choice ? 'Choose what you need'
                 : !qtyOk ? 'Lower the quantity'
                 : !purposeOk ? 'Say what it is for'
-                : 'Reviewed within one working day';
+                // No review time is promised: nothing in the system sets one.
+                : 'Nothing is held until an admin approves it';
             hint.classList.toggle('text-danger-700', !ok);
             hint.classList.toggle('text-neutral-600', ok);
         }
@@ -531,6 +546,7 @@ document.addEventListener('DOMContentLoaded', function () {
             available = parseInt(trigger.dataset.available, 10) || 0;
             document.getElementById('edit-request-id').value = trigger.dataset.id;
             document.getElementById('edit-request-equipment').textContent = trigger.dataset.equipment || '';
+            document.getElementById('edit-request-loan-note').textContent = trigger.dataset.loanNote || '';
             quantity.value = trigger.dataset.quantity || 1;
             document.getElementById('edit-request-remarks').value = trigger.dataset.remarks || '';
             sync();
