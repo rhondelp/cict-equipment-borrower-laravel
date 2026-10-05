@@ -2,6 +2,44 @@
 
 ## 2026-10-05
 
+- **Admins can set an item's loan type, and the inventory list shows and filters by it.** The add/edit equipment dialog has a new **Loan type** control, placed directly under the name. It is three radio cards rather than a select, so the plain-language line under each option is read before choosing:
+  - **Returnable:** "Comes back by a date".
+  - **Time-Limited:** "Comes back by an exact time, such as within 1 hour".
+  - **Non-Returnable:** "Given out and not expected back; the issue is still recorded".
+
+  Titles are 16px semibold and hints are 14px `neutral-700`, in line with the other fields. Each card carries an icon (`fa-rotate-left`, `fa-clock`, `fa-box-open`), the selected card is outlined and tinted, and each radio is described by its hint for screen readers. Returnable is checked for a new item; editing prefills the item's own type.
+
+  **The type cannot change under a loan already out.** That loan was made under the old type's terms, and switching would leave it due by a time it was never given, or turn it into a hand-over nobody recorded. `EquipmentController::update` refuses the change while `unitsOut() > 0`, under the same row lock as the rest of the edit, with an error that names the units, the old type and the new one. The whole post is refused, so a rename sent with it is not half-applied. Other edits to such an item still work when the type is unchanged, and a type change is allowed once everything is returned or voided. In the dialog, the other two cards are disabled and a line says "2 units are out on loan, so the loan type is locked until they are checked in."
+
+  **Validation.** `loan_type` is `required|in:returnable,time_limited,non_returnable` on both routes. A store without the field saves Returnable, which is what every item was before. An update without it **keeps the item's current type** rather than defaulting, because defaulting there would quietly turn a Time-Limited item back into Returnable from any older form. Every existing rule is unchanged:
+  - no status or available-quantity input;
+  - the total cannot drop below units out, or below out + issued;
+  - availability is recomputed under the row lock as total − out − issued.
+
+  **The list.** Each row shows its type as a small neutral badge next to the item name, and the label is searchable. It is neutral on purpose, because colour on this screen marks a stock problem and a loan type is not one. Three chips with counts, **Returnable / Time-Limited / Non-Returnable**, join the existing chip row after a divider. They do not get a group with its own "All", because `resources/js/ui.js` keeps one active chip per list, and two "All" buttons would both light up for one state. Each row's `data-chip` gains its type key, so no new script was needed, and `?filter=time_limited` works like the other chips. A type no item uses yet is shown but disabled, since a chip that can only empty the list is a dead control. The loan screens are untouched.
+
+  **Verification.** `php artisan test`: **381 passed**, up from 370. The new `EquipmentLoanTypeTest` has 11 tests:
+  - the default type when the field is absent;
+  - each type saving on create and on edit;
+  - an unknown, blank, wrongly cased or hyphenated type refused;
+  - an edit without the field keeping the current type;
+  - a change refused while 2 units are out, with the message and nothing else saved;
+  - a quantity edit still working while units are out;
+  - a change allowed once loans are returned or voided;
+  - a borrower getting 403;
+  - every row's badge, icon and chip key;
+  - the three chips with counts, a single "All", and an unused type disabled;
+  - the three radio cards with their hints, Returnable checked by default, and the edit trigger carrying the type.
+
+  In headless Chrome at 1280px and 390px against a scratch SQLite database:
+  - the Time-Limited chip filtered to its one row ("Showing 1 of 8 items") and Returnable to seven;
+  - editing the Time-Limited item prefilled it, unlocked;
+  - editing an item with 2 units out kept Returnable checked, disabled the other two and showed the lock line;
+  - Add defaulted to Returnable, and saving a new item as Non-Returnable put its badge in the list and enabled that chip;
+  - there was no horizontal overflow and no page errors. On a phone the chips wrap and the cards stack.
+
+  The first screenshot showed the hand icon reading as a smudge at chip size, so it became `fa-box-open`. `npm run build` was run, and every new utility (`has-[:disabled]:*`, `disabled:*`, `!px-2`, `!py-0.5`) is in the compiled CSS. `vendor/bin/pint --test`: no new issues over the 9-file baseline.
+
 - **Foundation for loan types: time-limited loans, non-returnable items, and an `Issued` status.** This is schema and model logic only. No screen, form or route offers any of it yet, and every existing screen reads exactly as before. Three migrations:
   - `2026_10_05_120000_add_loan_type_to_equipment` adds `equipment.loan_type` (string 20, indexed, default `returnable`), after `category`. `category` is untouched: it is free-text grouping and says nothing about whether an item comes back.
   - `2026_10_05_120100_add_times_to_borrow_transactions` turns `borrow_date` and `return_date` into DATETIME (`return_date` stays nullable) and adds `timed`, a boolean defaulting to false. MySQL keeps every existing date at `00:00:00`.

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Equipment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class EquipmentController extends Controller
 {
@@ -20,13 +21,20 @@ class EquipmentController extends Controller
      * `available_quantity` and `status` are no longer on the form. Both are
      * derived from the loans, so a new item starts fully available and the
      * status follows from the stock.
+     *
+     * `loan_type` is required, but a post without it (an older form, a
+     * script) means Returnable, which is what every item was before the
+     * field existed.
      */
     public function store(Request $request)
     {
+        $request->mergeIfMissing(['loan_type' => Equipment::LOAN_RETURNABLE]);
+
         $validated = $request->validate([
             'equipment_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
             'category' => 'nullable|string|max:60',
+            'loan_type' => ['required', Rule::in(array_keys(Equipment::LOAN_TYPES))],
             'quantity' => 'required|integer|min:1',
         ]);
         $validated['category'] = Equipment::canonicalCategory($validated['category'] ?? null);
@@ -44,6 +52,12 @@ class EquipmentController extends Controller
      * that are out with borrowers: "3 units are out on loan" is a fact about
      * the loans, not a number an admin gets to overrule. Availability is then
      * recomputed as total − out − issued, which also repairs any drift.
+     *
+     * The loan type can change only while nothing is out. A loan already out
+     * was made under the old type's terms, and switching underneath it would
+     * leave it due by a date it was never given, or turn it into a hand-over
+     * nobody recorded. A post without `loan_type` keeps the current one,
+     * rather than quietly resetting the item to Returnable.
      */
     public function update(Request $request)
     {
@@ -52,6 +66,7 @@ class EquipmentController extends Controller
             'equipment_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
             'category' => 'nullable|string|max:60',
+            'loan_type' => ['sometimes', 'required', Rule::in(array_keys(Equipment::LOAN_TYPES))],
             'quantity' => 'required|integer|min:0',
         ]);
         $validated['category'] = Equipment::canonicalCategory($validated['category'] ?? null);
@@ -59,6 +74,13 @@ class EquipmentController extends Controller
         $result = DB::transaction(function () use ($validated) {
             $equipment = Equipment::where('id', $validated['id'])->lockForUpdate()->firstOrFail();
             $out = $equipment->unitsOut();
+            $loanType = $validated['loan_type'] ?? $equipment->loan_type;
+
+            if ($loanType !== $equipment->loan_type && $out > 0) {
+                return ['field' => 'loan_type', 'error' => $equipment->equipment_name.' has '.$out.' '.str('unit')->plural($out)
+                    .' out on loan, so its loan type cannot change from '.$equipment->loanTypeLabel()
+                    .' to '.Equipment::LOAN_TYPES[$loanType].'. Check '.($out === 1 ? 'it' : 'them').' in first.'];
+            }
 
             if ($validated['quantity'] < $out) {
                 return ['error' => $out.' '.str('unit')->plural($out).' of '.$equipment->equipment_name
@@ -76,6 +98,7 @@ class EquipmentController extends Controller
             $equipment->equipment_name = $validated['equipment_name'];
             $equipment->description = $validated['description'] ?? null;
             $equipment->category = $validated['category'];
+            $equipment->loan_type = $loanType;
             $equipment->quantity = $validated['quantity'];
             $equipment->available_quantity = $validated['quantity'] - $out - $issued;
             $equipment->status = $equipment->lendableStatus();
@@ -85,7 +108,7 @@ class EquipmentController extends Controller
         });
 
         if (isset($result['error'])) {
-            return redirect()->back()->withErrors(['quantity' => $result['error']])->withInput();
+            return redirect()->back()->withErrors([$result['field'] ?? 'quantity' => $result['error']])->withInput();
         }
 
         $equipment = $result['equipment'];

@@ -1,5 +1,5 @@
 {{-- Add / edit equipment — one modal for both, because they ask for the same
-     four things.
+     five things.
 
      Two fields that used to be here are gone:
 
@@ -41,6 +41,37 @@
                            class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
                     <p data-error-for="equipment-name" class="mt-2 text-sm font-medium text-danger-700" hidden></p>
                 </div>
+
+                {{-- How the item leaves the room. Three cards rather than a
+                     select, so the plain-language line under each is read
+                     before choosing, not after. Locked while units are out:
+                     the page script disables the other two and says why, and
+                     EquipmentController::update refuses the change anyway. --}}
+                <fieldset>
+                    <legend class="block text-base font-medium text-neutral-800">Loan type</legend>
+                    <div class="grid gap-2 mt-2">
+                        @foreach([
+                            \App\Models\Equipment::LOAN_RETURNABLE => ['fa-rotate-left', 'Comes back by a date'],
+                            \App\Models\Equipment::LOAN_TIME_LIMITED => ['fa-clock', 'Comes back by an exact time, such as within 1 hour'],
+                            \App\Models\Equipment::LOAN_NON_RETURNABLE => ['fa-box-open', 'Given out and not expected back; the issue is still recorded'],
+                        ] as $type => [$icon, $hint])
+                            <label class="flex items-start gap-3 px-4 py-3 border rounded-lg cursor-pointer border-neutral-300 hover:border-primary-300 has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50 has-[:disabled]:cursor-not-allowed has-[:disabled]:bg-neutral-50 has-[:disabled]:opacity-60">
+                                <input type="radio" name="loan_type" value="{{ $type }}" data-loan-type-option
+                                       aria-describedby="loan-type-hint-{{ $type }}"
+                                       @checked($type === \App\Models\Equipment::LOAN_RETURNABLE)
+                                       class="w-5 h-5 mt-0.5 shrink-0 accent-primary-600">
+                                <span class="min-w-0">
+                                    <span class="flex items-center gap-2 text-base font-semibold text-neutral-900">
+                                        <i class="w-4 text-sm text-center fas {{ $icon }} text-neutral-600" aria-hidden="true"></i>
+                                        {{ \App\Models\Equipment::LOAN_TYPES[$type] }}
+                                    </span>
+                                    <span id="loan-type-hint-{{ $type }}" class="block mt-0.5 text-sm text-neutral-700 text-pretty">{{ $hint }}</span>
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p data-loan-type-locked class="mt-2 text-sm font-medium text-warning-700" hidden></p>
+                </fieldset>
 
                 {{-- Pick one already in use or type a new one. The server folds
                      "cables" onto an existing "Cables", so a slip of the shift

@@ -12,6 +12,12 @@
     $fullyOut = $lendable->filter(fn ($item) => $item->available_quantity <= 0)->count();
     $itemTypesOut = $equipment->filter(fn ($item) => $item->outNow() > 0)->count();
     $retiredCount = $equipment->count() - $lendable->count();
+    $loanTypeCounts = $equipment->countBy(fn ($item) => $item->loan_type);
+    $loanTypeIcons = [
+        \App\Models\Equipment::LOAN_RETURNABLE => 'fa-rotate-left',
+        \App\Models\Equipment::LOAN_TIME_LIMITED => 'fa-clock',
+        \App\Models\Equipment::LOAN_NON_RETURNABLE => 'fa-box-open',
+    ];
 @endphp
 
 <div class="min-h-[100dvh] page-bg md:ml-64">
@@ -79,6 +85,24 @@
                                 {{ $label }}
                             </button>
                         @endforeach
+
+                        {{-- Loan type. Same chip row, because ui.js holds one
+                             active chip per list: a second group with its own
+                             "All" would light two buttons for one state. A type
+                             nothing uses yet is shown but disabled, since a
+                             chip that can only empty the list is a dead control. --}}
+                        <span class="hidden w-px h-6 mx-1 sm:block bg-neutral-300" aria-hidden="true"></span>
+                        @foreach(\App\Models\Equipment::LOAN_TYPES as $type => $typeLabel)
+                            @php
+                                $typeCount = $loanTypeCounts->get($type, 0);
+                            @endphp
+                            <button type="button" data-list-chip="{{ $type }}" aria-pressed="false"
+                                    @disabled($typeCount === 0)
+                                    class="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition border-neutral-300 bg-white text-neutral-700 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-500">
+                                <i class="text-xs fas {{ $loanTypeIcons[$type] }}" aria-hidden="true"></i>
+                                {{ $typeLabel }} <span class="tabular-nums">{{ $typeCount }}</span>
+                            </button>
+                        @endforeach
                     </div>
                     <div class="flex items-center gap-2 text-sm text-neutral-600">
                         <label for="equipment-sort" class="shrink-0">Sort</label>
@@ -120,7 +144,7 @@
                                 'partial' => 'bg-primary-500', 'all-in' => 'bg-success-500',
                                 'retired' => 'bg-neutral-300',
                             ][$state['key']];
-                            $chipKeys = collect([$state['key']]);
+                            $chipKeys = collect([$state['key'], $item->loan_type]);
                             if (! $item->isRetired()) {
                                 if ($item->available_quantity > 0) { $chipKeys->push('lendable'); }
                             }
@@ -131,14 +155,23 @@
                                     : '');
                         @endphp
                         <div data-list-row data-chip="{{ $chipKeys->implode(' ') }}"
-                             data-search="{{ strtolower($item->equipment_name.' '.$item->description) }}"
+                             data-search="{{ strtolower($item->equipment_name.' '.$item->description.' '.$item->loanTypeLabel()) }}"
                              data-sort-name="{{ $item->equipment_name }}"
                              data-sort-available="{{ $item->available_quantity }}"
                              data-sort-quantity="{{ $item->quantity }}"
                              class="grid gap-3 px-4 py-4 sm:px-5 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_9rem_6rem] md:items-center md:gap-4 hover:bg-neutral-50">
 
                             <div class="min-w-0">
-                                <p class="text-base font-semibold text-neutral-900">{{ $item->equipment_name }}</p>
+                                <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                                    <p class="text-base font-semibold text-neutral-900">{{ $item->equipment_name }}</p>
+                                    {{-- Neutral on purpose: colour on this screen marks a stock problem, and a loan type is not one. --}}
+                                    <x-ui.badge variant="neutral" data-loan-type="{{ $item->loan_type }}" class="!px-2 !py-0.5">
+                                        <x-slot:status>
+                                            <i class="text-xs fas {{ $loanTypeIcons[$item->loan_type] ?? 'fa-rotate-left' }}" aria-hidden="true"></i>
+                                            {{ $item->loanTypeLabel() }}
+                                        </x-slot:status>
+                                    </x-ui.badge>
+                                </div>
                                 <p class="mt-0.5 text-sm text-neutral-600 text-pretty">{{ $item->description ?: 'No description yet' }}</p>
                             </div>
 
@@ -167,6 +200,7 @@
                                         data-name="{{ $item->equipment_name }}"
                                         data-description="{{ $item->description }}"
                                         data-category="{{ $item->category }}"
+                                        data-loan-type="{{ $item->loan_type }}"
                                         data-quantity="{{ $item->quantity }}"
                                         data-out="{{ $out }}">
                                     <i class="text-base fas fa-pen" aria-hidden="true"></i>
@@ -234,6 +268,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const previewText = modal.querySelector('[data-equipment-preview-text]');
     const previewDot = modal.querySelector('[data-equipment-preview-dot]');
     const nameError = modal.querySelector('[data-error-for="equipment-name"]');
+    const loanTypeOptions = modal.querySelectorAll('[data-loan-type-option]');
+    const loanTypeLocked = modal.querySelector('[data-loan-type-locked]');
 
     const ADD_URL = @json(route('admin.equipment.store'));
     const UPDATE_URL = @json(route('admin.equipment.update'));
@@ -291,6 +327,21 @@ document.addEventListener('DOMContentLoaded', function () {
         categoryField.value = editing ? (data.category || '') : '';
         qtyField.value = editing ? data.quantity : 1;
         qtyField.min = editing ? Math.max(unitsOut, 0) : 1;
+
+        // The loan type cannot change under a loan already out. The current
+        // type stays enabled so it is still posted; the server refuses a
+        // change regardless.
+        const currentType = (editing && data.loanType) || 'returnable';
+        const typeLocked = editing && unitsOut > 0;
+        loanTypeOptions.forEach(function (option) {
+            option.checked = option.value === currentType;
+            option.disabled = typeLocked && option.value !== currentType;
+        });
+        loanTypeLocked.hidden = !typeLocked;
+        loanTypeLocked.textContent = typeLocked
+            ? unitsOut + ' ' + (unitsOut === 1 ? 'unit is' : 'units are')
+                + ' out on loan, so the loan type is locked until ' + (unitsOut === 1 ? 'it is' : 'they are') + ' checked in.'
+            : '';
 
         modal.querySelector('[data-equipment-title]').textContent = editing ? 'Edit equipment' : 'Add equipment';
         modal.querySelector('[data-equipment-subtitle]').textContent = editing

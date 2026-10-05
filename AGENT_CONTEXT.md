@@ -119,6 +119,18 @@ by hiding controls:
   see it as group headings in the request modal (A–Z, uncategorised last as
   "Other", no headings at all when nothing has a category) and after the stock
   count on the dashboard shelf. The admin inventory list does not show it yet.
+- **`equipment.loan_type`** (form and list since 5 October 2026) — the add/edit
+  dialog has three radio cards (Returnable, Time-Limited, Non-Returnable), each
+  with a one-line hint. Returnable is the default. When the item has units out,
+  the page script disables the other two cards and says why; the server refuses
+  the change regardless. Each inventory row shows the type as a neutral
+  `x-ui.badge` with an icon (`fa-rotate-left` / `fa-clock` / `fa-box-open`); it is
+  neutral because colour on that screen marks a stock problem. The type's key is
+  added to the row's `data-chip`. The three type chips sit in the **same** chip
+  row as All / Lendable / Running low / Fully out, because `ui.js` holds one
+  active chip per list, and they carry counts. A type no item uses is rendered
+  `disabled`. `?filter=time_limited` etc. work through the existing mechanism.
+  Nothing on the loan or borrower screens reads the type yet.
 - **`return_logs.resolution` / `resolved_at` / `resolved_by`** — the outcome of a
   damaged or lost return. `needsFollowUp()` is `isIncident() && ! isResolved()`
   and is what the return-logs screen and the dashboard both lead with. Return
@@ -298,7 +310,7 @@ Where it happens:
 - `ItemRequestController::requestActions`, approve branch — locks the equipment, rejects if short, deducts, flips the request to `Approved`, **and auto-creates a `BorrowTransaction`** (`borrow_date` today, `return_date` today + `config('office.loan_days')`, default 7, status `Borrowed`, `purpose` falling back to the request remarks). Decline only flips the request status, no stock movement. Both are idempotent: a request whose status is not `Pending` is rejected up front.
 - `BorrowTransactionController::sendReturnAlertNotification` — bulk-updates `Borrowed` rows whose `return_date` is past to `Overdue`. Because both are "out", this deliberately performs no stock change. It then emails borrowers whose `return_date` is today, skipping anyone already given a `Return Notice` notification today (checked twice: before sending, and again inside the DB transaction). Invoked by `php artisan notifications:return` (`App\Console\Commands\SendReturnNotifications`), scheduled daily at 08:00 in `bootstrap/app.php`, and reachable manually at `GET /admin/send-return-alerts`.
 
-- `EquipmentController::store` / `::update` — neither takes `available_quantity` or `status` any more. A new item starts fully available; an edit recomputes `available_quantity = quantity − unitsOut() − unitsIssued()` under a row lock, which also repairs drift, and refuses a total below the units currently out, or below out + issued. The index query loads `units_out` and `units_issued` with `withSum`; `outNow()` / `issuedNow()` read them. Neither form takes `loan_type` yet. `EquipmentController::destroy` is refused while any loan or request references the item, so the cascade can no longer take history with it.
+- `EquipmentController::store` / `::update` — neither takes `available_quantity` or `status` any more. A new item starts fully available; an edit recomputes `available_quantity = quantity − unitsOut() − unitsIssued()` under a row lock, which also repairs drift, and refuses a total below the units currently out, or below out + issued. The index query loads `units_out` and `units_issued` with `withSum`; `outNow()` / `issuedNow()` read them. Both take `loan_type` (`required`, `Rule::in(array_keys(Equipment::LOAN_TYPES))`). A store without it gets `returnable` via `mergeIfMissing`. An update without it **keeps the current type**: it is validated `sometimes` and falls back to the row's own value, so an older form cannot reset an item. `update` refuses a type change while `unitsOut() > 0`, under the same row lock, with the error on `loan_type`, and saves nothing else from that post. Changing type with only returned, voided or issued history is allowed. `EquipmentController::destroy` is refused while any loan or request references the item, so the cascade can no longer take history with it.
 
 ## Opening hours and office config
 
