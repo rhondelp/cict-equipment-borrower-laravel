@@ -8,9 +8,13 @@
     $open = $live->filter(fn ($tx) => $tx->isOut());
     $overdue = $open->filter(fn ($tx) => $tx->isOverdue());
     $returned = $live->filter(fn ($tx) => $tx->isReturned());
+    $issued = $live->filter(fn ($tx) => $tx->isIssued());
     $voided = $transactions->filter(fn ($tx) => $tx->isVoided());
     $unitsOut = $open->sum('quantity');
     $dueToday = $open->filter(fn ($tx) => $tx->daysUntilDue() === 0)->count();
+    // The worst overdue loan is the one whose due moment passed first. Its own
+    // timing label says how late, in days or, for a timed loan, minutes.
+    $worstOverdue = $overdue->sortBy(fn ($tx) => $tx->dueAt()?->timestamp)->first();
 @endphp
 
 <div class="min-h-[100dvh] page-bg md:ml-64">
@@ -37,7 +41,7 @@
         @if($transactions->isNotEmpty())
             <x-ui.stat-strip :stats="[
                 ['label' => 'Units out on loan', 'value' => $unitsOut, 'unit' => 'across '.$open->count().' '.str('loan')->plural($open->count()), 'sub' => $open->isEmpty() ? 'Everything is on the shelf' : 'Tracked until each comes back'],
-                ['label' => 'Overdue', 'value' => $overdue->count(), 'unit' => '', 'sub' => $overdue->isEmpty() ? 'Nothing past its due date' : 'Longest: '.$overdue->max(fn ($tx) => $tx->daysLate()).' days late', 'tone' => $overdue->isEmpty() ? 'neutral' : 'danger'],
+                ['label' => 'Overdue', 'value' => $overdue->count(), 'unit' => '', 'sub' => $overdue->isEmpty() ? 'Nothing past its due date' : 'Longest: '.$worstOverdue->timingLabel(), 'tone' => $overdue->isEmpty() ? 'neutral' : 'danger'],
                 ['label' => 'Due back today', 'value' => $dueToday, 'unit' => '', 'sub' => $dueToday > 0 ? 'Reminders go out at 08:00' : 'Nothing due today', 'tone' => $dueToday > 0 ? 'warning' : 'neutral'],
                 ['label' => 'Returned', 'value' => $returned->count(), 'unit' => str('loan')->plural($returned->count()), 'sub' => 'Logged in Return Logs', 'tone' => 'success', 'url' => route('admin.logs')],
             ]" />
@@ -67,8 +71,11 @@
                                 'active' => 'Active '.$open->count(),
                                 'overdue' => 'Overdue '.$overdue->count(),
                                 'returned' => 'Returned '.$returned->count(),
-                                'all' => 'All '.$transactions->count(),
                             ];
+                            if ($issued->isNotEmpty()) {
+                                $chips['issued'] = 'Issued '.$issued->count();
+                            }
+                            $chips['all'] = 'All '.$transactions->count();
                             if ($voided->isNotEmpty()) {
                                 $chips['void'] = 'Void '.$voided->count();
                             }
@@ -117,7 +124,7 @@
                         @php
                             $status = $tx->derivedStatus();
                             $rank = $tx->isVoided() ? 4
-                                : ($tx->isReturned() ? 3
+                                : (($tx->isReturned() || $tx->isIssued()) ? 3
                                 : ($tx->isOverdue() ? 0
                                 : (($tx->daysUntilDue() !== null && $tx->daysUntilDue() <= 1) ? 1 : 2)));
                             $lastReminder = $tx->reminders->first();
@@ -125,18 +132,26 @@
                                 'Overdue' => 'all active overdue',
                                 'Out' => 'all active',
                                 'Returned' => 'all returned',
+                                'Issued' => 'all issued',
                                 default => 'all void',
                             };
                             $isOpen = $tx->isOut();
+                            $isIssued = $tx->isIssued();
                             $log = $tx->returnLog;
                             $blocked = $isOpen
                                 ? "Can't delete — the loan is still open"
-                                : ($log ? "Can't delete — it is part of the return history" : '');
+                                : ($isIssued ? "Can't delete — its units are counted as given out"
+                                : ($log ? "Can't delete — it is part of the return history" : ''));
+                            // Sorted on the moment it falls due, not the stored
+                            // date: a timed loan due at 2 PM is more urgent than
+                            // a date-only loan due "today".
+                            $dueStamp = $tx->dueAt()?->timestamp;
+                            $dueLabel = $tx->return_date?->format($tx->timed ? 'M j, g:i A' : 'M j');
                         @endphp
                         <div data-list-row id="loan-{{ $tx->id }}" data-chip="{{ $chipKeys }}"
                              data-search="{{ strtolower(($tx->user->name ?? '').' '.($tx->equipment->equipment_name ?? '').' '.$tx->purpose) }}"
-                             data-sort-urgency="{{ $rank }}{{ str_pad((string) ($tx->return_date?->timestamp ?? 9999999999), 10, '0', STR_PAD_LEFT) }}"
-                             data-sort-due="{{ $tx->return_date?->timestamp ?? 0 }}"
+                             data-sort-urgency="{{ $rank }}{{ str_pad((string) ($dueStamp ?? 9999999999), 10, '0', STR_PAD_LEFT) }}"
+                             data-sort-due="{{ $dueStamp ?? 0 }}"
                              data-sort-borrowed="{{ $tx->borrow_date?->timestamp ?? 0 }}"
                              data-sort-person="{{ $tx->user->name ?? 'zzz' }}"
                              class="scroll-mt-24 {{ $tx->isOverdue() ? 'bg-danger-50/40' : '' }}">
@@ -163,7 +178,8 @@
                                 <div class="min-w-0">
                                     <p class="text-sm truncate text-neutral-700 tabular-nums">{{ $tx->dateRangeLabel() }}</p>
                                     <p class="text-sm truncate {{ $tx->isOverdue() ? 'font-semibold text-danger-700' : 'text-neutral-600' }}">
-                                        {{ $tx->timingLabel() }}
+                                        {{-- "issued" under "Issued Oct 5" beside an Issued status says one thing three times. --}}
+                                        {{ $isIssued ? 'Not expected back' : $tx->timingLabel() }}
                                     </p>
                                     {{-- Whether this one has been chased, and when.
                                          Without it an admin cannot tell a first
@@ -193,13 +209,15 @@
                                                 data-checkin-trigger
                                                 data-id="{{ $tx->id }}"
                                                 data-summary="{{ ($tx->equipment->equipment_name ?? 'Equipment').($tx->quantity > 1 ? ' ×'.$tx->quantity : '').' · '.($tx->user->name ?? 'Deleted user') }}"
-                                                data-timing="{{ $tx->isOverdue() ? $tx->timingLabel().' — due '.($tx->return_date?->format('M j')) : 'Due '.($tx->return_date?->format('M j') ?? '—').' · on time' }}"
+                                                data-timing="{{ $tx->isOverdue() ? $tx->timingLabel().' — due '.$dueLabel : 'Due '.($dueLabel ?? '—').' · on time' }}"
                                                 data-late="{{ $tx->isOverdue() ? '1' : '0' }}">
                                             <i class="text-base fas fa-check" aria-hidden="true"></i>
                                         </button>
                                     @endif
 
-                                    @if($tx->user)
+                                    {{-- No email for an issue: the only template is a
+                                         return reminder, and nothing is due back. --}}
+                                    @if($tx->user && ! $isIssued)
                                         <button type="button"
                                                 class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-700 hover:border-primary-300 hover:text-primary-700"
                                                 title="Email borrower" aria-label="Email the borrower"
@@ -220,8 +238,9 @@
                                                 data-id="{{ $tx->id }}"
                                                 data-user="{{ $tx->user_id }}"
                                                 data-equipment="{{ $tx->equipment_id }}"
-                                                data-borrow="{{ $tx->borrow_date?->toDateString() }}"
-                                                data-return="{{ $tx->return_date?->toDateString() }}"
+                                                data-timed="{{ $tx->timed ? '1' : '0' }}"
+                                                data-borrow="{{ $tx->borrow_date?->format($tx->timed ? 'Y-m-d\TH:i' : 'Y-m-d') }}"
+                                                data-return="{{ $tx->return_date?->format($tx->timed ? 'Y-m-d\TH:i' : 'Y-m-d') }}"
                                                 data-quantity="{{ $tx->quantity }}"
                                                 data-purpose="{{ $tx->purpose }}"
                                                 data-remarks="{{ $tx->remarks }}"
@@ -239,9 +258,11 @@
                                                 data-title="Remove loan #{{ $tx->id }}?"
                                                 data-body="{{ $isOpen
                                                     ? 'This loan is still open — the equipment is with the borrower. Voiding puts its units back in stock and keeps the record visible, marked as an error.'
-                                                    : 'Returned loans are the department\'s audit trail. Voiding keeps the record and marks it as an error; deleting erases it from the logs and the return history.' }}"
+                                                    : ($isIssued
+                                                        ? 'This item was issued — given out for good. Voiding puts its units back in stock and keeps the record visible, marked as an error.'
+                                                        : 'Returned loans are the department\'s audit trail. Voiding keeps the record and marks it as an error; deleting erases it from the logs and the return history.') }}"
                                                 data-fact-a="{{ $tx->user->name ?? 'Deleted user' }}"
-                                                data-fact-b="{{ $tx->quantity }}" data-fact-b-alert="{{ $isOpen ? '1' : '0' }}"
+                                                data-fact-b="{{ $tx->quantity }}" data-fact-b-alert="{{ $isOpen || $isIssued ? '1' : '0' }}"
                                                 data-fact-c="{{ $status }}"
                                                 data-blocked="{{ $blocked }}"
                                                 data-delete-url="{{ route('admin.transaction.destroy', $tx->id) }}"
@@ -277,11 +298,13 @@
                                 </div>
                                 <div>
                                     <p class="text-xs font-semibold tracking-wider uppercase text-neutral-600">
-                                        {{ $tx->isVoided() ? 'Voided' : 'Returned' }}
+                                        {{ $tx->isVoided() ? 'Voided' : ($isIssued ? 'Issued' : 'Returned') }}
                                     </p>
-                                    <p class="mt-1 text-sm text-pretty {{ $tx->isVoided() || $log ? 'text-neutral-800' : 'text-neutral-500' }}">
+                                    <p class="mt-1 text-sm text-pretty {{ $tx->isVoided() || $log || $isIssued ? 'text-neutral-800' : 'text-neutral-500' }}">
                                         @if($tx->isVoided())
                                             {{ $tx->voided_at->format('M j') }} — {{ $tx->void_reason }}
+                                        @elseif($isIssued)
+                                            Given out for good · not expected back
                                         @elseif($log)
                                             {{ $log->timingLine() }} · {{ $log->condition }}
                                             @if($log->receiver) · received by {{ $log->receiver->name }} @endif
@@ -344,6 +367,23 @@ document.addEventListener('DOMContentLoaded', function () {
         toggle.querySelector('i').className = open ? 'fas fa-chevron-down text-xs' : 'fas fa-chevron-right text-xs';
     });
 
+    /* ---- date helpers (both loan forms) ------------------------------- */
+    // Fields hold local wall-clock values: "2026-10-05" or "2026-10-05T14:30".
+    const pad = function (n) { return String(n).padStart(2, '0'); };
+    const localDay = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+    const localMoment = function (d) { return localDay(d) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+    const readField = function (value) {
+        if (!value) return null;
+        const d = new Date(value.length <= 10 ? value + 'T00:00' : value);
+        return isNaN(d.getTime()) ? null : d;
+    };
+    const spanLabel = function (minutes) {
+        if (minutes < 60) return minutes + ' min';
+        const hours = Math.floor(minutes / 60);
+        const rest = minutes % 60;
+        return hours + ' hr' + (rest ? ' ' + rest + ' min' : '');
+    };
+
     /* ---- new loan ---------------------------------------------------- */
     const loanForm = document.getElementById('new-loan-form');
     if (loanForm) {
@@ -352,15 +392,54 @@ document.addEventListener('DOMContentLoaded', function () {
         const hint = loanForm.querySelector('[data-loan-hint]');
         const previewText = loanForm.querySelector('[data-loan-preview-text]');
         const previewDot = loanForm.querySelector('[data-loan-preview-dot]');
+        const returnWrap = loanForm.querySelector('[data-loan-return-wrap]');
+        const presets = loanForm.querySelector('[data-loan-presets]');
+        const datesNote = loanForm.querySelector('[data-loan-dates-note]');
         const who = document.getElementById('loan-user');
         const from = document.getElementById('loan-borrow-date');
         const until = document.getElementById('loan-return-date');
         const purpose = document.getElementById('loan-purpose');
+        const defaultDue = until.dataset.defaultDue || '';
 
-        const dayGap = function (a, b) {
-            if (!a || !b) return NaN;
-            return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000);
-        };
+        // 'date' — only returnable items: two dates, as before.
+        // 'time' — any time-limited item: date and time on both.
+        // 'none' — only non-returnable items: no due field at all.
+        // The server re-decides per item from the equipment row; this only
+        // decides which control to show.
+        let mode = 'date';
+
+        function setMode(next) {
+            if (next === mode) return;
+            mode = next;
+
+            if (next === 'time') {
+                // The borrow moment starts at now. A date already moved off
+                // today keeps its day and takes the current time.
+                const picked = readField(from.value);
+                const now = new Date();
+                const start = (!picked || localDay(picked) === localDay(now))
+                    ? now
+                    : new Date(picked.getFullYear(), picked.getMonth(), picked.getDate(), now.getHours(), now.getMinutes());
+                from.type = 'datetime-local';
+                from.value = localMoment(start);
+                until.type = 'datetime-local';
+                until.value = localMoment(new Date(start.getTime() + 60 * 60000));
+            } else {
+                const picked = readField(from.value);
+                const due = readField(until.value);
+                from.type = 'date';
+                from.value = picked ? localDay(picked) : localDay(new Date());
+                until.type = 'date';
+                until.value = due && localDay(due) !== from.value ? localDay(due) : defaultDue;
+            }
+
+            // A hidden required field would block the submit, so it is
+            // disabled as well as hidden — and a disabled field is not sent.
+            returnWrap.classList.toggle('hidden', next === 'none');
+            until.disabled = next === 'none';
+            presets.classList.toggle('hidden', next !== 'time');
+            presets.classList.toggle('flex', next === 'time');
+        }
 
         // Advisory only — store() re-checks stock under a row lock and stays
         // the source of truth. What this buys is being told before the round
@@ -390,6 +469,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         function sync() {
             const picked = Array.from(list?.querySelectorAll('.equipment-checkbox:checked') || []);
+            const typeOf = function (box) { return box.dataset.loanType || 'returnable'; };
+            const timedCount = picked.filter(function (box) { return typeOf(box) === 'time_limited'; }).length;
+            const issuedCount = picked.filter(function (box) { return typeOf(box) === 'non_returnable'; }).length;
+            const datedCount = picked.length - timedCount - issuedCount;
+
+            setMode(timedCount > 0 ? 'time' : (picked.length > 0 && issuedCount === picked.length ? 'none' : 'date'));
+
             const quantities = picked.map(function (box) {
                 return box.closest('.equipment-option').querySelector('.equipment-qty');
             });
@@ -397,15 +483,45 @@ document.addEventListener('DOMContentLoaded', function () {
             const units = quantities.reduce(function (sum, qty) {
                 return sum + (parseInt(qty.value, 10) || 0);
             }, 0);
-            const days = dayGap(from.value, until.value);
-            const datesOk = !isNaN(days) && days >= 0;
+
+            const start = readField(from.value);
+            const due = readField(until.value);
+            let datesOk = true;
+            let span = '';
+            if (mode === 'time') {
+                datesOk = !!start && !!due && due > start;
+                if (datesOk) {
+                    const minutes = Math.round((due - start) / 60000);
+                    span = minutes < 24 * 60 ? 'out for ' + spanLabel(minutes) : 'due back ' + until.value.replace('T', ' at ');
+                }
+            } else if (mode === 'date') {
+                const days = (start && due) ? Math.round((due - start) / 86400000) : NaN;
+                datesOk = !isNaN(days) && days >= 0;
+                span = 'out for ' + days + ' ' + (days === 1 ? 'day' : 'days');
+            }
+
             const ok = !!who.value && picked.length > 0 && quantitiesOk && datesOk && purpose.value.trim().length > 2;
+
+            // Say what the mixed cases mean before anyone has to ask.
+            const notes = [];
+            if (mode === 'time' && datedCount > 0) {
+                notes.push('Time-limited items are due at this exact time; returnable items in the same loan are due by the end of that day.');
+            }
+            if (issuedCount > 0) {
+                notes.push(issuedCount === picked.length
+                    ? 'Non-returnable items are given out for good, so there is no due date. The issue is still recorded.'
+                    : issuedCount + ' non-returnable ' + (issuedCount === 1 ? 'item is' : 'items are') + ' given out for good and need no due date.');
+            }
+            datesNote.textContent = notes.join(' ');
+            datesNote.classList.toggle('hidden', notes.length === 0);
 
             if (picked.length === 0) {
                 previewText.textContent = 'Tick the items being handed over';
                 previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-neutral-400';
             } else if (!datesOk) {
-                previewText.textContent = 'The due date must fall on or after the day it is taken out';
+                previewText.textContent = mode === 'time'
+                    ? 'The due time must be after the moment it is taken out'
+                    : 'The due date must fall on or after the day it is taken out';
                 previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-danger-600';
             } else if (!quantitiesOk) {
                 previewText.textContent = 'One of the quantities is more than the shelf has';
@@ -413,7 +529,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 previewText.textContent = units + ' ' + (units === 1 ? 'unit' : 'units') + ' across '
                     + picked.length + ' ' + (picked.length === 1 ? 'item' : 'items')
-                    + ' · out for ' + days + ' ' + (days === 1 ? 'day' : 'days');
+                    + (mode === 'none' ? ' · issued, not expected back' : ' · ' + span);
                 previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-success-600';
             }
 
@@ -421,8 +537,9 @@ document.addEventListener('DOMContentLoaded', function () {
             hint.textContent = !who.value ? 'Pick who is borrowing'
                 : picked.length === 0 ? 'Pick at least one item'
                 : !quantitiesOk ? 'Lower the highlighted quantity'
-                : !datesOk ? 'Check the dates'
+                : !datesOk ? (mode === 'time' ? 'Check the times' : 'Check the dates')
                 : purpose.value.trim().length <= 2 ? 'Say what it is for'
+                : mode === 'none' ? 'Recorded as issued the moment you save'
                 : 'Marked as out the moment you save';
             hint.classList.toggle('text-danger-700', !ok);
             hint.classList.toggle('text-neutral-600', ok);
@@ -444,6 +561,16 @@ document.addEventListener('DOMContentLoaded', function () {
         [who, from, until, purpose].forEach(function (field) {
             field?.addEventListener('input', sync);
             field?.addEventListener('change', sync);
+        });
+
+        // "+30 min" and friends count from the borrow moment, or from now if
+        // that field is empty. They only fill the field; it stays editable.
+        presets.addEventListener('click', function (event) {
+            const preset = event.target.closest('[data-loan-preset]');
+            if (!preset) return;
+            const base = readField(from.value) || new Date();
+            until.value = localMoment(new Date(base.getTime() + parseInt(preset.dataset.loanPreset, 10) * 60000));
+            sync();
         });
 
         const search = document.getElementById('loan-equipment-search');
@@ -470,6 +597,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const equipmentSelect = document.getElementById('edit-loan-equipment');
         const qtyField = document.getElementById('edit-loan-quantity');
         const maxNote = editForm.querySelector('[data-edit-quantity-max]');
+        const kindIcon = editForm.querySelector('[data-edit-kind-icon]');
+        const kindText = editForm.querySelector('[data-edit-kind-text]');
+        const datesGrid = editForm.querySelector('[data-edit-dates]');
         const borrow = document.getElementById('edit-loan-borrow');
         const due = document.getElementById('edit-loan-return');
         const submit = editForm.querySelector('[data-edit-submit]');
@@ -478,6 +608,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const previewDot = editForm.querySelector('[data-edit-preview-dot]');
         let originalEquipment = null;
         let originalQty = 0;
+        let timed = false;
 
         // The ceiling is what the shelf can actually cover: whatever is free of
         // the chosen item, plus the units this loan is already holding when the
@@ -496,21 +627,33 @@ document.addEventListener('DOMContentLoaded', function () {
             maxNote.textContent = '(max ' + max + ')';
 
             const qtyOk = !isNaN(qty) && qty >= 1 && qty <= max;
-            const days = (borrow.value && due.value)
-                ? Math.round((new Date(due.value + 'T00:00:00') - new Date(borrow.value + 'T00:00:00')) / 86400000)
-                : NaN;
-            const datesOk = !isNaN(days) && days >= 0;
+            const start = readField(borrow.value);
+            const end = readField(due.value);
+            let datesOk;
+            let span = '';
+            if (timed) {
+                datesOk = !!start && !!end && end > start;
+                if (datesOk) {
+                    const minutes = Math.round((end - start) / 60000);
+                    span = minutes < 24 * 60 ? spanLabel(minutes) : Math.floor(minutes / 1440) + ' ' + (minutes < 2880 ? 'day' : 'days');
+                }
+            } else {
+                const days = (start && end) ? Math.round((end - start) / 86400000) : NaN;
+                datesOk = !isNaN(days) && days >= 0;
+                span = days + ' ' + (days === 1 ? 'day' : 'days');
+            }
             const ok = qtyOk && datesOk;
 
             if (!qtyOk) {
                 previewText.textContent = 'Only ' + max + ' ' + (max === 1 ? 'unit is' : 'units are') + ' coverable for this item';
                 previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-danger-600';
             } else if (!datesOk) {
-                previewText.textContent = 'The due date must fall on or after the day it was taken out';
+                previewText.textContent = timed
+                    ? 'The due time must be after the moment it was taken out'
+                    : 'The due date must fall on or after the day it was taken out';
                 previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-danger-600';
             } else {
-                previewText.textContent = qty + ' ' + (qty === 1 ? 'unit' : 'units') + ' out for ' + days
-                    + ' ' + (days === 1 ? 'day' : 'days');
+                previewText.textContent = qty + ' ' + (qty === 1 ? 'unit' : 'units') + ' out for ' + span;
                 previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-success-600';
             }
 
@@ -531,6 +674,25 @@ document.addEventListener('DOMContentLoaded', function () {
             const d = trigger.dataset;
             originalEquipment = d.equipment;
             originalQty = parseInt(d.quantity, 10) || 0;
+
+            // The loan keeps its own kind. The input type is set before the
+            // value, because a date input drops a value with a time in it.
+            timed = d.timed === '1';
+            borrow.type = timed ? 'datetime-local' : 'date';
+            due.type = timed ? 'datetime-local' : 'date';
+            datesGrid.classList.toggle('sm:grid-cols-3', !timed);
+            datesGrid.classList.toggle('sm:grid-cols-2', timed);
+            kindIcon.className = 'text-xs fas ' + (timed ? 'fa-clock' : 'fa-rotate-left');
+            kindText.textContent = timed
+                ? 'Time-limited loan · due back at an exact time'
+                : 'Returnable loan · due back by the end of the day';
+
+            // Only items of the same loan type can take this loan over;
+            // update() refuses the rest anyway.
+            const wanted = timed ? 'time_limited' : 'returnable';
+            Array.from(equipmentSelect.options).forEach(function (option) {
+                option.disabled = option.value !== String(d.equipment) && (option.dataset.loanType || 'returnable') !== wanted;
+            });
 
             document.getElementById('edit-loan-id').value = d.id;
             document.getElementById('edit-loan-user').value = d.user || '';

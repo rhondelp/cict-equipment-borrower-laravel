@@ -369,4 +369,44 @@ class LoansPageTest extends TestCase
         $this->assertSame('Borrowed', $loan->status);
         $this->assertSame(5, $equipment->fresh()->available_quantity);
     }
+
+    /**
+     * The other half of the lookup rule. The script also reaches elements by
+     * literal id and by "#some-modal [data-…]" — the modal-scoped form the
+     * header lookups must use. Every one has to exist where it is looked for,
+     * with timed and issued rows on the page so their branches render too.
+     */
+    public function test_every_id_and_modal_scoped_lookup_in_the_script_exists(): void
+    {
+        $admin = $this->admin();
+        $borrower = $this->borrower();
+        $this->loan($borrower, $this->equipment());
+        $clicker = $this->equipment('Clicker');
+        $clicker->update(['loan_type' => Equipment::LOAN_TIME_LIMITED]);
+        $this->loan($borrower, $clicker, [
+            'borrow_date' => now()->subHour(), 'return_date' => now()->addHour(), 'timed' => true,
+        ]);
+        $cable = $this->equipment('Patch cable');
+        $cable->update(['loan_type' => Equipment::LOAN_NON_RETURNABLE]);
+        $this->loan($borrower, $cable, ['status' => 'Issued', 'return_date' => null]);
+
+        $html = $this->actingAs($admin)->get('/admin/transaction')->assertOk()->getContent();
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($html);
+        $xpath = new \DOMXPath($dom);
+
+        preg_match_all("/getElementById\('([^']+)'\)/", $html, $ids);
+        $this->assertNotEmpty($ids[1]);
+        foreach (array_unique($ids[1]) as $id) {
+            $this->assertSame(1, $xpath->query("//*[@id='{$id}']")->length, "getElementById('{$id}') finds nothing.");
+        }
+
+        preg_match_all("/querySelector\('#([\w-]+) \[(data-[a-z-]+)\]'\)/", $html, $scoped, PREG_SET_ORDER);
+        $this->assertNotEmpty($scoped);
+        foreach ($scoped as [, $id, $attribute]) {
+            $this->assertGreaterThan(0, $xpath->query("//*[@id='{$id}']//*[@{$attribute}]")->length,
+                "querySelector('#{$id} [{$attribute}]') finds nothing.");
+        }
+    }
 }

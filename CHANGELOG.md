@@ -2,6 +2,78 @@
 
 ## 2026-10-05
 
+- **The admin loan forms now follow each item's loan type: time-limited items get a date-and-time picker, and non-returnable items are recorded as Issued with no due date.**
+
+  **New loan.** Each item in the picker now carries its loan type, and the two non-default types are labelled ("Time-Limited · due back at a set time", "Non-Returnable · given out for good"). The date fields follow what is ticked:
+  - **Only returnable items:** two dates, exactly as before. The default due date now comes from `config('office.loan_days')` instead of a literal 7.
+  - **Any time-limited item:** both fields become date-and-time pickers. The borrow moment starts at now and stays editable, and the due time starts an hour later. Three plain buttons, **+30 min**, **+1 hour** and **+2 hours**, fill the due field counted from the borrow moment. When returnable items are ticked alongside, a line explains that they are due by the end of that day.
+  - **Only non-returnable items:** the due field disappears. It is also disabled, so a hidden required field cannot block the submit. A line says the items are given out for good and the issue is still recorded.
+
+  The preview reads "out for 1 hr 30 min" or "issued, not expected back", and the hint says "Recorded as issued the moment you save".
+
+  **The server decides, per item, from the equipment row.** `store()` now locks every selected row up front, in id order, then a new `handoverMoments()` checks the dates against the locked rows' loan types:
+  - a due date is required when anything is coming back, and its error names the items that need it;
+  - anything time-limited needs a time on both fields and a due moment strictly after the borrow moment;
+  - returnable items are due on or after the borrow day;
+  - a due date sent with only non-returnable items is ignored.
+
+  Each item is then written by its own type:
+  - **returnable:** `Borrowed` at `00:00:00`, `timed` false; in a mixed booking it takes the date part of the shared datetime;
+  - **time-limited:** `Borrowed` at the exact moments, `timed` true;
+  - **non-returnable:** `Issued`, with no `return_date` and `timed` false.
+
+  `status` and `timed` are never read from the request, and a test posts both to prove it. Every type comes off the shelf with `reserveStock()`, so for an issue the stored `available_quantity` and `derivedAvailableQuantity()` agree. It is still one transaction with `ValidationException` handling, so a refusal on any item writes nothing. The flash says what happened: "Loan recorded — 1 unit out, due back 11:30 AM.", "…; 3 units issued, not expected back.", or "Issue recorded — 5 units issued, not expected back."
+
+  **Edit loan.** A loan keeps the kind it was made as. A timed loan's fields become date-and-time pickers, with a line reading "Time-limited loan · due back at an exact time". The server's new `editedMoments()` requires a time on both and a due moment after the borrow moment. A date-only loan stores date parts, even if a time is posted. The equipment select disables items of another loan type, and the server refuses such a move with an error naming both types: it would give the loan terms it was never made under. **Issued records are void-only**, the simpler of the two options. A remarks-only edit would have needed a second mode in this dialog. The Edit button is not drawn for them, and `update()` refuses them anyway.
+
+  **Check-in, void, delete.** `checkIn` refuses an Issued row ("issued, not lent, so nothing is due back"). Its "Logged as … late" note now comes from `timingLabel()`, so a timed loan reads "10 min late", and a date-only one reads "1 day late" where it used to say "1 days late". `void` restores stock for open loans **and** Issued rows, which also drops them out of `unitsIssued()`. **`destroy` now refuses an un-voided Issued row.** Your prompt did not list this, but deleting one would silently drop it from `unitsIssued()` and leave the shelf short with nothing to explain why. Once voided, it can be deleted as before.
+
+  **Loans list.**
+  - Issued rows show a neutral **Issued** status and read "Issued Oct 5 · Not expected back". They get their own **Issued** chip when any exist, and sit with the settled records.
+  - Issued rows have **no** Check-in, Edit or Email button. Email was dropped because the only template is a return reminder for something nothing is due back on.
+  - Timed loans show times in the date line ("Oct 5, 8:00 AM → 9:30 AM · 30 min late").
+  - The queue order in the controller and the urgency and due-date sort keys use `dueAt()`, so a loan due at 2 PM outranks one due "today".
+  - The overdue figure reads "Longest: 30 min late" from the worst loan's own label instead of "Longest: 0 days late".
+  - The check-in dialog's due line and the reminder email include the time for a timed loan.
+
+  **Not changed, and worth knowing.** Approving a borrower's request (`ItemRequestController::requestActions`) still creates an ordinary date-only loan whatever the item's type. The nightly sweep and the borrowing block still compare dates, so they see a timed loan as overdue from the next day. The borrower screens render Issued and timed rows without errors, which a test covers, but were not reworded for them.
+
+  **Verification.** `php artisan test`: **404 passed**, up from 381. The new `LoanTypesLoansTest` has 22 tests:
+  - each type recorded with its stored values;
+  - a non-returnable item with no due date ending up Issued, counted by `unitsIssued()` and not `unitsOut()`, with stored and derived availability both reduced;
+  - a sent due date ignored for an issue;
+  - a client-sent status deciding nothing;
+  - a returnable item without a date refused;
+  - a time-limited item without a time refused, on either field;
+  - a due time not after the borrow moment refused;
+  - mixed returnable + time-limited sharing one datetime;
+  - a mixed selection still needing a time;
+  - returnable + non-returnable refused as a whole without a date, then recorded with one;
+  - check-in of an issue refused;
+  - voiding an issue and a timed loan restoring stock;
+  - an issue undeletable until voided;
+  - an issue void-only;
+  - a timed loan staying timed when edited;
+  - a date-only loan staying date-only;
+  - a move to another loan type refused;
+  - the list's Issued row, timed row, order and overdue figure;
+  - the form's per-item types and presets;
+  - six other screens still rendering with Issued and timed rows.
+
+  `LoansPageTest` gains a test that every literal `getElementById` and every `#modal [data-…]` lookup in the page script exists. The existing form-scoped lookup test now also covers the new `loanForm` and `editForm` lookups.
+
+  In headless Chrome at 1280px and 390px against a scratch SQLite database:
+  - ticking a returnable item kept dates;
+  - adding a time-limited one switched both fields to date-and-time (now → +1 hour), showed the presets and the mixed note, and +2 hours set the due field to two hours after the borrow moment;
+  - unticking it went back to dates with the 7-day default;
+  - a non-returnable item alone hid and disabled the due field;
+  - an issue and a +30 min timed loan were saved through the UI ("Loan recorded — 1 unit out, due back 6:32 PM.");
+  - the list showed the Issued row without check-in or edit, and an "Issued 1" chip;
+  - editing the timed loan opened date-and-time pickers with its values, offered only time-limited items, and read "out for 30 min";
+  - no JS errors, and no overflow at 390px.
+
+  The first run showed an issue row saying "Issued" three times, so its second line now reads "Not expected back". `npm run build` was run. `vendor/bin/pint --test`: no new issues over the 9-file baseline.
+
 - **Admins can set an item's loan type, and the inventory list shows and filters by it.** The add/edit equipment dialog has a new **Loan type** control, placed directly under the name. It is three radio cards rather than a select, so the plain-language line under each option is read before choosing:
   - **Returnable:** "Comes back by a date".
   - **Time-Limited:** "Comes back by an exact time, such as within 1 hour".

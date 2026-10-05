@@ -59,9 +59,23 @@
                                     <input type="checkbox" name="equipment[]" value="{{ $item->id }}"
                                            id="loan-equipment-{{ $item->id }}" @disabled($none)
                                            class="w-5 h-5 mt-1 rounded shrink-0 equipment-checkbox accent-primary-600"
-                                           data-available="{{ $item->available_quantity }}">
+                                           data-available="{{ $item->available_quantity }}"
+                                           data-loan-type="{{ $item->loan_type }}">
                                     <span class="flex-1 min-w-0">
-                                        <span class="block text-base font-medium {{ $none ? 'text-neutral-500' : 'text-neutral-900' }}">{{ $item->equipment_name }}</span>
+                                        <span class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                            <span class="text-base font-medium {{ $none ? 'text-neutral-500' : 'text-neutral-900' }}">{{ $item->equipment_name }}</span>
+                                            {{-- Only the two types that change the form are labelled;
+                                                 Returnable is how every loan used to work. --}}
+                                            @if($item->isTimeLimited())
+                                                <span class="inline-flex items-center gap-1 text-sm font-medium text-neutral-700">
+                                                    <i class="text-xs fas fa-clock" aria-hidden="true"></i> Time-Limited · due back at a set time
+                                                </span>
+                                            @elseif($item->isNonReturnable())
+                                                <span class="inline-flex items-center gap-1 text-sm font-medium text-neutral-700">
+                                                    <i class="text-xs fas fa-box-open" aria-hidden="true"></i> Non-Returnable · given out for good
+                                                </span>
+                                            @endif
+                                        </span>
                                         <span class="block text-sm {{ $none ? 'text-danger-700' : 'text-neutral-600' }}">
                                             @if($none)
                                                 None available — nothing to hand over
@@ -91,6 +105,13 @@
                     <p id="loan-equipment-no-match" class="hidden mt-2 text-sm text-neutral-600">No equipment matches your search.</p>
                 </div>
 
+                {{-- These two fields follow what is ticked. Only returnable
+                     items: dates, as before. Any time-limited item: a date
+                     and time on both, the borrow moment starting at now,
+                     with presets beside the due field. Only non-returnable
+                     items: no due field at all. The page script switches the
+                     input type; BorrowTransactionController::store decides
+                     per item from the equipment row, whatever was sent. --}}
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <label for="loan-borrow-date" class="block text-base font-medium text-neutral-800">Taken out</label>
@@ -98,13 +119,26 @@
                                value="{{ now()->toDateString() }}"
                                class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
                     </div>
-                    <div>
+                    <div data-loan-return-wrap>
                         <label for="loan-return-date" class="block text-base font-medium text-neutral-800">Due back</label>
                         <input type="date" id="loan-return-date" name="return_date" required
-                               value="{{ now()->addDays(7)->toDateString() }}"
+                               value="{{ now()->addDays((int) config('office.loan_days', 7))->toDateString() }}"
+                               data-default-due="{{ now()->addDays((int) config('office.loan_days', 7))->toDateString() }}"
                                class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
                     </div>
                 </div>
+
+                <div data-loan-presets class="hidden flex-wrap items-center gap-2" role="group" aria-label="Set the due time from when it is taken out">
+                    <span class="text-sm text-neutral-700">Due back after</span>
+                    @foreach([30 => '+30 min', 60 => '+1 hour', 120 => '+2 hours'] as $minutes => $label)
+                        <button type="button" data-loan-preset="{{ $minutes }}"
+                                class="inline-flex min-h-[40px] items-center rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 hover:border-primary-300 hover:text-primary-700">
+                            {{ $label }}
+                        </button>
+                    @endforeach
+                </div>
+
+                <p data-loan-dates-note class="hidden text-sm text-neutral-700 text-pretty"></p>
 
                 <div>
                     <label for="loan-purpose" class="block text-base font-medium text-neutral-800">Purpose</label>

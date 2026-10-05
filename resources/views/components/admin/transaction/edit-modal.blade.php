@@ -7,7 +7,11 @@
      on this loan, plus whatever is still available of the item selected.
 
      Only open loans reach this form. A returned or voided loan is the audit
-     trail, and BorrowTransactionController::update refuses to edit one. --}}
+     trail, and BorrowTransactionController::update refuses to edit one. An
+     issued item never reaches it either: issues are void-only.
+
+     A timed loan stays timed: its two date fields become date-and-time
+     pickers, and the due moment has to come after the borrow moment. --}}
 <div id="edit-loan-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="edit-loan-title">
@@ -43,8 +47,11 @@
                         <label for="edit-loan-equipment" class="block text-base font-medium text-neutral-800">Equipment</label>
                         <select name="equipment_id" id="edit-loan-equipment" required
                                 class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                            {{-- Options of another loan type are disabled by the page
+                                 script: a loan keeps the kind it was made as. --}}
                             @foreach ($equipment as $item)
-                                <option value="{{ $item->id }}" data-available="{{ $item->available_quantity }}">
+                                <option value="{{ $item->id }}" data-available="{{ $item->available_quantity }}"
+                                        data-loan-type="{{ $item->loan_type }}">
                                     {{ $item->equipment_name }} · {{ $item->available_quantity }} free
                                 </option>
                             @endforeach
@@ -52,7 +59,14 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {{-- Which kind of loan this is decides the picker: a timed loan
+                     edits a date and time, a date-only loan edits dates. --}}
+                <p data-edit-kind class="flex items-center gap-2 text-sm text-neutral-700">
+                    <i data-edit-kind-icon class="text-xs fas fa-rotate-left" aria-hidden="true"></i>
+                    <span data-edit-kind-text>Returnable loan · due back by the end of the day</span>
+                </p>
+
+                <div data-edit-dates class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
                         <label for="edit-loan-borrow" class="block text-base font-medium text-neutral-800">Taken out</label>
                         <input type="date" name="borrow_date" id="edit-loan-borrow" required

@@ -11,6 +11,7 @@ use App\Models\ReturnLog;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
@@ -34,8 +35,10 @@ class BorrowTransactionController extends Controller
         // that is three days late behind one that is not late at all.
         $transactions = $transactions->sortBy([
             fn ($a, $b) => $this->queueRank($a) <=> $this->queueRank($b),
-            // Within a rank, the most urgent due date leads.
-            fn ($a, $b) => ($a->return_date?->timestamp ?? PHP_INT_MAX) <=> ($b->return_date?->timestamp ?? PHP_INT_MAX),
+            // Within a rank, the most urgent due moment leads. dueAt() is the
+            // end of the day for a date-only loan and the exact time for a
+            // timed one, so a loan due at 2 PM sorts ahead of one due "today".
+            fn ($a, $b) => ($a->dueAt()?->timestamp ?? PHP_INT_MAX) <=> ($b->dueAt()?->timestamp ?? PHP_INT_MAX),
         ])->values();
 
         $users = User::whereNull('deactivated_at')->orderBy('name')->get();
@@ -67,7 +70,8 @@ class BorrowTransactionController extends Controller
             return 4;
         }
 
-        if ($transaction->isReturned()) {
+        // Settled: nothing is coming back from a returned loan or an issue.
+        if ($transaction->isReturned() || $transaction->isIssued()) {
             return 3;
         }
 
@@ -118,8 +122,10 @@ class BorrowTransactionController extends Controller
             'remarks.required_unless' => 'Describe the problem so the return log says what is wrong.',
         ]);
 
+        $lateLabel = null;
+
         try {
-            $transaction = DB::transaction(function () use ($validated) {
+            $transaction = DB::transaction(function () use ($validated, &$lateLabel) {
                 $transaction = BorrowTransaction::where('id', $validated['id'])->lockForUpdate()->firstOrFail();
 
                 if ($transaction->isVoided()) {
@@ -128,6 +134,15 @@ class BorrowTransactionController extends Controller
                 if ($transaction->isReturned()) {
                     throw ValidationException::withMessages(['id' => 'This loan is already checked in.']);
                 }
+                if ($transaction->isIssued()) {
+                    throw ValidationException::withMessages([
+                        'id' => 'This item was issued, not lent, so nothing is due back to check in. Void the record if it was entered by mistake.',
+                    ]);
+                }
+
+                // Read before the status flips: once Returned, the loan has
+                // no "late" left to describe.
+                $lateLabel = $transaction->isOverdue() ? $transaction->timingLabel() : null;
 
                 // Lock equipment row to prevent concurrent race on available_quantity
                 $equipment = Equipment::where('id', $transaction->equipment_id)->lockForUpdate()->firstOrFail();
@@ -151,14 +166,25 @@ class BorrowTransactionController extends Controller
         }
 
         $transaction->loadMissing('equipment');
-        $late = $transaction->return_date && $transaction->return_date->startOfDay()->lt(now()->startOfDay())
-            ? ' Logged as '.(int) $transaction->return_date->startOfDay()->diffInDays(now()->startOfDay()).' days late.'
-            : '';
+        $late = $lateLabel ? ' Logged as '.$lateLabel.'.' : '';
 
         return redirect()->back()->with('success', 'Checked in — '.$transaction->quantity.' × '
             .($transaction->equipment->equipment_name ?? 'item').' back on the shelf.'.$late);
     }
 
+    /**
+     * Record a handover. Several items can go out at once, and each one is
+     * recorded by its own loan type, read from the equipment row under the
+     * lock — never from the request:
+     *
+     *   returnable      Borrowed, due by the end of the return date (timed = false)
+     *   time_limited    Borrowed, due at the exact return moment (timed = true)
+     *   non_returnable  Issued, no return date; its units count in unitsIssued()
+     *
+     * One borrow field and one return field serve the whole selection, so
+     * the form sends a datetime when any item is time-limited, and a
+     * returnable item in the same booking takes the date part of it.
+     */
     public function store(Request $request)
     {
         // Filter out empty placeholder values from multi-select (prevents "equipment.0 is invalid" validation error)
@@ -171,9 +197,9 @@ class BorrowTransactionController extends Controller
             $request->merge(['quantities' => $filteredQty]);
         }
 
-        // No `status` field: handing equipment over is the only thing this form
-        // does, so the loan is created out. Whether it later reads Out or
-        // Overdue is a question the due date answers.
+        // No `status` field: what the loan becomes is decided by each item's
+        // loan type below. Whether a due date is needed depends on the same
+        // thing, so `return_date` is only `nullable` here and required below.
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'equipment' => 'required|array|min:1',
@@ -181,24 +207,25 @@ class BorrowTransactionController extends Controller
             'quantities' => 'required|array|min:1',
             'quantities.*' => 'integer|min:1',
             'borrow_date' => 'required|date',
-            'return_date' => 'required|date|after_or_equal:borrow_date',
+            'return_date' => 'nullable|date',
             'purpose' => 'required|string|max:255',
             'remarks' => 'nullable|string',
             'class_schedule_id' => 'nullable|exists:class_schedules,id',
         ]);
 
-        $userId = $validated['user_id'];
-        $borrowDate = $validated['borrow_date'];
-        $returnDate = $validated['return_date'];
-        $remarks = $validated['remarks'] ?? null;
-        $classScheduleId = $validated['class_schedule_id'] ?? null;
-        $purpose = $validated['purpose'];
-
         // The multi-equipment loop runs inside one transaction with row locking
         // to prevent a race and to avoid partial writes when one item is short.
         try {
-            $created = DB::transaction(function () use ($validated, $userId, $borrowDate, $returnDate, $remarks, $classScheduleId, $purpose) {
-                $units = 0;
+            $result = DB::transaction(function () use ($validated) {
+                // Every selected row is locked before any is touched, in id
+                // order, so the loan types the dates are checked against are
+                // the ones the rows are saved under.
+                $items = Equipment::whereIn('id', array_unique($validated['equipment']))
+                    ->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+
+                [$borrowAt, $dueAt] = $this->handoverMoments($items, $validated['borrow_date'], $validated['return_date'] ?? null);
+
+                $tally = ['out' => 0, 'issued' => 0, 'timed' => false];
 
                 foreach ($validated['equipment'] as $equipmentId) {
                     // quantities may be keyed as string numeric; handle missing key gracefully
@@ -207,7 +234,8 @@ class BorrowTransactionController extends Controller
                     }
                     $quantity = (int) $validated['quantities'][$equipmentId];
 
-                    $equipment = Equipment::where('id', $equipmentId)->lockForUpdate()->firstOrFail();
+                    $equipment = $items->get($equipmentId)
+                        ?? throw ValidationException::withMessages(['equipment' => "Equipment #{$equipmentId} no longer exists."]);
 
                     if ($equipment->isRetired()) {
                         throw ValidationException::withMessages([
@@ -215,36 +243,119 @@ class BorrowTransactionController extends Controller
                         ]);
                     }
 
+                    // An issue comes off the shelf exactly like a loan; it is
+                    // simply never released by a check-in.
                     $equipment->reserveStock(
                         $quantity,
                         "Only {$equipment->available_quantity} of {$equipment->equipment_name} available — this loan needs {$quantity}."
                     );
 
+                    $issued = $equipment->isNonReturnable();
+                    $timed = $equipment->isTimeLimited();
+
                     BorrowTransaction::create([
-                        'user_id' => $userId,
+                        'user_id' => $validated['user_id'],
                         'equipment_id' => $equipmentId,
-                        'borrow_date' => $borrowDate,
-                        'return_date' => $returnDate,
+                        'borrow_date' => $timed ? $borrowAt : $borrowAt->copy()->startOfDay(),
+                        'return_date' => $issued ? null : ($timed ? $dueAt : $dueAt->copy()->startOfDay()),
+                        'timed' => $timed,
                         'quantity' => $quantity,
-                        'purpose' => $purpose,
-                        'status' => 'Borrowed',
-                        'remarks' => $remarks,
-                        'class_schedule_id' => $classScheduleId,
+                        'purpose' => $validated['purpose'],
+                        'status' => $issued ? 'Issued' : 'Borrowed',
+                        'remarks' => $validated['remarks'] ?? null,
+                        'class_schedule_id' => $validated['class_schedule_id'] ?? null,
                     ]);
 
-                    $units += $quantity;
+                    $tally[$issued ? 'issued' : 'out'] += $quantity;
+                    $tally['timed'] = $tally['timed'] || $timed;
                 }
 
-                return $units;
+                return $tally + ['due' => $dueAt];
             });
         } catch (ValidationException $e) {
             return redirect()->back()->withErrors($e->errors())->withInput();
         }
 
-        $due = Carbon::parse($returnDate)->format('M j');
+        $parts = [];
+        if ($result['out'] > 0) {
+            $due = $result['timed']
+                ? $result['due']->format($result['due']->isToday() ? 'g:i A' : 'M j, g:i A')
+                : $result['due']->format('M j');
+            $parts[] = $result['out'].' '.str('unit')->plural($result['out']).' out, due back '.$due;
+        }
+        if ($result['issued'] > 0) {
+            $parts[] = $result['issued'].' '.str('unit')->plural($result['issued']).' issued, not expected back';
+        }
 
-        return redirect()->back()->with('success', 'Loan recorded — '.$created.' '
-            .str('unit')->plural($created).' out, due back '.$due.'.');
+        return redirect()->back()->with('success', ($result['out'] > 0 ? 'Loan' : 'Issue').' recorded — '.implode('; ', $parts).'.');
+    }
+
+    /**
+     * The borrow and due moments for one handover, checked against what is
+     * actually being handed over. The server decides here, whatever the form
+     * showed:
+     *
+     *   - nothing but non-returnable items: no due date needed, any sent is ignored;
+     *   - anything returnable or time-limited: a due date is required;
+     *   - anything time-limited: both fields need a time, and the due moment
+     *     must come after the borrow moment;
+     *   - returnable items are due on or after the day they go out.
+     *
+     * @return array{0: Carbon, 1: ?Carbon}
+     */
+    private function handoverMoments(Collection $items, string $borrowInput, ?string $returnInput): array
+    {
+        $needsReturn = $items->reject(fn (Equipment $item) => $item->isNonReturnable());
+        $timedItems = $items->filter(fn (Equipment $item) => $item->isTimeLimited());
+        $names = fn (Collection $set) => $set->pluck('equipment_name')->join(', ', ' and ');
+
+        if ($timedItems->isNotEmpty() && ! $this->hasTime($borrowInput)) {
+            throw ValidationException::withMessages([
+                'borrow_date' => 'Time-limited items need the time they are taken out, not just the date ('.$names($timedItems).').',
+            ]);
+        }
+
+        $borrowAt = Carbon::parse($borrowInput);
+
+        if ($needsReturn->isEmpty()) {
+            return [$borrowAt, null];
+        }
+
+        if (blank($returnInput)) {
+            throw ValidationException::withMessages([
+                'return_date' => 'Set when '.$names($needsReturn).' '.($needsReturn->count() === 1 ? 'is' : 'are')
+                    .' due back. Only non-returnable items go out without a due date.',
+            ]);
+        }
+
+        $dueAt = Carbon::parse($returnInput);
+
+        if ($timedItems->isNotEmpty()) {
+            if (! $this->hasTime($returnInput)) {
+                throw ValidationException::withMessages([
+                    'return_date' => 'Time-limited items are due back at a time, not just a date ('.$names($timedItems).'). Add the time.',
+                ]);
+            }
+            if (! $dueAt->gt($borrowAt)) {
+                throw ValidationException::withMessages([
+                    'return_date' => 'The due time must be after the moment it is taken out.',
+                ]);
+            }
+        }
+
+        if ($dueAt->copy()->startOfDay()->lt($borrowAt->copy()->startOfDay())) {
+            throw ValidationException::withMessages([
+                'return_date' => 'The due date must fall on or after the day it is taken out.',
+            ]);
+        }
+
+        return [$borrowAt, $dueAt];
+    }
+
+    /** "2026-10-05T14:30" or "2026-10-05 14:30" carries a time; "2026-10-05" does not. */
+    private function hasTime(?string $value): bool
+    {
+        return (bool) preg_match('/\d{1,2}:\d{2}/', (string) $value);
     }
 
     public function sendManualEmail(Request $request, $id)
@@ -376,6 +487,7 @@ class BorrowTransactionController extends Controller
      * longer a control that could set it to something the data contradicts.
      *
      * Returned and voided loans are not editable — they are the audit trail.
+     * Issued records are not editable either; they are void-only.
      */
     public function update(Request $request)
     {
@@ -401,6 +513,19 @@ class BorrowTransactionController extends Controller
                     ]);
                 }
 
+                // An issue is a finished hand-over with nothing due back, so
+                // there is no date or quantity left to adjust. A wrong one is
+                // voided and recorded again.
+                if ($transaction->isIssued()) {
+                    throw ValidationException::withMessages([
+                        'id' => 'Issued items cannot be edited. Void the record if it was entered by mistake, then record it again.',
+                    ]);
+                }
+
+                // The loan keeps the kind it was made as: a timed loan stays
+                // due at a time, a date-only loan stays due by a day.
+                [$borrowAt, $dueAt] = $this->editedMoments($transaction->timed, $validated['borrow_date'], $validated['return_date']);
+
                 $oldEquipmentId = $transaction->equipment_id;
                 $newEquipmentId = $validated['equipment_id'];
                 $oldQty = $transaction->quantity;
@@ -412,6 +537,18 @@ class BorrowTransactionController extends Controller
                     $locked = Equipment::whereIn('id', $ids)->lockForUpdate()->get()->keyBy('id');
                     $oldEquipment = $locked[$oldEquipmentId];
                     $equipment = $locked[$newEquipmentId];
+
+                    // Moving a loan to an item of another loan type would give
+                    // it terms it was never made under: a due time on a
+                    // date-only loan, or an issue that still expects a return.
+                    $wanted = $transaction->timed ? Equipment::LOAN_TIME_LIMITED : Equipment::LOAN_RETURNABLE;
+                    if ($equipment->loan_type !== $wanted) {
+                        throw ValidationException::withMessages([
+                            'equipment_id' => $equipment->equipment_name.' is '.$equipment->loanTypeLabel().', and this loan is '
+                                .Equipment::LOAN_TYPES[$wanted].'. Pick another '.Equipment::LOAN_TYPES[$wanted]
+                                .' item, or void this loan and record a new one.',
+                        ]);
+                    }
 
                     $oldEquipment->releaseStock($oldQty);
                     $equipment->reserveStock(
@@ -433,7 +570,7 @@ class BorrowTransactionController extends Controller
                     }
                 }
 
-                $transaction->update($validated);
+                $transaction->update(['borrow_date' => $borrowAt, 'return_date' => $dueAt] + $validated);
             });
         } catch (ValidationException $e) {
             return redirect()->back()->withErrors($e->errors())->withInput();
@@ -443,9 +580,41 @@ class BorrowTransactionController extends Controller
     }
 
     /**
+     * Borrow and due moments for an edited loan, by its own kind. A timed
+     * loan needs a time on both and must fall due after it went out; a
+     * date-only loan keeps the date part of each, stored at 00:00:00.
+     *
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function editedMoments(bool $timed, string $borrowInput, string $returnInput): array
+    {
+        $borrowAt = Carbon::parse($borrowInput);
+        $dueAt = Carbon::parse($returnInput);
+
+        if (! $timed) {
+            return [$borrowAt->startOfDay(), $dueAt->startOfDay()];
+        }
+
+        if (! $this->hasTime($borrowInput) || ! $this->hasTime($returnInput)) {
+            throw ValidationException::withMessages([
+                'return_date' => 'This is a time-limited loan. Give the time it went out and the time it is due back.',
+            ]);
+        }
+
+        if (! $dueAt->gt($borrowAt)) {
+            throw ValidationException::withMessages([
+                'return_date' => 'The due time must be after the moment it was taken out.',
+            ]);
+        }
+
+        return [$borrowAt, $dueAt];
+    }
+
+    /**
      * The non-destructive default offered by the remove dialog: the record
      * stays visible and marked as an error, and any units it was holding go
-     * back on the shelf.
+     * back on the shelf. That covers an issue too: voided, it stops counting
+     * in unitsIssued(), so its units are released like an open loan's.
      */
     public function void(Request $request, $id)
     {
@@ -462,7 +631,7 @@ class BorrowTransactionController extends Controller
                 return $transaction;
             }
 
-            if ($transaction->isOut()) {
+            if ($transaction->isOut() || $transaction->isIssued()) {
                 $equipment = Equipment::where('id', $transaction->equipment_id)->lockForUpdate()->firstOrFail();
                 $equipment->releaseStock($transaction->quantity);
             }
@@ -474,14 +643,16 @@ class BorrowTransactionController extends Controller
             return $transaction;
         });
 
-        return redirect()->back()->with('success', 'Loan #'.$transaction->id
+        return redirect()->back()->with('success', ($transaction->status === 'Issued' ? 'Issue' : 'Loan').' #'.$transaction->id
             .' voided. It stays in the log, and its units are back in stock.');
     }
 
     /**
      * Hard delete, refused while the record is part of the history: an open
-     * loan is tracking units that are physically elsewhere, and a returned one
-     * is the return log's reason for existing.
+     * loan is tracking units that are physically elsewhere, a returned one
+     * is the return log's reason for existing, and an issue is what keeps its
+     * units off the shelf — deleting it would leave available_quantity short
+     * with nothing to explain why.
      */
     public function destroy($id)
     {
@@ -491,6 +662,12 @@ class BorrowTransactionController extends Controller
             return redirect()->back()->with('error',
                 'Cannot delete loan #'.$transaction->id.' — it is still open and '.$transaction->quantity.' '
                 .str('unit')->plural($transaction->quantity).' are out. Check it in or void it instead.');
+        }
+
+        if ($transaction->isIssued()) {
+            return redirect()->back()->with('error',
+                'Cannot delete issue #'.$transaction->id.' — its '.$transaction->quantity.' '
+                .str('unit')->plural($transaction->quantity).' are counted as given out. Void it instead.');
         }
 
         if ($transaction->returnLog) {
@@ -510,13 +687,17 @@ class BorrowTransactionController extends Controller
         $name = $transaction->user->name ?? 'there';
         $item = $transaction->equipment->equipment_name ?? 'the equipment you borrowed';
         $qty = $transaction->quantity > 1 ? ' ×'.$transaction->quantity : '';
-        $due = $transaction->return_date?->format('M j') ?? 'the agreed date';
+        $due = $transaction->return_date?->format($transaction->timed ? 'M j \a\t g:i A' : 'M j') ?? 'the agreed date';
 
         if ($transaction->isOverdue()) {
-            $late = $transaction->daysLate();
+            // A timed loan is late by minutes or hours; timingLabel() says
+            // which. A date-only loan keeps the day count it always had.
+            $late = $transaction->timed
+                ? $transaction->timingLabel()
+                : $transaction->daysLate().' '.str('day')->plural($transaction->daysLate()).' late';
 
-            return "Hello {$name}, {$item}{$qty} was due on {$due} and is now {$late} "
-                .str('day')->plural($late).' late. Please return it to the CICT equipment room today.';
+            return "Hello {$name}, {$item}{$qty} was due on {$due} and is now {$late}. "
+                .'Please return it to the CICT equipment room today.';
         }
 
         return "Hello {$name}, this is a reminder that {$item}{$qty} is due back on {$due}. "

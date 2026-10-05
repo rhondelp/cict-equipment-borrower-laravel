@@ -130,7 +130,8 @@ by hiding controls:
   row as All / Lendable / Running low / Fully out, because `ui.js` holds one
   active chip per list, and they carry counts. A type no item uses is rendered
   `disabled`. `?filter=time_limited` etc. work through the existing mechanism.
-  Nothing on the loan or borrower screens reads the type yet.
+  The admin loan screen reads it (see "Loans screen" below); the borrower screens and request
+  approval do not yet.
 - **`return_logs.resolution` / `resolved_at` / `resolved_by`** — the outcome of a
   damaged or lost return. `needsFollowUp()` is `isIncident() && ! isResolved()`
   and is what the return-logs screen and the dashboard both lead with. Return
@@ -212,8 +213,13 @@ timed loan due at 2 PM today is not caught by `return_date < today` until tomorr
 of the 5 Oct migrations refuse to run while timed or `Issued` rows exist, rather than truncating them.
 `return_logs.return_date` is still a DATE column (cast `datetime`), so it holds no time of day.
 
-**`Issued`** is the status of a non-returnable hand-over. Nothing writes it yet: the model,
-schema and stock arithmetic are in place, and no controller or screen offers it.
+**`Issued`** is the status of a non-returnable hand-over. Since 5 Oct 2026 the only writer is the
+admin **New loan** form (`BorrowTransactionController::store`), which sets it from the item's
+`loan_type`, never from the request. An Issued row has `return_date` null and `timed` false; it is
+never checked in, never edited (it is **void-only**), and never hard-deleted until voided. **The
+request-approval path (`ItemRequestController::requestActions`) does not read loan types yet:**
+approving a request for a time-limited or non-returnable item still creates an ordinary
+date-only `Borrowed` loan due in `loan_days`.
 
 `App\Models\Notification` is a custom table, unrelated to the framework notifications table;
 `User` still uses the `Notifiable` trait but nothing dispatches framework notifications.
@@ -252,11 +258,11 @@ All in `routes/web.php`. Everything under `/admin` and `/borrower` is inside `au
 - `POST /admin/users/{id}/reactivate` — `UserController@reactivate` (`admin.users.reactivate`)
 - `DELETE /admin/users/{id}` — `UserController@destroy` (`admin.users.destroy`); blocks self-delete, and refused while any loan or request references the person
 - `GET /admin/transaction` — `BorrowTransactionController@index` (`admin.transaction`)
-- `POST /admin/transaction` — `BorrowTransactionController@store` (`admin.transaction.store`); multi-equipment create
-- `POST /admin/transaction/update` — `BorrowTransactionController@update` (`admin.transaction.update`); id in body
-- `POST /admin/transaction/{id}/void` — `BorrowTransactionController@void` (`admin.transaction.void`); requires `void_reason`, restores stock if the loan was open
-- `DELETE /admin/transaction/{id}` — `BorrowTransactionController@destroy` (`admin.transaction.destroy`); refused while the loan is open or has a return log
-- `POST /admin/transaction/check-in` — `BorrowTransactionController@checkIn` (`admin.transaction.checkin`); records the return. Replaced `inlineUpdate`, which was a status-only edit from a dropdown in the table
+- `POST /admin/transaction` — `BorrowTransactionController@store` (`admin.transaction.store`); multi-equipment create, each item recorded by its own loan type; `return_date` is `nullable` in the rules and required in `handoverMoments()` when anything is coming back
+- `POST /admin/transaction/update` — `BorrowTransactionController@update` (`admin.transaction.update`); id in body; keeps the loan's own `timed`; refuses Issued rows and a move to an item of another loan type
+- `POST /admin/transaction/{id}/void` — `BorrowTransactionController@void` (`admin.transaction.void`); requires `void_reason`, restores stock if the loan was open **or Issued**
+- `DELETE /admin/transaction/{id}` — `BorrowTransactionController@destroy` (`admin.transaction.destroy`); refused while the loan is open, is an un-voided Issued row, or has a return log
+- `POST /admin/transaction/check-in` — `BorrowTransactionController@checkIn` (`admin.transaction.checkin`); records the return, refuses Issued rows. Replaced `inlineUpdate`, which was a status-only edit from a dropdown in the table
 - `POST /send-email/{id}` — `BorrowTransactionController@sendManualEmail` (unnamed); JSON. `type=custom` uses `message`, otherwise a canned return reminder
 - `GET /admin/notifications` — `NotificationController@index` (`admin.notifications`), renders view `admin.notification`
 - `GET /admin/request` — `ItemRequestController@index` (`admin.request`)
@@ -288,7 +294,7 @@ with every `borrow_transactions.status` change. The invariant:
 
 - **"out"** = status `Borrowed` **or** `Overdue`, and `voided_at IS NULL` — units are off the shelf, stock is deducted. Every aggregate that counts units out filters on both; `BorrowTransaction::isOut()` is the one place that decides.
 - **"in"** = status `Returned` — units are back, stock is restored
-- **"issued"** = status `Issued`, `voided_at IS NULL` — units left for good. **Not "out"**: `isOut()`, `unitsOut()` and every `Borrowed`/`Overdue` aggregate exclude it, so it is never overdue and never chased. It still comes off the shelf: `Equipment::unitsIssued()` sums it, and the derived figure is `available_quantity = quantity − unitsOut() − unitsIssued()` (`Equipment::derivedAvailableQuantity()`). `quantity` keeps counting issued units. Voiding an Issued row drops it out of `unitsIssued()`. **Not yet handled:** `BorrowTransactionController::void` only releases stock for an open ("out") loan, so voiding an Issued row would not put its units back on `available_quantity` until the next equipment edit recomputes it. Fix that when the issue flow is built.
+- **"issued"** = status `Issued`, `voided_at IS NULL` — units left for good. **Not "out"**: `isOut()`, `unitsOut()` and every `Borrowed`/`Overdue` aggregate exclude it, so it is never overdue and never chased. It still comes off the shelf: `Equipment::unitsIssued()` sums it, and the derived figure is `available_quantity = quantity − unitsOut() − unitsIssued()` (`Equipment::derivedAvailableQuantity()`). `quantity` keeps counting issued units. Voiding an Issued row drops it out of `unitsIssued()`, and `void` releases its units on `available_quantity` too, so the stored and derived figures stay equal. An issue takes stock with `reserveStock()` like a loan; it is simply never released by a check-in.
 - `Borrowed` to `Overdue` (either direction) is a transition *within* "out" — **no stock change**. This is the rule most easily broken; always test `in_array($status, ['Borrowed','Overdue'])`, never `=== 'Borrowed'`.
 - After every mutation: `status = $equipment->lendableStatus()`, which is `Available` only when the item has units on the shelf **and** has not been retired
 - `quantity` (total owned) is **never** touched by transactions — only by `EquipmentController`
@@ -301,11 +307,23 @@ a redirect-with-errors.
 
 Where it happens:
 
-- `BorrowTransactionController::store` — loops equipment ids; per item locks the row, and if the new status is "out" checks stock then deducts. The whole loop is one DB transaction, so a shortfall on item 3 rolls back items 1 and 2. Empty placeholder values are stripped from `equipment[]` / `quantities[]` before validation.
-- `BorrowTransactionController::checkIn` — the only out-to-in path: `available_quantity += $transaction->quantity`, creates a `ReturnLog` (`user_id` is the acting admin) and sets the status to `Returned`. One direction only — lending the same item again is a new loan, not an edit of the old one — and it refuses a loan that is already returned or voided.
-- `BorrowTransactionController::update` — edits an **open** loan only; it throws if the loan is returned or voided. If `equipment_id` changed it locks both rows in sorted id order (deadlock avoidance), releases the old quantity and reserves the new. If the equipment is unchanged it moves the delta: `$newQty - $oldQty` reserved when positive, released when negative. There is no status branch left, because `status` is not in the payload.
-- `BorrowTransactionController::void` — restores stock if the loan was open, then stamps `voided_at` + `void_reason`. Voided rows are excluded from every "out" aggregate.
-- `BorrowTransactionController::destroy` — a hard delete, refused while the loan is open or a `ReturnLog` points at it. By the time it can run, the row is voided and holds no stock, so there is nothing to restore.
+- `BorrowTransactionController::store` — locks **every selected equipment row up front**, in id order, then `handoverMoments()` checks the two date fields against the locked rows' loan types:
+  - only non-returnable items: no due date is needed, and one sent is ignored;
+  - anything returnable or time-limited: a due date is required;
+  - anything time-limited: both fields need a time (`hasTime()`, `HH:MM` present), and the due moment must be strictly after the borrow moment;
+  - returnable items are due on or after the borrow day.
+
+  Then it loops the items, deducting stock with `reserveStock()` for every type, and writes one row per item:
+  - returnable: `Borrowed`, both dates at `00:00:00`, `timed` false; in a mixed booking it takes the date part of the shared datetime;
+  - time-limited: `Borrowed`, the exact moments, `timed` true;
+  - non-returnable: `Issued`, `return_date` null, `timed` false.
+
+  `status` and `timed` are never read from the request. The whole loop is one DB transaction, so a shortfall or a date refusal on any item rolls back the rest. Empty placeholder values are stripped from `equipment[]` / `quantities[]` before validation.
+- `BorrowTransactionController::checkIn` — the only out-to-in path: `available_quantity += $transaction->quantity`, creates a `ReturnLog` (`user_id` is the acting admin) and sets the status to `Returned`. One direction only — lending the same item again is a new loan, not an edit of the old one — and it refuses a loan that is already returned or voided, **and any Issued row** (nothing is due back). The "Logged as … late" line in its flash comes from `timingLabel()` read before the status flips, so a timed loan says "10 min late".
+- `BorrowTransactionController::update` — edits an **open** loan only; it throws if the loan is returned, voided or Issued (issues are void-only). The loan keeps its own `timed`. `editedMoments()` needs a time on both fields and due > borrow for a timed loan, and stores date parts at `00:00:00` for a date-only one. If `equipment_id` changed, the new item must be of the loan's kind (`time_limited` for a timed loan, `returnable` otherwise). It then locks both rows in sorted id order (deadlock avoidance), releases the old quantity and reserves the new. If the equipment is unchanged it moves the delta: `$newQty - $oldQty` reserved when positive, released when negative. There is no status branch left, because `status` is not in the payload.
+- `BorrowTransactionController::void` — restores stock if the loan was open **or Issued**, then stamps `voided_at` + `void_reason`. Voided rows are excluded from every "out" aggregate and from `unitsIssued()`.
+- `BorrowTransactionController::destroy` — a hard delete, refused while the loan is open, while an Issued row is un-voided (deleting it would drop it from `unitsIssued()` and leave the shelf short), or while a `ReturnLog` points at it. By the time it can run, the row is voided and holds no stock, so there is nothing to restore.
+- **Loans screen** (`admin/transaction.blade.php`) — the queue sorts on `dueAt()` (controller and `data-sort-urgency` / `data-sort-due`). Issued rows rank with the settled records. They have an `issued` chip key and their own chip when any exist, and they read "Issued Oct 5 · Not expected back". They have **no** Check-in, Edit or Email button, because the only email template is a return reminder. The overdue figure says "Longest: …" via the worst loan's `timingLabel()`, so a timed loan reads in minutes. The new-loan modal reads `data-loan-type` on each checkbox and switches between `date` and `datetime-local`, or hides **and disables** the due field. In time mode it shows +30 min / +1 hour / +2 hours presets counted from the borrow moment. The edit modal sets its input type from the trigger's `data-timed` **before** setting the value, since a `date` input drops a value with a time. It also disables equipment options of another loan type. `LoansPageTest` checks every `xForm.querySelector('[data-…]')`, every literal `getElementById`, and every `#modal [data-…]` lookup in the script.
 - `ItemRequestController::store` — refuses a new request from a **suspended** account, and (since 26 Sept 2026) from a borrower with **any open loan past its due date** (`return_date < today`, not voided, `Borrowed`/`Overdue` — the due date decides, not the stored status, which lags until the nightly sweep). This is the "overdue items pause borrowing" rule the terms summary and the landing page state. Editing an existing pending request is not blocked. Pinned by `tests/Feature/BorrowingRulesTest`.
 - `ItemRequestController::requestActions`, approve branch — locks the equipment, rejects if short, deducts, flips the request to `Approved`, **and auto-creates a `BorrowTransaction`** (`borrow_date` today, `return_date` today + `config('office.loan_days')`, default 7, status `Borrowed`, `purpose` falling back to the request remarks). Decline only flips the request status, no stock movement. Both are idempotent: a request whose status is not `Pending` is rejected up front.
 - `BorrowTransactionController::sendReturnAlertNotification` — bulk-updates `Borrowed` rows whose `return_date` is past to `Overdue`. Because both are "out", this deliberately performs no stock change. It then emails borrowers whose `return_date` is today, skipping anyone already given a `Return Notice` notification today (checked twice: before sending, and again inside the DB transaction). Invoked by `php artisan notifications:return` (`App\Console\Commands\SendReturnNotifications`), scheduled daily at 08:00 in `bootstrap/app.php`, and reachable manually at `GET /admin/send-return-alerts`.
