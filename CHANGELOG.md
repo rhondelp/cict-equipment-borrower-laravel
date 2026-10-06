@@ -1,6 +1,64 @@
 # Changelog
 
-## 2026-10-05
+## 2026-10-07
+
+- **An activity log for the reports to read from: table, model and backfill, with nothing visible yet.** The reports need one place that answers "what happened to this item", "what did this person do" and "who approved that". Until now that history was spread across loans, return logs, requests, user columns and notifications, and some of it was never kept. This change is the foundation only. No controller, view or route changed, and nothing writes to the log live yet.
+
+  **The table, `activity_logs`.** Each row records:
+  - `occurred_at`: when it happened. This is not `created_at`, because a backfilled row is written today about last month;
+  - `type`: a stable key;
+  - the actor, the person affected (`subject_*`) and the item, each stored twice: as a foreign key and as a name snapshot;
+  - the loan, a quantity, `status_from` / `status_to` labels, a `details` sentence, `meta` json and the IP;
+  - `source` (`live` or `backfill`) and a unique, nullable `backfill_key`.
+
+  Every foreign key is `nullOnDelete` and none cascades. Deleting an account or an item must not empty the history it is part of, and the snapshot keeps the entry readable once the key is null. A test deletes the actor, the borrower and the item and still reads all three names.
+
+  **The model, `ActivityLog`.** `TYPES` holds 42 keys, each with a label and a group: the 39 the prompt listed, plus the 3 conditional ones that apply. The groups run Loans, Requests, Equipment, Users, Returns, Account & system. `loan_issued` is included because loan types are in. `schedule_updated` and `schedule_deleted` are included because the schedule update and delete routes exist. `record($type, $attrs)` is the one way to write:
+  - an unknown type is refused;
+  - the actor defaults to the signed-in user, and `'actor' => null` means the system;
+  - names are snapshotted from the models passed in, and a loan supplies its own item and borrower;
+  - any column passed explicitly wins, which is how the backfill sets the real time and "Not recorded";
+  - a console run records no IP, because its synthetic request always claims 127.0.0.1.
+
+  `filter()` takes `from`, `to`, `type`, `equipment_id`, `user_id`, `status` and `q`:
+  - `to` covers the whole end day in the app timezone;
+  - `type` takes a key or a group name;
+  - `user_id` matches the person as actor or as subject;
+  - an unreadable date is ignored rather than throwing.
+
+  **Append-only, like the return logs.** `updating` and `deleting` hooks throw `LogicException`. So does a custom query builder, because `ActivityLog::where(...)->delete()` never loads a model and never fires a hook. A test tries eight paths and the row is unchanged after all of them. The rule for whoever wires in live logging is in AGENT_CONTEXT: call `record()` inside the same `DB::transaction` as the change, so a rollback takes the entry with it.
+
+  **`php artisan activity:backfill` rebuilds what the old tables already knew.** It reads loans (as `loan_created`, or `loan_issued` for an Issued row), return logs, voids, requests and their decisions, retirements, deactivations, suspensions, role records, incident resolutions, correction notes and reminders. It uses `chunkById`, takes `occurred_at` from the real timestamps, and prints a count per type. Each entry's key names its source row, for example `loan_checked_in:return_logs:12`, so a second run adds nothing. Keys for state that can be set again (suspension, deactivation, role, retirement) also carry the timestamp: a new suspension after a lift becomes a new entry and the old one stays.
+
+  **Choices that needed a decision:**
+  - **Reminders.** The prompt named `Return Notice`. That is only the nightly sweep's type. A manual reminder is stored as `Return Reminder` or `Overdue notice`, so all three count as `loan_reminder_sent`. `Message from Admin` is a custom message, not a reminder, and is left out.
+  - **Role records.** `role_overridden_*` is written by three different actions, so the reason and the timing decide. "Confirmed instructor request from sign-up" becomes `instructor_confirmed`. An Admin whose record is stamped within a minute of the account's creation is a staff account created with a reason, `user_created`. Anything else is `user_role_changed`.
+  - **Old decisions.** A decision made before `decided_at` existed takes its time from `updated_at`, the fallback `ItemRequest::decisionLine()` already uses, and `meta.occurred_at_from` says so. Request statuses are matched in any case, so a legacy lowercase `approved` counts.
+  - **Who acted.** Where no one stored who acted, the actor is "Not recorded" rather than a guess. That covers loan creation, voids, deactivation, retirement and reminders. A borrower is the actor of their own request.
+  - **The live boundary.** For each type the backfill stops at the first `live` entry, so once live logging is wired in the same event cannot be written once from each side.
+
+  **Not recoverable, and not invented.** The users and equipment rows keep only their current state. A lifted suspension, a reactivation, a restore, a declined instructor request and every role change but the latest left no trace. Names, and the actor's role, are snapshotted as they are today. **Not backfilled, though possible:** `equipment_added` and `user_created` for every row from its `created_at`. The prompt did not list them, and a seeded database would report every item as added in the same second.
+
+  **Verification.** `php artisan test`: **435 passed**, up from 420. The 15 new tests are in `tests/Feature/ActivityLogTest`:
+  - `record()` snapshots, an explicit system actor, explicit columns winning, an unknown type refused;
+  - eight update and delete paths refused;
+  - deleting the actor, borrower and item keeping the names;
+  - the type list and group order;
+  - the date filter at 23:59:59 and 00:00:00 on either edge;
+  - type key and group;
+  - equipment, user as actor and as subject, status, `q` on each of the four columns, and filters combined;
+  - `newestFirst()` ties broken by id;
+  - the backfill: 22 entries from a seeded history with known timestamps, a second run adding nothing, a new suspension added beside the old one, and the stop at the live boundary.
+
+  On a **copy** of the dev database, served by a separate MariaDB on port 3307 from the scratchpad:
+  - `php artisan migrate` ran the five pending migrations, the 2 Oct and 5 Oct ones and this one;
+  - `activity:backfill` added 11 entries: 5 loans, 2 check-ins, 1 request and its approval, 1 instructor confirmation, 1 resolution;
+  - the copy's one notification is a custom message and was correctly skipped;
+  - a second run reported "No new entries";
+  - on MariaDB, `filter()` returned the expected counts and both a query delete and a model update were refused;
+  - `ñ` in a name was stored as UTF-8.
+
+  The real data directory was not touched, and its `multi-master.info` problem from 5 Oct is still there. `vendor/bin/pint --test`: no new issues over the 9-file baseline. No front-end changes, so no build.
 
 - **Loan types reach requests, the borrower's side, reminders and the overdue rule.** Until now only the admin's New loan form knew about loan types. Approving a borrower's request still created a seven-day date-only loan whatever the item was, and every overdue count judged loans by day.
 

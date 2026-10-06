@@ -189,7 +189,8 @@ Pinned by `tests/Feature/LegalPagesTest`.
 ## Data model
 
 All models are plain `Illuminate\Database\Eloquent\Model` with `$fillable`, no observers and no
-soft deletes. FKs are `onDelete('cascade')` unless noted. Date columns are cast on `Equipment`,
+soft deletes. The one exception is `ActivityLog`, whose `booted()` hooks and custom query builder
+make it append-only (see below). FKs are `onDelete('cascade')` unless noted. Date columns are cast on `Equipment`,
 `BorrowTransaction`, `ItemRequest`, `ReturnLog` and `User`, so `$tx->borrow_date` is a Carbon —
 do not `Carbon::parse` it again, and do not echo it bare (you get `Y-m-d H:i:s`).
 
@@ -206,6 +207,7 @@ offer instead of a hard delete: `equipment.retired_at`, `users.deactivated_at`,
 | `ReturnLog` | `return_logs` | `borrow_transaction_id`, `user_id` (the *staff receiver*, nullable, `set null`), `return_date`, `condition`, `remarks` | belongsTo `borrowTransaction`, `receiver` (User via `user_id`); hasOneThrough `borrower` (User via transaction) and `equipment` (via transaction) |
 | `ClassSchedule` | `class_schedules` | `user_id` (the instructor), `year_level`, `block_name`, `subject_code`, `subject_name`, `schedule_time`, `room` | belongsTo `instructor` (User via `user_id`); hasMany `borrowTransactions` |
 | `Notification` | `notifications` | `user_id`, `message`, `notification_type` (e.g. `Return Notice`), `send_date` (dateTime) | belongsTo `user` |
+| `ActivityLog` | `activity_logs` | `occurred_at` (dateTime, indexed), `type` (string 40, a key of `ActivityLog::TYPES`), `actor_id` + `actor_name` + `actor_role`, `subject_user_id` + `subject_name`, `equipment_id` + `equipment_name`, `borrow_transaction_id`, `quantity`, `status_from` / `status_to` (labels), `details` (a sentence), `meta` (json, cast array), `ip_address`, `source` (`live`/`backfill`), `backfill_key` (unique, nullable). Every FK is `nullOnDelete`; the `*_name` columns are snapshots taken at write time | belongsTo `actor`, `subject` (Users), `equipment`, `borrowTransaction` — all nullable |
 
 **Loan dates are DATETIME since 5 Oct 2026** (migration `2026_10_05_120100_add_times_to_borrow_transactions`),
 cast `datetime`. A date-only loan (`timed` false) is stored at `00:00:00` and is due by the end of
@@ -229,6 +231,32 @@ until voided, never swept to Overdue, never reminded (`sendManualEmail` refuses 
 reminder with a 422 and allows a custom message), and never blocks a new request. On the borrower
 side it shows only in earlier activity ("Issued to you — no return needed") and on an **Issue Slip**
 with no return line.
+
+**The activity log** (`activity_logs`, since 7 Oct 2026) is the audit trail the reports will read.
+**Nothing writes to it live yet**: this was the foundation only, with no controller, view or route
+changes. Write an entry with `ActivityLog::record($type, $attrs)`:
+- it refuses a type not in `ActivityLog::TYPES`;
+- it stamps `occurred_at = now()` and takes the actor from `auth()->user()`; pass `'actor' => null`
+  for the scheduler, which reads as "System";
+- it snapshots names from the `actor` / `subject` / `equipment` / `loan` models passed in. A `loan`
+  fills `equipment` and `subject` from its own item and borrower;
+- any column passed explicitly wins over a snapshot;
+- it records the request IP for a web request and none for a console run.
+
+`TYPES` maps each stable key (`loan_created`, `request_approved`, `user_suspended`, …) to a `label`
+and a `group`, and `GROUPS` gives the report order: Loans, Requests, Equipment, Users, Returns,
+Account & system. Never rename a key, since keys are stored; labels can change. Read with
+`filter([...])`, whose keys are `from`, `to` (inclusive of the whole end day), `type` (a key or a
+group name), `equipment_id`, `user_id` (actor **or** subject), `status` (matches `status_to`) and
+`q`, and with `newestFirst()`.
+
+**`php artisan activity:backfill`** (`App\Console\Commands\BackfillActivityLog`) rebuilds history
+from the older tables with `source = 'backfill'` and a deterministic `backfill_key`, so a second
+run adds nothing. Where the old schema never stored who acted (loan creation, voids, deactivation,
+retirement, reminders), the actor is "Not recorded". For each type it stops at the first `live`
+entry, so once live logging is wired in it cannot write the same event twice. Some history is
+unrecoverable and is not invented: lifted suspensions, reactivations, restores, declined instructor
+requests, and every role change but the latest. Pinned by `tests/Feature/ActivityLogTest`.
 
 `App\Models\Notification` is a custom table, unrelated to the framework notifications table;
 `User` still uses the `Notifiable` trait but nothing dispatches framework notifications.
@@ -396,6 +424,7 @@ two sessions on one day are two bookings.
 - **Lists are CSS grids, not `<table>`s.** There is no `<table>` left in the app. A row is a grid that restacks below `md`/`lg`, which is what let DataTables Responsive go. A list opts into search and filtering by wrapping itself in `[data-list]` and marking rows `[data-list-row]` with `data-search` and `data-chip`; `resources/js/ui.js` does the rest.
 - **One destructive confirm.** `x-ui.remove-dialog` is the only delete dialog; a page renders one instance and each row's trigger carries the figures (`data-fact-a/b/c`), the reason a hard delete is refused (`data-blocked`), and the two form targets (`data-delete-url`, `data-safe-url`). If you add a destructive action, add it here rather than writing a fourth modal.
 - **Modal headers sit outside the `<form>`.** Each modal is `div[data-modal] > header + form`, so the header's summary/timing lines are *not* descendants of the form. Look them up from the modal (`document.querySelector('#edit-loan-modal [data-edit-summary]')`), never `someForm.querySelector(...)` — a null there throws inside the click handler before `openModal()` runs, and the button silently does nothing (this was BUGS_FOUND #1, "Can't edit loan", which also broke Check-in). `LoansPageTest::test_every_form_scoped_lookup_in_the_script_finds_its_element` enforces it on the loans page.
+- **The audit log is append-only and written in the same DB transaction as the change.** Call `ActivityLog::record()` *inside* the `DB::transaction` that makes the change, after the change succeeds, so a rollback takes the entry with it and a refused action leaves none. Never update or delete an entry: model `update()`/`save()`/`touch()`/`delete()`/`destroy()` and query `update()`/`delete()`/`increment()`/`upsert()` all throw `LogicException`, in the same spirit as the immutable return logs. A wrong entry is answered by a later one. Only raw `DB::table('activity_logs')` bypasses this, so don't use it.
 - **Flash messages** — `success` / `error` via session, rendered by `components/alerts.blade.php`. Login flashes both `welcome` and `success` for legacy view checks.
 - **Casing matters** — model statuses are TitleCase (`Borrowed`, `Pending`, `Available`). The `item_requests` migration defaults `status` to lowercase `'pending'`, but `requestActions` compares against `'Pending'`, so rows created straight from the DB default are not processable. Always write `'Pending'` explicitly, as `ItemRequestController::store` does.
 - **Style** — Laravel Pint defaults (`vendor/bin/pint`). The admin sidebar layout is `w-64` / `md:ml-64`. Its links are an `@php` array in `components/admin/navbar.blade.php` (add a section there, matched with `routeIs($route, $route.".*")`); the Requests badge count, `$pendingRequests`, comes from a view composer in `AppServiceProvider::boot()` scoped to that partial.
