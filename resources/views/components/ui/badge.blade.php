@@ -22,6 +22,9 @@
         'unavailable'=> 'bg-danger-100 text-danger-700 border-danger-300',
         'declined'   => 'bg-danger-100 text-danger-700 border-danger-300',
         'overdue'    => 'bg-danger-100 text-danger-700 border-danger-300',
+        // Informational, not a status: the reports screen tags loan activity
+        // with it, where green or red would read as good or bad news.
+        'primary'    => 'bg-primary-100 text-primary-800 border-primary-300',
         'neutral'    => 'bg-neutral-100 text-neutral-800 border-neutral-300',
         'default'    => 'bg-neutral-100 text-neutral-800 border-neutral-300',
     ];

@@ -11,6 +11,9 @@
             ['route' => 'admin.request',     'icon' => 'request',     'label' => 'Requests', 'badge' => $pendingRequests ?? 0],
             ['route' => 'admin.logs',        'icon' => 'logs',        'label' => 'Return Logs'],
         ],
+        'Records' => [
+            ['route' => 'admin.reports',     'icon' => 'reports',     'label' => 'Reports'],
+        ],
     ];
 
     $user = Auth::user();

@@ -6,6 +6,7 @@
   'transaction' => '<path d="M2 5.2h11M10.4 2.6 13 5.2l-2.6 2.6M14 10.8H3M5.6 8.2 3 10.8l2.6 2.6" stroke-linecap="round" stroke-linejoin="round"/>',
   'request'   => '<rect x="3" y="2" width="10" height="12.4" rx="1.6"/><path d="M5.8 6h4.4M5.8 9h3" stroke-linecap="round"/>',
   'logs'      => '<rect x="2.2" y="3" width="11.6" height="10.4" rx="1.6"/><path d="M2.2 6.4h11.6"/>',
+  'reports'   => '<path d="M2.2 13.6h11.6" stroke-linecap="round"/><rect x="3.4" y="8.2" width="2.2" height="5.4" rx=".6"/><rect x="6.9" y="4.6" width="2.2" height="9" rx=".6"/><rect x="10.4" y="2.4" width="2.2" height="11.2" rx=".6"/>',
 ]; @endphp
 <svg {{ $attributes->merge(['class' => 'w-4 h-4 shrink-0']) }} viewBox="0 0 16 16"
      fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">{!! $paths[$name] ?? '' !!}</svg>

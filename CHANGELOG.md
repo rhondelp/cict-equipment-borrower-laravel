@@ -2,6 +2,67 @@
 
 ## 2026-10-07
 
+- **A Reports screen: the activity log, filtered, on screen.** `GET /admin/reports` (`admin.reports`, `ReportsController@index`) sits in the Admin group like every other admin page: a borrower gets 403 and a guest goes to sign-in. The sidebar has a new "Records" group with a Reports link that uses the shared link markup, active state and text size, and a small bar-chart icon added to `x-icon`. Exports come next, in Prompt 26.
+
+  **A report is a URL.** The filters are a plain GET form:
+  - From and To, defaulting to the last 30 days ending today. To includes its whole day.
+  - Activity, a select of All activity and then each group, offering "Everything in <group>" followed by that group's types, labelled from `ActivityLog::TYPES`.
+  - Equipment, every item including retired ones, since a retired item's history is often the point.
+  - Person, every account, matched as the one who acted **or** the one affected.
+  - Status after, the distinct statuses actually present.
+  - Search, over details and names.
+
+  Quick links set Last 7 days, Last 30 days, This month or All time, keeping the other filters. The results are built only through `ActivityLog::filter()`, and the filters are read by `ReportsController::resolveFilters()`. The exports will reuse both, so the screen, CSV, PDF and printout cannot disagree about what a report contains.
+
+  **Bad input never fails the page.** An unreadable date, an unknown type or an over-long search is dropped, with an inline message beside its field. A start date after the end date shows "The start date is after the end date, so the report shows the last 30 days instead." in a red `role="alert"` line, and the report runs over the default range rather than returning a 500 or an empty page.
+
+  **The results.** They are newest first, 50 per page, with the query string kept on every page link. A plain pager (First, Previous, "Page 2 of 26", Next, Last) replaces Laravel's links view, which lives in `vendor/` outside Tailwind's content globs and would have shipped unstyled. Above the table:
+  - a count line, "Showing 1–50 of 1,284 activities";
+  - the applied filters, in words;
+  - a summary strip: Activities, Loans recorded ("2 lent · 1 issued for good"), Returns, and Requests decided ("10 approved · 10 declined").
+
+  The strip and the paginator's total come from **one** grouped `COUNT` over the same filtered query, and the total is handed to `paginate()` so the page does not count twice. A test reads the query log and finds exactly one `COUNT` against `activity_logs`. Nothing is cached, and the response is `Cache-Control: no-store`, so a back button never shows a stale report. In the browser check the count rose by one between two loads, because the sign-in had just been logged.
+
+  **A real `<table>`, the one exception to "lists are grids".** It is wide, dense data read across a row, and the same markup must print and become a PDF. AGENT_CONTEXT now records the exception and says not to add a second. The columns are Date and time, Activity (label plus a group badge), Done by (name and role, or "System"), Equipment, Affected person, Qty, Status (from → to) and Details. Cells are `text-base` in near-black, and the header is uppercase `text-sm` on grey.
+
+  The header is `sticky`, and the wrapper is `overflow-auto max-h-[75vh]`. A sticky header inside a wrapper that only scrolls sideways does nothing, so the wrapper scrolls both ways and the header sticks inside it.
+
+  The group badges use `x-ui.badge`, which gains a `primary` tone: blue for Loans, amber for Requests, green for Returns, neutral for the rest. Green and red would have read as good or bad news.
+
+  **Fitted after looking at it.** The first build squeezed every column but Details:
+  - names broke onto three lines;
+  - at 1280px, Status was clipped and Details was off-screen.
+
+  Now each column has a minimum width, the date stacks over the time, the status stacks "Borrowed →" over **Returned**, and cell padding is slightly tighter. Eight columns of 16px text still need about 74rem against the roughly 61rem a 1280px laptop leaves. Squeezing Details to around 20 characters a line was worse, so the table still scrolls about 200px sideways there. A line, "More columns to the right — scroll the table sideways.", shows only while columns are actually off-screen, and hides once the last one is reached. It nearly fits at 1440px.
+
+  **Empty states.** With nothing logged at all: "No activity recorded yet. Activity appears here as soon as equipment is lent, returned or changed." With filters that match nothing: "No activity matches these filters.", every applied filter echoed as a chip, and Clear filters.
+
+  **Verification.** `php artisan test`: **465 passed**, up from 453. The 12 new tests are in `tests/Feature/ReportsPageTest.php`:
+  - access: admin, borrower 403, guest redirected, the active sidebar link, `no-store`;
+  - the default range is exactly Sep 8 to Oct 7, with 23:59:59 the day before excluded;
+  - an inclusive end date, at both edges;
+  - an inverted range and unreadable inputs fall back, with their messages;
+  - type by key and by each group, "Account & system" included;
+  - equipment, with retired items offered;
+  - person as actor and as subject;
+  - status, with the options drawn from the data;
+  - search over details and names, and filters combined;
+  - 55 rows paginate 50 + 5, with the query string on the next link;
+  - the one grouped count and the strip's figures, filtered and unfiltered;
+  - the table's columns in order, the sticky header, `text-base` cells, the stacked date and status, the group badge and "System";
+  - both empty states.
+
+  In headless Chrome at 1280px and 390px, against the scratch SQLite database with 60 sample entries:
+  - no page-level horizontal overflow; the table box scrolls both ways;
+  - 16px cells in `rgb(15, 23, 42)`;
+  - the header still at the top of the box after scrolling it 600px;
+  - the hint shown while columns are hidden;
+  - the Loans filter applied through the real form, giving a bookmarkable URL with 30 results;
+  - the bad-range message and the no-match state rendered;
+  - no JS errors.
+
+  `npm run build` was run, and the arbitrary utilities were confirmed in the built CSS. `vendor/bin/pint --test`: no new issues over the 9-file baseline.
+
 - **Maintenance and repair records, logged per item from the inventory list.** The reports need to show when an item was serviced or fixed, and nothing in the system recorded that. This adds the smallest thing that does: a record, with no new state.
 
   **The entry is the record.** `POST /admin/equipment/{id}/maintenance` (`admin.equipment.maintenance`, `EquipmentController@logMaintenance`, Admin only) writes one activity log entry, `maintenance_logged` or `repair_logged`, and nothing else. There is no table, no "in repair" status, and no change to stock, availability or `status`. An item can be serviced while units are lent out, and the shelf count is a fact about the loans, not about upkeep. The entry carries:

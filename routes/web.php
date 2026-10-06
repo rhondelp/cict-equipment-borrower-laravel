@@ -7,6 +7,7 @@ use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ItemRequestController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ReturnLogsController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -84,6 +85,9 @@ Route::middleware('auth')->group(function () {
         // appended as a note rather than overwriting what was recorded.
         Route::post('/admin/logs/{id}/resolve', [ReturnLogsController::class, 'resolve'])->name('admin.logs.resolve');
         Route::post('/admin/logs/{id}/notes', [ReturnLogsController::class, 'addNote'])->name('admin.logs.note');
+
+        // The activity log, filtered by query string so a report is a URL.
+        Route::get('/admin/reports', [ReportsController::class, 'index'])->name('admin.reports');
 
         // Admin-only mail utilities (previously public)
         Route::get('/admin/send-return-alerts', [BorrowTransactionController::class, 'sendReturnAlertNotification'])
