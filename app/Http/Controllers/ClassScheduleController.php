@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\ClassSchedule;
 use Illuminate\Http\Request;
 
@@ -19,7 +20,13 @@ class ClassScheduleController extends Controller
             'room' => 'required|string|max:255',
         ]);
 
-        ClassSchedule::create($validated);
+        $schedule = ClassSchedule::create($validated);
+
+        ActivityLog::record('schedule_added', [
+            'subject' => $schedule->instructor,
+            'details' => 'Added '.$this->label($schedule).' for '.($schedule->instructor->name ?? 'a deleted account').'.',
+            'meta' => ['schedule_id' => $schedule->id] + $this->snapshot($schedule),
+        ]);
 
         return redirect()->back()->with('success', 'Class schedule added successfully.');
     }
@@ -38,9 +45,41 @@ class ClassScheduleController extends Controller
         ]);
 
         $schedule = ClassSchedule::findOrFail($validated['id']);
+        $before = $this->snapshot($schedule);
         $schedule->update(collect($validated)->except('id')->all());
+        $schedule->load('instructor');
+
+        // A save that changed nothing is not an event.
+        $changes = ActivityLog::changes($before, $this->snapshot($schedule));
+        if ($changes !== []) {
+            ActivityLog::record('schedule_updated', [
+                'subject' => $schedule->instructor,
+                'details' => 'Edited '.$this->label($schedule).': '.ActivityLog::changeWords($changes).'.',
+                'meta' => ['schedule_id' => $schedule->id, 'changes' => $changes],
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Class schedule updated successfully.');
+    }
+
+    /** "IT 101 — Intro to Computing (BSIT 1A)" */
+    private function label(ClassSchedule $schedule): string
+    {
+        return $schedule->subject_code.' — '.$schedule->subject_name.' ('.$schedule->year_level.' '.$schedule->block_name.')';
+    }
+
+    /** The schedule's fields as the log records them; the instructor by name, not id. */
+    private function snapshot(ClassSchedule $schedule): array
+    {
+        return [
+            'instructor' => $schedule->instructor?->name,
+            'year_level' => $schedule->year_level,
+            'block_name' => $schedule->block_name,
+            'subject_code' => $schedule->subject_code,
+            'subject_name' => $schedule->subject_name,
+            'schedule_time' => $schedule->schedule_time,
+            'room' => $schedule->room,
+        ];
     }
 
     /**
@@ -62,6 +101,12 @@ class ClassScheduleController extends Controller
 
         $label = $schedule->subject_code.' — '.$schedule->subject_name;
         $schedule->delete();
+
+        ActivityLog::record('schedule_deleted', [
+            'subject' => $schedule->instructor,
+            'details' => 'Removed '.$this->label($schedule).' from '.($schedule->instructor->name ?? 'a deleted account').'.',
+            'meta' => ['schedule_id' => $schedule->id] + $this->snapshot($schedule),
+        ]);
 
         return redirect()->back()->with('success', $label.' removed. No loans referenced it.');
     }

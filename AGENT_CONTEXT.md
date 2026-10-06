@@ -233,8 +233,8 @@ side it shows only in earlier activity ("Issued to you — no return needed") an
 with no return line.
 
 **The activity log** (`activity_logs`, since 7 Oct 2026) is the audit trail the reports will read.
-**Nothing writes to it live yet**: this was the foundation only, with no controller, view or route
-changes. Write an entry with `ActivityLog::record($type, $attrs)`:
+Since 7 Oct 2026 every mutating action writes to it; see **Audit trail** below for which action
+writes which type. Write an entry with `ActivityLog::record($type, $attrs)`:
 - it refuses a type not in `ActivityLog::TYPES`;
 - it stamps `occurred_at = now()` and takes the actor from `auth()->user()`; pass `'actor' => null`
   for the scheduler, which reads as "System";
@@ -260,6 +260,51 @@ requests, and every role change but the latest. Pinned by `tests/Feature/Activit
 
 `App\Models\Notification` is a custom table, unrelated to the framework notifications table;
 `User` still uses the `Notifiable` trait but nothing dispatches framework notifications.
+
+## Audit trail
+
+Every action that changes data or access writes `ActivityLog::record()` rows. The rows never change
+what the action does or returns. Reads and page views are not logged.
+
+**Rule for new code: any new mutating action must record one entry per business event.** Call
+`record()` inside the action's existing `DB::transaction`, after the change succeeds. With no
+transaction, call it right after the successful save. Never log a refused action (validation, short
+stock, a guard that redirects with an error); `login_failed` is the only exception. A save that
+changed nothing (an edit submitted unchanged, restoring an item that was never retired) is not an
+event. Fill in the item, the person affected, the loan, the quantity and the statuses where they
+apply. Put a short plain-English `details` sentence, and changed fields in `meta.changes` as
+`{field: {old, new}}` (`ActivityLog::changes()`). **Never put a password, token or reset link in
+`details` or `meta`**; a password change is recorded only as `meta.password_changed`.
+
+| Action | Type(s) | Notes |
+|---|---|---|
+| `BorrowTransactionController::store` | `loan_created` / `loan_issued`, one per equipment line | via `ActivityLog::recordHandover()`; Issued lines are `loan_issued` |
+| `BorrowTransactionController::update` | `loan_updated` | `meta.changes` by name (borrower, item, dates, quantity, purpose, remarks, class); skipped when nothing changed |
+| `BorrowTransactionController::checkIn` | `loan_checked_in` | condition, remarks, return log id and lateness in meta |
+| `BorrowTransactionController::void` | `loan_voided` | status from → `Void`, reason in meta |
+| `BorrowTransactionController::destroy` | `loan_deleted` | written after the delete, so `borrow_transaction_id` is null and `meta.loan_id` keeps the id |
+| `BorrowTransactionController::sendManualEmail` | `loan_reminder_sent` | canned reminder or custom message; `meta.notification_type` says which |
+| `BorrowTransactionController::sendReturnAlertNotification` | `loan_marked_overdue` per loan flipped, `loan_reminder_sent` per mail sent | **actor is the system** (`'actor' => null`) even when an admin runs it from the screen. The bulk update became read-then-flip-by-id, so each loan gets its own entry |
+| `ItemRequestController::store` / `update` / `destroy` | `request_submitted` / `request_updated` / `request_cancelled` | the borrower is actor and subject; `meta.request_id` |
+| `ItemRequestController::requestActions` (approve) | `request_approved` **and** `loan_created`/`loan_issued` | two events: the decision (pointing at the loan) and the hand-over |
+| `ItemRequestController::requestActions` (decline) | `request_declined` | "Declined: <reason>" |
+| `EquipmentController::store` / `update` / `retire` / `restore` / `destroy` | `equipment_added` / `_updated` / `_retired` / `_restored` / `_deleted` | a delete is written after the row is gone, so `equipment_id` is null with `meta.equipment_id` |
+| `Equipment::reserveStock()` / `releaseStock()` | `equipment_status_changed` | **only** when the stored status really flips Available ↔ Unavailable; the loan id when the caller passes one. Never write this from a controller |
+| `AuthenticateUser::register` (admin form) | `user_created` | the admin is actor, `status_to` is the role |
+| `AuthenticateUser::registerPublic` | `user_created` | the new person is their own actor |
+| `UserController::update` | `user_updated` and/or `user_role_changed` | the account fields and the role are separate events; each is written only if it changed |
+| `UserController::deactivate` / `reactivate` / `suspend` / `liftSuspension` / `destroy` | `user_deactivated` / `user_reactivated` / `user_suspended` / `suspension_lifted` / `user_deleted` | reactivate only when the account was deactivated |
+| `UserController::confirmInstructor` / `declineInstructor` | `instructor_confirmed` / `instructor_declined` | confirming is not also a `user_role_changed` |
+| `ClassScheduleController::store` / `update` / `destroy` | `schedule_added` / `schedule_updated` / `schedule_deleted` | the instructor is the subject |
+| `ReturnLogsController::resolve` / `addNote` | `return_incident_resolved` / `return_note_added` | |
+| `AuthenticateUser::login` | `login`; `login_failed` for wrong credentials **and** a deactivated account | a failed attempt has actor "Not signed in" (`ActivityLog::ACTOR_ANONYMOUS`); the email is in `details` only |
+| `AuthenticateUser::destroy` | `logout` | only when someone was signed in |
+| `PasswordResetController::email` / `update` | `password_reset_requested` (only when a link was sent) / `password_reset_completed` | the requester is "Not signed in"; the account completing the reset is its own actor |
+
+**Order matters in two places.** `BorrowTransactionController::store` and the approve branch now write
+the `BorrowTransaction` row **before** calling `reserveStock()`, so the stock helper can name the loan
+when the item runs out. Both run inside one transaction, so a short shelf still rolls the row back.
+Pinned by `tests/Feature/ActivityLoggingTest`.
 
 ## Route map
 
@@ -424,7 +469,7 @@ two sessions on one day are two bookings.
 - **Lists are CSS grids, not `<table>`s.** There is no `<table>` left in the app. A row is a grid that restacks below `md`/`lg`, which is what let DataTables Responsive go. A list opts into search and filtering by wrapping itself in `[data-list]` and marking rows `[data-list-row]` with `data-search` and `data-chip`; `resources/js/ui.js` does the rest.
 - **One destructive confirm.** `x-ui.remove-dialog` is the only delete dialog; a page renders one instance and each row's trigger carries the figures (`data-fact-a/b/c`), the reason a hard delete is refused (`data-blocked`), and the two form targets (`data-delete-url`, `data-safe-url`). If you add a destructive action, add it here rather than writing a fourth modal.
 - **Modal headers sit outside the `<form>`.** Each modal is `div[data-modal] > header + form`, so the header's summary/timing lines are *not* descendants of the form. Look them up from the modal (`document.querySelector('#edit-loan-modal [data-edit-summary]')`), never `someForm.querySelector(...)` — a null there throws inside the click handler before `openModal()` runs, and the button silently does nothing (this was BUGS_FOUND #1, "Can't edit loan", which also broke Check-in). `LoansPageTest::test_every_form_scoped_lookup_in_the_script_finds_its_element` enforces it on the loans page.
-- **The audit log is append-only and written in the same DB transaction as the change.** Call `ActivityLog::record()` *inside* the `DB::transaction` that makes the change, after the change succeeds, so a rollback takes the entry with it and a refused action leaves none. Never update or delete an entry: model `update()`/`save()`/`touch()`/`delete()`/`destroy()` and query `update()`/`delete()`/`increment()`/`upsert()` all throw `LogicException`, in the same spirit as the immutable return logs. A wrong entry is answered by a later one. Only raw `DB::table('activity_logs')` bypasses this, so don't use it.
+- **The audit log is append-only and written in the same DB transaction as the change.** Call `ActivityLog::record()` *inside* the `DB::transaction` that makes the change, after the change succeeds, so a rollback takes the entry with it and a refused action leaves none. Never update or delete an entry: model `update()`/`save()`/`touch()`/`delete()`/`destroy()` and query `update()`/`delete()`/`increment()`/`upsert()` all throw `LogicException`, in the same spirit as the immutable return logs. A wrong entry is answered by a later one. Only raw `DB::table('activity_logs')` bypasses this, so don't use it. **Any new action that changes data or access must record its event**; see "Audit trail".
 - **Flash messages** — `success` / `error` via session, rendered by `components/alerts.blade.php`. Login flashes both `welcome` and `success` for legacy view checks.
 - **Casing matters** — model statuses are TitleCase (`Borrowed`, `Pending`, `Available`). The `item_requests` migration defaults `status` to lowercase `'pending'`, but `requestActions` compares against `'Pending'`, so rows created straight from the DB default are not processable. Always write `'Pending'` explicitly, as `ItemRequestController::store` does.
 - **Style** — Laravel Pint defaults (`vendor/bin/pint`). The admin sidebar layout is `w-64` / `md:ml-64`. Its links are an `@php` array in `components/admin/navbar.blade.php` (add a section there, matched with `routeIs($route, $route.".*")`); the Requests badge count, `$pendingRequests`, comes from a view composer in `AppServiceProvider::boot()` scoped to that partial.

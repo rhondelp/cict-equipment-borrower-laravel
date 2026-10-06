@@ -45,11 +45,15 @@ class Equipment extends Model
      * Callers are responsible for the surrounding DB transaction and for having
      * locked this row (lockForUpdate) before calling.
      */
-    public function releaseStock(int $quantity): void
+    public function releaseStock(int $quantity, ?BorrowTransaction $loan = null): void
     {
+        $before = $this->status;
+
         $this->available_quantity += $quantity;
         $this->status = $this->lendableStatus();
         $this->save();
+
+        $this->recordStatusFlip($before, $quantity, $loan);
     }
 
     /**
@@ -63,7 +67,7 @@ class Equipment extends Model
      *
      * @throws ValidationException
      */
-    public function reserveStock(int $quantity, ?string $message = null): void
+    public function reserveStock(int $quantity, ?string $message = null, ?BorrowTransaction $loan = null): void
     {
         if ($this->available_quantity < $quantity) {
             throw ValidationException::withMessages([
@@ -71,9 +75,41 @@ class Equipment extends Model
             ]);
         }
 
+        $before = $this->status;
+
         $this->available_quantity -= $quantity;
         $this->status = $this->lendableStatus();
         $this->save();
+
+        $this->recordStatusFlip($before, $quantity, $loan);
+    }
+
+    /**
+     * Log the moment an item runs out or comes back, and only that moment.
+     *
+     * Kept here, in the two stock helpers, rather than in the controllers:
+     * every path that moves stock goes through one of them, so none can move
+     * an item to Unavailable without the log saying so, and a movement that
+     * leaves the status as it was writes nothing. The caller's transaction
+     * holds the row lock, so the entry commits or rolls back with the stock.
+     */
+    private function recordStatusFlip(?string $before, int $quantity, ?BorrowTransaction $loan): void
+    {
+        if ($before === $this->status) {
+            return;
+        }
+
+        ActivityLog::record('equipment_status_changed', [
+            'equipment' => $this,
+            'loan' => $loan,
+            'quantity' => $quantity,
+            'status_from' => $before,
+            'status_to' => $this->status,
+            'details' => $this->status === 'Available'
+                ? $this->equipment_name.' is back on the shelf ('.$this->available_quantity.' available).'
+                : $this->equipment_name.' is no longer lendable — '.($this->isRetired() ? 'it is retired.' : 'none left on the shelf.'),
+            'meta' => ['available_quantity' => $this->available_quantity, 'quantity' => $this->quantity],
+        ]);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -138,6 +139,14 @@ class PasswordResetController extends Controller
         $status = Password::sendResetLink(['email' => $email]);
 
         if ($status === Password::RESET_LINK_SENT) {
+            // Never the token or the link: who asked, for which account.
+            ActivityLog::record('password_reset_requested', [
+                'actor' => auth()->user(),
+                'actor_name' => auth()->user()?->name ?? ActivityLog::ACTOR_ANONYMOUS,
+                'subject' => $user,
+                'details' => 'Password reset link sent to '.$email.'.',
+            ]);
+
             $request->session()->put('reset_link_sent_to', $email);
 
             return redirect()->route('password.request')->with('status', __($status));
@@ -233,6 +242,14 @@ class PasswordResetController extends Controller
                         ->where('id', '!=', $request->session()->getId())
                         ->delete();
                 }
+
+                // Whoever held the link set the password, so the account is
+                // the actor. Never the password or the token.
+                ActivityLog::record('password_reset_completed', [
+                    'actor' => $user,
+                    'subject' => $user,
+                    'details' => 'Password reset from an emailed link; other sessions signed out.',
+                ]);
 
                 event(new PasswordReset($user));
             }

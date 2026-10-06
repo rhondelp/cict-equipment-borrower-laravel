@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\ReturnNotification;
+use App\Models\ActivityLog;
 use App\Models\BorrowTransaction;
 use App\Models\ClassSchedule;
 use App\Models\Equipment;
@@ -143,12 +144,13 @@ class BorrowTransactionController extends Controller
                 // Read before the status flips: once Returned, the loan has
                 // no "late" left to describe.
                 $lateLabel = $transaction->isOverdue() ? $transaction->timingLabel() : null;
+                $statusBefore = ActivityLog::loanStatus($transaction);
 
                 // Lock equipment row to prevent concurrent race on available_quantity
                 $equipment = Equipment::where('id', $transaction->equipment_id)->lockForUpdate()->firstOrFail();
-                $equipment->releaseStock($transaction->quantity);
+                $equipment->releaseStock($transaction->quantity, $transaction);
 
-                ReturnLog::create([
+                $returnLog = ReturnLog::create([
                     'borrow_transaction_id' => $transaction->id,
                     'return_date' => now(),
                     'condition' => $validated['condition'],
@@ -158,6 +160,21 @@ class BorrowTransactionController extends Controller
 
                 $transaction->status = 'Returned';
                 $transaction->save();
+
+                ActivityLog::record('loan_checked_in', [
+                    'loan' => $transaction,
+                    'quantity' => $transaction->quantity,
+                    'status_from' => $statusBefore,
+                    'status_to' => 'Returned',
+                    'details' => 'Checked in '.ActivityLog::units($transaction).' from '.($transaction->user->name ?? 'a deleted account')
+                        .' in '.$validated['condition'].' condition'.($lateLabel ? ', '.$lateLabel : '').'.',
+                    'meta' => array_filter([
+                        'condition' => $validated['condition'],
+                        'remarks' => $returnLog->remarks,
+                        'return_log_id' => $returnLog->id,
+                        'late' => $lateLabel,
+                    ]),
+                ]);
 
                 return $transaction;
             });
@@ -243,17 +260,13 @@ class BorrowTransactionController extends Controller
                         ]);
                     }
 
-                    // An issue comes off the shelf exactly like a loan; it is
-                    // simply never released by a check-in.
-                    $equipment->reserveStock(
-                        $quantity,
-                        "Only {$equipment->available_quantity} of {$equipment->equipment_name} available — this loan needs {$quantity}."
-                    );
-
                     $issued = $equipment->isNonReturnable();
                     $timed = $equipment->isTimeLimited();
 
-                    BorrowTransaction::create([
+                    // The row is written before the stock moves so the stock
+                    // helper can name the loan if the item runs out. A short
+                    // shelf still throws and rolls the row back with the rest.
+                    $loan = BorrowTransaction::create([
                         'user_id' => $validated['user_id'],
                         'equipment_id' => $equipmentId,
                         'borrow_date' => $timed ? $borrowAt : $borrowAt->copy()->startOfDay(),
@@ -265,6 +278,17 @@ class BorrowTransactionController extends Controller
                         'remarks' => $validated['remarks'] ?? null,
                         'class_schedule_id' => $validated['class_schedule_id'] ?? null,
                     ]);
+                    $loan->setRelation('equipment', $equipment);
+
+                    // An issue comes off the shelf exactly like a loan; it is
+                    // simply never released by a check-in.
+                    $equipment->reserveStock(
+                        $quantity,
+                        "Only {$equipment->available_quantity} of {$equipment->equipment_name} available — this loan needs {$quantity}.",
+                        $loan
+                    );
+
+                    ActivityLog::recordHandover($loan);
 
                     $tally[$issued ? 'issued' : 'out'] += $quantity;
                     $tally['timed'] = $tally['timed'] || $timed;
@@ -399,13 +423,22 @@ class BorrowTransactionController extends Controller
         // an overdue item has no way to tell a first nudge from a fourth.
         // Written after the send so a failed send leaves no record of one.
         $this->safe(
-            fn () => Notification::create([
-                'user_id' => $transaction->user->id,
-                'borrow_transaction_id' => $transaction->id,
-                'message' => $details['body'],
-                'notification_type' => $details['title'],
-                'send_date' => Carbon::now(),
-            ]),
+            fn () => DB::transaction(function () use ($transaction, $details) {
+                Notification::create([
+                    'user_id' => $transaction->user->id,
+                    'borrow_transaction_id' => $transaction->id,
+                    'message' => $details['body'],
+                    'notification_type' => $details['title'],
+                    'send_date' => Carbon::now(),
+                ]);
+
+                ActivityLog::record('loan_reminder_sent', [
+                    'loan' => $transaction,
+                    'quantity' => $transaction->quantity,
+                    'details' => $details['title'].' sent to '.$transaction->user->name.' about '.ActivityLog::units($transaction).'.',
+                    'meta' => ['notification_type' => $details['title'], 'message' => $details['body']],
+                ]);
+            }),
             'Reminder log failed for transaction '.$id
         );
 
@@ -426,9 +459,34 @@ class BorrowTransactionController extends Controller
         // date-only loan by its day, and it only ever matches loans that are
         // out, so an Issued row is never touched. This runs once a day, so a
         // timed loan that falls due after the run is flipped on the next one.
-        BorrowTransaction::where('status', 'Borrowed')
-            ->overdue()
-            ->update(['status' => 'Overdue']);
+        //
+        // Read first and flipped by id, so each loan gets its own log entry.
+        // The update repeats the status check, so a loan checked in between
+        // the read and the write is left alone and not logged.
+        DB::transaction(function () {
+            $due = BorrowTransaction::with(['user', 'equipment'])
+                ->where('status', 'Borrowed')
+                ->overdue()
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($due as $loan) {
+                $flipped = BorrowTransaction::whereKey($loan->id)->where('status', 'Borrowed')
+                    ->update(['status' => 'Overdue']);
+
+                if ($flipped) {
+                    ActivityLog::record('loan_marked_overdue', [
+                        'actor' => null,
+                        'loan' => $loan,
+                        'quantity' => $loan->quantity,
+                        'status_from' => 'Borrowed',
+                        'status_to' => 'Overdue',
+                        'details' => ActivityLog::units($loan).' with '.($loan->user->name ?? 'a deleted account')
+                            .' marked overdue — it was '.ActivityLog::dueWords($loan).'.',
+                    ]);
+                }
+            }
+        });
 
         // Loans due back today that are still Borrowed. Issued rows have no
         // return date and are not Borrowed, so they are never reminded; a timed
@@ -482,6 +540,15 @@ class BorrowTransactionController extends Controller
                                 'send_date' => Carbon::now(),
                             ]);
                         }
+
+                        // The mail has already gone, so it is logged either way.
+                        ActivityLog::record('loan_reminder_sent', [
+                            'actor' => null,
+                            'loan' => $transaction,
+                            'quantity' => $transaction->quantity,
+                            'details' => 'Return Notice sent to '.$transaction->user->name.' about '.ActivityLog::units($transaction).'.',
+                            'meta' => ['notification_type' => 'Return Notice', 'message' => $details['body']],
+                        ]);
                     }),
                     'Notification DB log failed for transaction '.$transaction->id
                 );
@@ -543,6 +610,9 @@ class BorrowTransactionController extends Controller
                 $oldQty = $transaction->quantity;
                 $newQty = $validated['quantity'];
 
+                $before = $this->loanSnapshot($transaction);
+                $statusBefore = ActivityLog::loanStatus($transaction);
+
                 if ($oldEquipmentId != $newEquipmentId) {
                     // Lock both equipment rows in consistent order to avoid deadlock
                     $ids = collect([$oldEquipmentId, $newEquipmentId])->sort()->values();
@@ -562,10 +632,11 @@ class BorrowTransactionController extends Controller
                         ]);
                     }
 
-                    $oldEquipment->releaseStock($oldQty);
+                    $oldEquipment->releaseStock($oldQty, $transaction);
                     $equipment->reserveStock(
                         $newQty,
-                        "Only {$equipment->available_quantity} of {$equipment->equipment_name} available — this loan needs {$newQty}."
+                        "Only {$equipment->available_quantity} of {$equipment->equipment_name} available — this loan needs {$newQty}.",
+                        $transaction
                     );
                 } else {
                     $equipment = Equipment::where('id', $oldEquipmentId)->lockForUpdate()->firstOrFail();
@@ -575,20 +646,55 @@ class BorrowTransactionController extends Controller
                     if ($diff > 0) {
                         $equipment->reserveStock(
                             $diff,
-                            "Only {$equipment->available_quantity} more of {$equipment->equipment_name} available."
+                            "Only {$equipment->available_quantity} more of {$equipment->equipment_name} available.",
+                            $transaction
                         );
                     } else {
-                        $equipment->releaseStock(-$diff);
+                        $equipment->releaseStock(-$diff, $transaction);
                     }
                 }
 
                 $transaction->update(['borrow_date' => $borrowAt, 'return_date' => $dueAt] + $validated);
+                $transaction->load(['user', 'equipment', 'classSchedule']);
+
+                // An edit that changed nothing is not an event.
+                $changes = ActivityLog::changes($before, $this->loanSnapshot($transaction));
+                if ($changes !== []) {
+                    ActivityLog::record('loan_updated', [
+                        'loan' => $transaction,
+                        'quantity' => $transaction->quantity,
+                        'status_from' => $statusBefore,
+                        'status_to' => ActivityLog::loanStatus($transaction),
+                        'details' => 'Edited loan #'.$transaction->id.': '.ActivityLog::changeWords($changes, [
+                            'borrower' => 'borrower', 'equipment' => 'item', 'borrow_date' => 'borrow date',
+                            'return_date' => 'due date', 'class_schedule' => 'class',
+                        ]).'.',
+                        'meta' => ['changes' => $changes],
+                    ]);
+                }
             });
         } catch (ValidationException $e) {
             return redirect()->back()->withErrors($e->errors())->withInput();
         }
 
         return redirect()->back()->with('success', 'Loan updated.');
+    }
+
+    /** A loan's editable fields as the log shows them: names and dates, not ids. */
+    private function loanSnapshot(BorrowTransaction $loan): array
+    {
+        $format = $loan->timed ? 'M j, Y g:i A' : 'M j, Y';
+
+        return [
+            'borrower' => $loan->user?->name,
+            'equipment' => $loan->equipment?->equipment_name,
+            'quantity' => $loan->quantity,
+            'borrow_date' => $loan->borrow_date?->format($format),
+            'return_date' => $loan->return_date?->format($format),
+            'purpose' => $loan->purpose,
+            'remarks' => $loan->remarks,
+            'class_schedule' => $loan->classSchedule?->subject_code,
+        ];
     }
 
     /**
@@ -643,14 +749,27 @@ class BorrowTransactionController extends Controller
                 return $transaction;
             }
 
-            if ($transaction->isOut() || $transaction->isIssued()) {
+            $statusBefore = ActivityLog::loanStatus($transaction);
+            $released = $transaction->isOut() || $transaction->isIssued();
+
+            if ($released) {
                 $equipment = Equipment::where('id', $transaction->equipment_id)->lockForUpdate()->firstOrFail();
-                $equipment->releaseStock($transaction->quantity);
+                $equipment->releaseStock($transaction->quantity, $transaction);
             }
 
             $transaction->voided_at = now();
             $transaction->void_reason = $validated['void_reason'];
             $transaction->save();
+
+            ActivityLog::record('loan_voided', [
+                'loan' => $transaction,
+                'quantity' => $transaction->quantity,
+                'status_from' => $statusBefore,
+                'status_to' => 'Void',
+                'details' => 'Voided the record of '.ActivityLog::units($transaction).' to '
+                    .($transaction->user->name ?? 'a deleted account').': '.$validated['void_reason'],
+                'meta' => ['void_reason' => $validated['void_reason'], 'units_released' => $released ? $transaction->quantity : 0],
+            ]);
 
             return $transaction;
         });
@@ -688,7 +807,25 @@ class BorrowTransactionController extends Controller
         }
 
         $reference = $transaction->id;
-        $transaction->delete();
+        $transaction->loadMissing(['user', 'equipment']);
+
+        DB::transaction(function () use ($transaction) {
+            $statusBefore = ActivityLog::loanStatus($transaction);
+            $transaction->delete();
+
+            // The row is gone, so the entry keeps its id in meta and names
+            // the borrower and item by snapshot; a key to it would not save.
+            ActivityLog::record('loan_deleted', [
+                'equipment' => $transaction->equipment,
+                'subject' => $transaction->user,
+                'borrow_transaction_id' => null,
+                'quantity' => $transaction->quantity,
+                'status_from' => $statusBefore,
+                'details' => 'Deleted loan #'.$transaction->id.' ('.ActivityLog::units($transaction).' to '
+                    .($transaction->user->name ?? 'a deleted account').').',
+                'meta' => ['loan_id' => $transaction->id, 'void_reason' => $transaction->void_reason],
+            ]);
+        });
 
         return redirect()->back()->with('success', 'Loan #'.$reference.' deleted. Nothing referenced it.');
     }

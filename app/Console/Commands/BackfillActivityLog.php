@@ -45,8 +45,12 @@ class BackfillActivityLog extends Command
     /** The reason UserController::confirmInstructor writes. */
     private const INSTRUCTOR_CONFIRMED_REASON = 'Confirmed instructor request from sign-up';
 
-    /** Reminder notification types: the nightly sweep's, then the manual send's two. */
-    private const REMINDER_TYPES = ['Return Notice', 'Return Reminder', 'Overdue notice'];
+    /**
+     * Notification types logged as loan_reminder_sent: the nightly sweep's,
+     * the manual send's two canned ones, and its custom message — the same
+     * set BorrowTransactionController logs live, so the two sides agree.
+     */
+    private const REMINDER_TYPES = ['Return Notice', 'Return Reminder', 'Overdue notice', 'Message from Admin'];
 
     /** @var array<string, array{added: int, kept: int, live: int}> */
     private array $counts = [];
@@ -339,10 +343,10 @@ class BackfillActivityLog extends Command
     }
 
     /**
-     * loan_reminder_sent from reminder notifications: the nightly sweep's
-     * "Return Notice" and the manual "Return Reminder" / "Overdue notice". A
-     * custom "Message from Admin" is not a reminder and is left out. Neither
-     * path stored who sent it.
+     * loan_reminder_sent from the notifications the loans screen and the
+     * nightly sweep write: "Return Notice", "Return Reminder", "Overdue
+     * notice", and a custom "Message from Admin". Neither path stored who
+     * sent it.
      */
     private function reminders(): void
     {
@@ -469,19 +473,14 @@ class BackfillActivityLog extends Command
         return $equipment?->equipment_name ?? 'a deleted item';
     }
 
-    /** "2 × Projector (Epson)" */
+    /** "2 × Projector (Epson)" — the wording the live entries use. */
     private function units(?BorrowTransaction $loan): string
     {
-        return $loan ? $loan->quantity.' × '.$this->item($loan->equipment) : 'a deleted loan';
+        return ActivityLog::units($loan);
     }
 
-    /** "due Oct 12, 2026", or with the time for a timed loan. */
     private function dueWords(BorrowTransaction $loan): string
     {
-        if (! $loan->return_date) {
-            return 'with no due date';
-        }
-
-        return 'due '.$loan->return_date->format($loan->timed ? 'M j, Y, g:i A' : 'M j, Y');
+        return ActivityLog::dueWords($loan);
     }
 }

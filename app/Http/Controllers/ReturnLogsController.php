@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Equipment;
 use App\Models\ReturnLog;
 use App\Models\ReturnLogNote;
@@ -100,6 +101,15 @@ class ReturnLogsController extends Controller
         $log->resolved_by = Auth::id();
         $log->save();
 
+        ActivityLog::record('return_incident_resolved', [
+            'loan' => $log->borrowTransaction,
+            'quantity' => $log->borrowTransaction?->quantity,
+            'status_from' => 'Unresolved',
+            'status_to' => 'Resolved',
+            'details' => 'Resolved: '.$validated['resolution'],
+            'meta' => ['return_log_id' => $log->id, 'condition' => $log->condition, 'resolution' => $validated['resolution']],
+        ]);
+
         return back()->with('success', 'Resolution recorded. The entry moves out of the follow-up list.');
     }
 
@@ -117,10 +127,16 @@ class ReturnLogsController extends Controller
 
         $log = ReturnLog::findOrFail($id);
 
-        ReturnLogNote::create([
+        $note = ReturnLogNote::create([
             'return_log_id' => $log->id,
             'user_id' => Auth::id(),
             'body' => $validated['body'],
+        ]);
+
+        ActivityLog::record('return_note_added', [
+            'loan' => $log->borrowTransaction,
+            'details' => 'Correction: '.$validated['body'],
+            'meta' => ['return_log_id' => $log->id, 'note_id' => $note->id],
         ]);
 
         return back()->with('success', 'Note added. The original entry is unchanged.');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\ItemRequest;
@@ -443,6 +444,13 @@ class AuthenticateUser extends Controller
                 // Deactivating an account has to mean something, or the Remove
                 // dialog is offering a button that does nothing.
                 if ($user->isDeactivated()) {
+                    ActivityLog::record('login_failed', [
+                        'actor' => null,
+                        'actor_name' => ActivityLog::ACTOR_ANONYMOUS,
+                        'subject' => $user,
+                        'details' => 'Sign-in refused for '.$credentials['email'].': the account is deactivated.',
+                    ]);
+
                     Auth::guard('web')->logout();
                     $request->session()->invalidate();
                     $request->session()->regenerateToken();
@@ -453,6 +461,13 @@ class AuthenticateUser extends Controller
                 }
 
                 $request->session()->regenerate();
+
+                ActivityLog::record('login', [
+                    'actor' => $user,
+                    'subject' => $user,
+                    'details' => 'Signed in.',
+                    'meta' => array_filter(['remember' => $request->boolean('remember') ?: null]),
+                ]);
 
                 $msg = 'Welcome back, '.$user->name.'!';
                 // FIX: flash both 'welcome' (legacy) and 'success' so shared alerts + existing checks show it
@@ -465,6 +480,13 @@ class AuthenticateUser extends Controller
                     return redirect()->intended(route('borrower.dashboard'));
                 }
             }
+
+            ActivityLog::record('login_failed', [
+                'actor' => null,
+                'actor_name' => ActivityLog::ACTOR_ANONYMOUS,
+                'subject' => User::where('email', $credentials['email'])->first(),
+                'details' => 'Failed sign-in for '.$credentials['email'].'.',
+            ]);
 
             return back()->withErrors([
                 'email' => 'The provided credentials do not match our records.',
@@ -481,7 +503,13 @@ class AuthenticateUser extends Controller
 
     public function destroy(Request $request)
     {
+        $user = Auth::user();
+
         Auth::guard('web')->logout();
+
+        if ($user) {
+            ActivityLog::record('logout', ['actor' => $user, 'subject' => $user, 'details' => 'Signed out.']);
+        }
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
@@ -545,6 +573,14 @@ class AuthenticateUser extends Controller
             'password' => Hash::make($validated['password']),
             'contact_number' => $validated['contact_number'] ?? null,
             'instructor_requested_at' => $wantsInstructor ? now() : null,
+        ]);
+
+        ActivityLog::record('user_created', [
+            'actor' => $user,
+            'subject' => $user,
+            'status_to' => $user->user_type,
+            'details' => 'Signed up as a Student'.($wantsInstructor ? ', asking to be confirmed as an instructor' : '').'.',
+            'meta' => ['source' => 'sign-up', 'instructor_requested' => $wantsInstructor],
         ]);
 
         // Not `success`: that key throws the shared SweetAlert modal, which
@@ -612,6 +648,14 @@ class AuthenticateUser extends Controller
             'role_overridden_by' => auth()->id(),
             'role_override_reason' => $validatedData['role_override_reason'],
         ] : []));
+
+        ActivityLog::record('user_created', [
+            'subject' => $user,
+            'status_to' => $user->user_type,
+            'details' => 'Created a '.$user->user_type.' account for '.$user->name
+                .($makingAdmin ? ': '.$validatedData['role_override_reason'] : '').'.',
+            'meta' => array_filter(['source' => 'admin', 'reason' => $makingAdmin ? $validatedData['role_override_reason'] : null]),
+        ]);
 
         return redirect()->back()->with('success', $makingAdmin
             ? $user->name.' added as an admin — they can sign in to the admin dashboard now.'

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Equipment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -43,6 +44,15 @@ class EquipmentController extends Controller
         $equipment->available_quantity = $validated['quantity'];
         $equipment->status = $equipment->lendableStatus();
         $equipment->save();
+
+        ActivityLog::record('equipment_added', [
+            'equipment' => $equipment,
+            'quantity' => $equipment->quantity,
+            'status_to' => $equipment->status,
+            'details' => 'Added '.$equipment->equipment_name.': '.$equipment->quantity.' '
+                .str('unit')->plural($equipment->quantity).', '.$equipment->loanTypeLabel().'.',
+            'meta' => $this->snapshot($equipment),
+        ]);
 
         return redirect()->back()->with('success', $equipment->equipment_name.' added — '.$validated['quantity'].' of '.$validated['quantity'].' available.');
     }
@@ -95,6 +105,9 @@ class EquipmentController extends Controller
                     .' out on loan, so the total cannot go below '.($out + $issued).'.'];
             }
 
+            $before = $this->snapshot($equipment);
+            $statusBefore = $equipment->status;
+
             $equipment->equipment_name = $validated['equipment_name'];
             $equipment->description = $validated['description'] ?? null;
             $equipment->category = $validated['category'];
@@ -103,6 +116,23 @@ class EquipmentController extends Controller
             $equipment->available_quantity = $validated['quantity'] - $out - $issued;
             $equipment->status = $equipment->lendableStatus();
             $equipment->save();
+
+            // A save that changed nothing is not an event. A recomputed
+            // availability (drift repaired) counts, and shows in meta.
+            $changes = ActivityLog::changes($before, $this->snapshot($equipment));
+            if ($changes !== [] || $statusBefore !== $equipment->status) {
+                ActivityLog::record('equipment_updated', [
+                    'equipment' => $equipment,
+                    'quantity' => $equipment->quantity,
+                    'status_from' => $statusBefore,
+                    'status_to' => $equipment->status,
+                    'details' => 'Edited '.$equipment->equipment_name.': '.(ActivityLog::changeWords($changes, [
+                        'equipment_name' => 'name', 'quantity' => 'total', 'available_quantity' => 'available',
+                        'loan_type' => 'loan type',
+                    ]) ?: 'status '.$statusBefore.' → '.$equipment->status).'.',
+                    'meta' => ['changes' => $changes],
+                ]);
+            }
 
             return ['equipment' => $equipment];
         });
@@ -131,9 +161,19 @@ class EquipmentController extends Controller
         }
 
         $out = $equipment->unitsOut();
+        $statusBefore = $equipment->status;
         $equipment->retired_at = now();
         $equipment->status = $equipment->lendableStatus();
         $equipment->save();
+
+        ActivityLog::record('equipment_retired', [
+            'equipment' => $equipment,
+            'status_from' => $statusBefore,
+            'status_to' => 'Retired',
+            'details' => 'Retired '.$equipment->equipment_name.' from lending'
+                .($out > 0 ? '; '.$out.' '.str('unit')->plural($out).' still out' : '').'.',
+            'meta' => ['units_out' => $out, 'available_quantity' => $equipment->available_quantity],
+        ]);
 
         $note = $out > 0
             ? ' '.$out.' '.str('unit')->plural($out).' still out — the loans stay tracked.'
@@ -145,9 +185,21 @@ class EquipmentController extends Controller
     public function restore($id)
     {
         $equipment = Equipment::findOrFail($id);
+        $wasRetired = $equipment->isRetired();
         $equipment->retired_at = null;
         $equipment->status = $equipment->lendableStatus();
         $equipment->save();
+
+        // Restoring an item that was never retired changes nothing.
+        if ($wasRetired) {
+            ActivityLog::record('equipment_restored', [
+                'equipment' => $equipment,
+                'status_from' => 'Retired',
+                'status_to' => $equipment->status,
+                'details' => 'Restored '.$equipment->equipment_name.' to lending ('.$equipment->available_quantity.' available).',
+                'meta' => ['available_quantity' => $equipment->available_quantity],
+            ]);
+        }
 
         return redirect()->back()->with('success', $equipment->equipment_name.' is lendable again.');
     }
@@ -176,9 +228,37 @@ class EquipmentController extends Controller
         }
 
         $name = $equipment->equipment_name;
-        $equipment->delete();
+
+        DB::transaction(function () use ($equipment) {
+            $statusBefore = $equipment->isRetired() ? 'Retired' : $equipment->status;
+            $equipment->delete();
+
+            // The row is gone: the entry names it by snapshot and keeps its id
+            // in meta, since a key to it would not save.
+            ActivityLog::record('equipment_deleted', [
+                'equipment' => $equipment,
+                'equipment_id' => null,
+                'quantity' => $equipment->quantity,
+                'status_from' => $statusBefore,
+                'details' => 'Deleted '.$equipment->equipment_name.'. It had no loan history.',
+                'meta' => ['equipment_id' => $equipment->id] + $this->snapshot($equipment),
+            ]);
+        });
 
         return redirect()->back()->with('success', $name.' deleted. It had no loan history.');
+    }
+
+    /** The fields an admin edits, as the log records them. */
+    private function snapshot(Equipment $equipment): array
+    {
+        return [
+            'equipment_name' => $equipment->equipment_name,
+            'description' => $equipment->description,
+            'category' => $equipment->category,
+            'loan_type' => $equipment->loanTypeLabel(),
+            'quantity' => $equipment->quantity,
+            'available_quantity' => $equipment->available_quantity,
+        ];
     }
 
     /**

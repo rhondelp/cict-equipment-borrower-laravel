@@ -2,6 +2,51 @@
 
 ## 2026-10-07
 
+- **Every action that changes data or access now writes its audit entry.** The activity log that was built empty this morning is now filled as things happen:
+  - loans, requests, equipment, users and class schedules;
+  - return outcomes and corrections;
+  - sign-ins and password resets.
+
+  No action does or returns anything different: the same redirects, flashes and JSON. Reads and page views are not logged. AGENT_CONTEXT has a new "Audit trail" section, with a table of which action writes which type and the rule for new code.
+
+  **Inside the transaction, after the change.** Where an action already had a `DB::transaction`, `record()` is called inside it, after the change succeeds, so the entry and the change commit or roll back together. That covers new loan, edit, check-in, void, approval, equipment edit and the sweep. Where there was none, the entry is written right after the successful save. Hard deletes of a loan, item or account now wrap the delete and its entry in one transaction.
+
+  **Refusals write nothing.** None of these leaves an entry:
+  - a validation error or a short shelf;
+  - a void without a reason, a decline without one;
+  - a check-in of a returned loan, suspending yourself, lifting a suspension that isn't there.
+
+  The one exception is a failed sign-in, which is the point of logging it. A refused sign-in to a **deactivated** account counts as a failed one too. **A save that changed nothing is not an event either.** That covers a loan or request edit submitted unchanged, a restore of an item that was never retired, and a reactivation of an active account.
+
+  **What each entry carries.** Each entry has the actor, and where they apply: the item, the person affected, the loan, the quantity and the status from/to. It also has a one-line `details` sentence, such as "Checked in 2 × Projector (Epson) from Mia Santos in Good condition, 1 day late.", "Declined: None left this week", or "Role changed Student to Instructor: Teaches IT 101". An edit stores each changed field old → new in `meta.changes`, by name rather than id. A whole number posted as text is stored as a number, so meta reads 2 → 3, not 2 → "3". **No password, token or reset link is ever written.** An admin setting a password records only `meta.password_changed`. A failed sign-in names the address in `details` and nothing else. A test searches every column of every entry for the passwords and token it used and finds none.
+
+  **Who acted.** The signed-in user, by default. A failed sign-in and a reset request have nobody signed in, so their actor reads "Not signed in" rather than the "System" a null actor would show. The overdue sweep is the system **even when an admin runs it from the screen**, as the prompt asked. A public sign-up is its own actor. So is a completed password reset: whoever held the link set the password.
+
+  **The availability flip is logged centrally.** `Equipment::reserveStock()` and `releaseStock()` now take the loan as an optional last argument. They write `equipment_status_changed` only when the stored status really moves between Available and Unavailable, and no controller writes it. To give that entry its loan, the New loan form and request approval now **create the loan row before reserving stock**. Both run inside one transaction, so a short shelf still rolls the row back; a test proves it with a two-item hand-over whose second line is short.
+
+  **Choices that needed a decision:**
+  - **Non-returnable lines are `loan_issued`, not `loan_created`.** The type exists, and the backfill already writes it.
+  - **Approval writes two entries:** `request_approved`, pointing at the loan it made, and that loan's own `loan_created`/`loan_issued`. Without the second, a "loans recorded" report would miss every loan that started as a request, and live history would disagree with the backfill.
+  - **A user edit that changes the role writes `user_role_changed`, and `user_updated` only if other fields changed too.** That avoids an empty "edited" entry beside every role change. Confirming an instructor is `instructor_confirmed` alone.
+  - **The sweep's bulk `update()` became read-then-flip-by-id**, inside a transaction with the rows locked. The prompt asks for one `loan_marked_overdue` per loan, and a bulk update cannot say which rows it touched. Each flip repeats the `Borrowed` check, so a loan checked in between the read and the write is neither flipped nor logged.
+  - **Deletes are recorded after the row is gone, with its key null and its id in meta.** A key to a deleted row would fail the foreign key, and recording before the delete would claim a deletion that might not happen.
+  - **The custom message is a `loan_reminder_sent`.** The prompt puts `sendManualEmail` under that type, and a custom message is sent the same way, with `meta.notification_type` saying which it was. **This reverses one Prompt 22 decision:** the backfill now also counts `Message from Admin`, so old and new history agree, and `ActivityLogTest` expects it.
+
+  **Verification.** `php artisan test`: **446 passed**, up from 435. All existing tests pass unchanged; Prompt 22's backfill test was updated for the reminder change above. The 11 new tests in `tests/Feature/ActivityLoggingTest.php` cover:
+  - one test per group, driving every route and asserting the type, actor, item, subject, loan, quantity and statuses of exactly one entry each:
+    - Loans: create, issue, edit, unchanged re-edit, reminder, check-in, void, delete;
+    - Requests: submit, change, withdraw, approve (both entries), decline;
+    - Equipment: add, edit, retire, restore, delete, with all five entries surviving the delete by name;
+    - Users: admin-created, edited with a role change, suspended, lifted, deactivated, reactivated, instructor confirmed and declined, schedule added, edited and removed, deleted, public sign-up;
+    - Returns: resolve, note;
+    - Account: failed, successful and deactivated sign-in, sign-out, reset requested and completed;
+  - the sweep as system: two overdue entries and one reminder, then a second run adding nothing;
+  - six refused actions writing nothing;
+  - a rolled-back two-item loan and a hand-rolled failed transaction leaving nothing;
+  - the status flip appearing only on the lend that empties the shelf and the check-in that refills it, with the loan's id.
+
+  `vendor/bin/pint --test`: no new issues over the 9-file baseline. No front-end changes, so no build.
+
 - **An activity log for the reports to read from: table, model and backfill, with nothing visible yet.** The reports need one place that answers "what happened to this item", "what did this person do" and "who approved that". Until now that history was spread across loans, return logs, requests, user columns and notifications, and some of it was never kept. This change is the foundation only. No controller, view or route changed, and nothing writes to the log live yet.
 
   **The table, `activity_logs`.** Each row records:

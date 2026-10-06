@@ -426,7 +426,7 @@ class ActivityLogTest extends TestCase
         $retired->update(['retired_at' => Carbon::parse('2026-09-25 08:00:00')]);
 
         // A timed loan still out, with an automatic and a manual reminder, and
-        // a custom message that is not a reminder.
+        // a custom message.
         $this->at('2026-10-01 09:00:00');
         $timed = $this->loan($mia, $clicker, [
             'borrow_date' => '2026-10-01 09:00:00', 'return_date' => '2026-10-01 10:00:00', 'timed' => true, 'quantity' => 1,
@@ -474,7 +474,7 @@ class ActivityLogTest extends TestCase
             'loan_checked_in' => 1,
             'loan_created' => 2,
             'loan_issued' => 1,
-            'loan_reminder_sent' => 2,
+            'loan_reminder_sent' => 3,
             'loan_voided' => 1,
             'request_approved' => 2,
             'request_declined' => 1,
@@ -487,7 +487,7 @@ class ActivityLogTest extends TestCase
             'user_suspended' => 1,
         ], $this->counts());
         $this->assertStringContainsString('loan_created', $output);
-        $this->assertStringContainsString('Added 22 entries.', $output);
+        $this->assertStringContainsString('Added 23 entries.', $output);
 
         $this->assertSame(0, ActivityLog::where('source', '!=', 'backfill')->count());
         $this->assertSame(0, ActivityLog::whereNotNull('ip_address')->count());
@@ -560,10 +560,9 @@ class ActivityLogTest extends TestCase
         $retired = ActivityLog::where('type', 'equipment_retired')->sole();
         $this->assertSame(['Old VGA cable', '2026-09-25 08:00:00'], [$retired->equipment_name, $retired->occurred_at->toDateTimeString()]);
 
-        // Both reminders, not the custom message.
-        $this->assertEqualsCanonicalizing(['Return Notice', 'Return Reminder'],
+        // Both reminders and the custom message, as the loans screen logs them live.
+        $this->assertEqualsCanonicalizing(['Return Notice', 'Return Reminder', 'Message from Admin'],
             ActivityLog::where('type', 'loan_reminder_sent')->get()->pluck('meta.notification_type')->all());
-        $this->assertSame(0, ActivityLog::where('details', 'like', '%Message from Admin%')->count());
     }
 
     public function test_a_second_backfill_adds_nothing(): void

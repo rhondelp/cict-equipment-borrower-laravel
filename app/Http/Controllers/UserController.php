@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Equipment;
 use App\Models\User as UserModel;
 use App\Support\OfficeHours;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
@@ -164,6 +166,9 @@ class UserController extends Controller
                 ->withInput();
         }
 
+        $before = $this->accountSnapshot($user);
+        $roleBefore = $user->user_type;
+
         $user->name = $validated['name'];
         $user->email = $validated['email'];
         $user->contact_number = $validated['contact_number'] ?? null;
@@ -184,7 +189,41 @@ class UserController extends Controller
 
         $user->save();
 
+        // The account fields and the role are two events: an edit, and a
+        // privilege decision with its own reason. A password is never logged,
+        // only the fact that it was set.
+        $changes = ActivityLog::changes($before, $this->accountSnapshot($user));
+        $passwordSet = ! empty($validated['password']);
+        if ($changes !== [] || $passwordSet) {
+            $words = array_filter([ActivityLog::changeWords($changes, ['contact_number' => 'contact number']), $passwordSet ? 'password reset by an admin' : null]);
+            ActivityLog::record('user_updated', [
+                'subject' => $user,
+                'details' => 'Edited the account of '.$user->name.': '.implode(', ', $words).'.',
+                'meta' => array_filter(['changes' => $changes, 'password_changed' => $passwordSet ?: null]),
+            ]);
+        }
+
+        if ($roleChanged) {
+            ActivityLog::record('user_role_changed', [
+                'subject' => $user,
+                'status_from' => $roleBefore,
+                'status_to' => $user->user_type,
+                'details' => 'Role changed '.$roleBefore.' to '.$user->user_type.': '.$validated['role_override_reason'],
+                'meta' => ['reason' => $validated['role_override_reason']],
+            ]);
+        }
+
         return redirect()->back()->with('success', $user->name.' updated.');
+    }
+
+    /** The account fields an admin edits, as the log records them. Never the password. */
+    private function accountSnapshot(UserModel $user): array
+    {
+        return [
+            'name' => $user->name,
+            'email' => $user->email,
+            'contact_number' => $user->contact_number,
+        ];
     }
 
     /**
@@ -207,6 +246,13 @@ class UserController extends Controller
         $user->role_override_reason = 'Confirmed instructor request from sign-up';
         $user->save();
 
+        ActivityLog::record('instructor_confirmed', [
+            'subject' => $user,
+            'status_from' => 'Student',
+            'status_to' => 'Instructor',
+            'details' => 'Confirmed '.$user->name.' as an instructor, as requested at sign-up.',
+        ]);
+
         return redirect()->back()->with('success', $user->name.' is now an instructor.');
     }
 
@@ -221,6 +267,13 @@ class UserController extends Controller
 
         $user->instructor_requested_at = null;
         $user->save();
+
+        ActivityLog::record('instructor_declined', [
+            'subject' => $user,
+            'status_from' => $user->user_type,
+            'status_to' => $user->user_type,
+            'details' => 'Declined the instructor request of '.$user->name.'; the account stays a '.strtolower($user->user_type).'.',
+        ]);
 
         return redirect()->back()->with('success', $user->name.' stays a student — instructor request declined.');
     }
@@ -245,6 +298,15 @@ class UserController extends Controller
         $out = $user->unitsOut();
         $user->deactivated_at = now();
         $user->save();
+
+        ActivityLog::record('user_deactivated', [
+            'subject' => $user,
+            'status_from' => 'Active',
+            'status_to' => 'Deactivated',
+            'details' => 'Deactivated the account of '.$user->name
+                .($out > 0 ? '; '.$out.' '.str('unit')->plural($out).' still with them' : '').'.',
+            'meta' => ['units_out' => $out],
+        ]);
 
         $note = $out > 0
             ? ' '.$out.' '.str('unit')->plural($out).' still with them — those loans stay tracked.'
@@ -284,6 +346,14 @@ class UserController extends Controller
         $user->suspended_by = auth()->id();
         $user->save();
 
+        ActivityLog::record('user_suspended', [
+            'subject' => $user,
+            'status_from' => 'Active',
+            'status_to' => 'Suspended',
+            'details' => 'Suspended '.$user->name.' from borrowing: '.$validated['reason'],
+            'meta' => ['reason' => $validated['reason']],
+        ]);
+
         return redirect()->back()->with('success',
             $user->name.' suspended — they can still sign in and see their loans, but cannot borrow.');
     }
@@ -296,10 +366,19 @@ class UserController extends Controller
             return redirect()->back()->with('error', $user->name.' is not suspended.');
         }
 
+        $reason = $user->suspension_reason;
         $user->suspended_at = null;
         $user->suspension_reason = null;
         $user->suspended_by = null;
         $user->save();
+
+        ActivityLog::record('suspension_lifted', [
+            'subject' => $user,
+            'status_from' => 'Suspended',
+            'status_to' => 'Active',
+            'details' => 'Lifted the suspension of '.$user->name.'; they can borrow again.',
+            'meta' => array_filter(['previous_reason' => $reason]),
+        ]);
 
         return redirect()->back()->with('success', $user->name.' can borrow again.');
     }
@@ -307,8 +386,19 @@ class UserController extends Controller
     public function reactivate(string $id)
     {
         $user = UserModel::findOrFail($id);
+        $wasDeactivated = $user->isDeactivated();
         $user->deactivated_at = null;
         $user->save();
+
+        // Reactivating an account that was never deactivated changes nothing.
+        if ($wasDeactivated) {
+            ActivityLog::record('user_reactivated', [
+                'subject' => $user,
+                'status_from' => 'Deactivated',
+                'status_to' => 'Active',
+                'details' => 'Reactivated the account of '.$user->name.'; they can sign in again.',
+            ]);
+        }
 
         return redirect()->back()->with('success', $user->name.' can sign in again.');
     }
@@ -342,7 +432,20 @@ class UserController extends Controller
         }
 
         $name = $user->name;
-        $user->delete();
+
+        DB::transaction(function () use ($user) {
+            $user->delete();
+
+            // The row is gone: the entry names the person by snapshot and
+            // keeps the id in meta, since a key to it would not save.
+            ActivityLog::record('user_deleted', [
+                'subject' => $user,
+                'subject_user_id' => null,
+                'status_from' => $user->user_type,
+                'details' => 'Deleted the '.strtolower($user->user_type).' account of '.$user->name.'. They had no borrowing history.',
+                'meta' => ['user_id' => $user->id, 'user_type' => $user->user_type],
+            ]);
+        });
 
         return redirect()->back()->with('success', $name.' deleted. They had no borrowing history.');
     }

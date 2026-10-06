@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\ItemRequest;
@@ -175,16 +176,9 @@ class ItemRequestController extends Controller
                         ]);
                     }
 
-                    // Deduct stock. The same arithmetic serves every loan type:
-                    // available_quantity is quantity − out − issued, so an issue
-                    // comes off the shelf here exactly as a loan does. What makes
-                    // it an issue is the row below — counted by unitsIssued(),
-                    // never by unitsOut(), and never released by a check-in.
-                    $equipment->reserveStock(
-                        $itemRequest->quantity,
-                        'Cannot approve — only '.$equipment->available_quantity.' of '.$equipment->equipment_name
-                        .' available and this request needs '.$itemRequest->quantity.'.'
-                    );
+                    // Read before the stock moves, for the refusal below.
+                    $shortMessage = 'Cannot approve — only '.$equipment->available_quantity.' of '.$equipment->equipment_name
+                        .' available and this request needs '.$itemRequest->quantity.'.';
 
                     // Flip request
                     $itemRequest->status = 'Approved';
@@ -219,7 +213,7 @@ class ItemRequestController extends Controller
                         ],
                     };
 
-                    return BorrowTransaction::create($schedule + [
+                    $loan = BorrowTransaction::create($schedule + [
                         'user_id' => $itemRequest->user_id,
                         'equipment_id' => $itemRequest->equipment_id,
                         'quantity' => $itemRequest->quantity,
@@ -227,6 +221,31 @@ class ItemRequestController extends Controller
                         'remarks' => $itemRequest->remarks,
                         'class_schedule_id' => null,
                     ]);
+                    $loan->setRelation('equipment', $equipment);
+                    $loan->setRelation('user', $itemRequest->user);
+
+                    // Deduct stock. The same arithmetic serves every loan type:
+                    // available_quantity is quantity − out − issued, so an issue
+                    // comes off the shelf here exactly as a loan does. What makes
+                    // it an issue is the row above — counted by unitsIssued(),
+                    // never by unitsOut(), and never released by a check-in.
+                    // After the row is written so the stock helper can name the
+                    // loan; a short shelf throws and rolls everything back.
+                    $equipment->reserveStock($itemRequest->quantity, $shortMessage, $loan);
+
+                    // Two events: the decision, and the hand-over it caused.
+                    ActivityLog::record('request_approved', [
+                        'loan' => $loan,
+                        'quantity' => $itemRequest->quantity,
+                        'status_from' => 'Pending',
+                        'status_to' => 'Approved',
+                        'details' => 'Approved request #'.$itemRequest->id.': '.ActivityLog::units($loan).' for '
+                            .($itemRequest->user->name ?? 'a deleted account').'.',
+                        'meta' => array_filter(['request_id' => $itemRequest->id, 'remarks' => $itemRequest->remarks]),
+                    ]);
+                    ActivityLog::recordHandover($loan, ['meta' => ['request_id' => $itemRequest->id]]);
+
+                    return $loan;
                 });
             } catch (ValidationException $e) {
                 return back()->withErrors($e->errors())->withInput();
@@ -250,6 +269,16 @@ class ItemRequestController extends Controller
             $itemRequest->decided_at = now();
             $itemRequest->decided_by = Auth::id();
             $itemRequest->save();
+
+            ActivityLog::record('request_declined', [
+                'subject' => $itemRequest->user,
+                'equipment' => $itemRequest->equipment,
+                'quantity' => $itemRequest->quantity,
+                'status_from' => 'Pending',
+                'status_to' => 'Declined',
+                'details' => 'Declined: '.$validated['reason'],
+                'meta' => ['request_id' => $itemRequest->id, 'reason' => $validated['reason']],
+            ]);
 
             return back()->with('success', 'Declined. '.($itemRequest->user->name ?? 'The borrower').' will see your reason.');
         }
@@ -302,13 +331,22 @@ class ItemRequestController extends Controller
             return back()->withErrors(['quantity' => $error])->withInput();
         }
 
-        ItemRequest::create([
+        $itemRequest = ItemRequest::create([
             'user_id' => Auth::id(),
             'equipment_id' => $validated['equipment_id'],
             'quantity' => $validated['quantity'],
             'status' => 'Pending',
             'requested_date' => Carbon::now()->toDateString(),
             'remarks' => $validated['remarks'] ?? null,
+        ]);
+
+        ActivityLog::record('request_submitted', [
+            'subject' => $borrower,
+            'equipment' => $equipment,
+            'quantity' => (int) $itemRequest->quantity,
+            'status_to' => 'Pending',
+            'details' => 'Requested '.$itemRequest->quantity.' × '.$equipment->equipment_name.'.',
+            'meta' => array_filter(['request_id' => $itemRequest->id, 'remarks' => $itemRequest->remarks]),
         ]);
 
         return redirect()
@@ -339,10 +377,26 @@ class ItemRequestController extends Controller
             return back()->withErrors(['quantity' => $error])->withInput();
         }
 
+        $before = ['quantity' => $itemRequest->quantity, 'remarks' => $itemRequest->remarks];
+
         $itemRequest->update([
             'quantity' => $validated['quantity'],
             'remarks' => $validated['remarks'] ?? null,
         ]);
+
+        // A save that changed nothing is not an event.
+        $changes = ActivityLog::changes($before, ['quantity' => $itemRequest->quantity, 'remarks' => $itemRequest->remarks]);
+        if ($changes !== []) {
+            ActivityLog::record('request_updated', [
+                'subject' => Auth::user(),
+                'equipment' => $itemRequest->equipment,
+                'quantity' => (int) $itemRequest->quantity,
+                'status_from' => 'Pending',
+                'status_to' => 'Pending',
+                'details' => 'Changed request #'.$itemRequest->id.': '.ActivityLog::changeWords($changes).'.',
+                'meta' => ['request_id' => $itemRequest->id, 'changes' => $changes],
+            ]);
+        }
 
         return redirect()
             ->back()
@@ -364,6 +418,16 @@ class ItemRequestController extends Controller
 
         $name = $itemRequest->equipment->equipment_name ?? 'item';
         $itemRequest->delete();
+
+        ActivityLog::record('request_cancelled', [
+            'subject' => Auth::user(),
+            'equipment' => $itemRequest->equipment,
+            'quantity' => $itemRequest->quantity,
+            'status_from' => 'Pending',
+            'status_to' => 'Cancelled',
+            'details' => 'Withdrew request #'.$itemRequest->id.' for '.$itemRequest->quantity.' × '.$name.'.',
+            'meta' => ['request_id' => $itemRequest->id],
+        ]);
 
         return redirect()
             ->back()

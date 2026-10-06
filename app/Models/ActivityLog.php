@@ -49,6 +49,9 @@ class ActivityLog extends Model
     /** What the backfill writes as the actor where the old schema never stored who. */
     public const ACTOR_NOT_RECORDED = 'Not recorded';
 
+    /** The actor of something done by nobody signed in: a failed sign-in, a reset request. */
+    public const ACTOR_ANONYMOUS = 'Not signed in';
+
     /**
      * Every event type. The key is what is stored, so never rename one; the
      * label is what a screen shows and can change freely.
@@ -155,6 +158,39 @@ class ActivityLog extends Model
     }
 
     /**
+     * The entry for a hand-over: loan_created for a loan, loan_issued for a
+     * non-returnable issue. Shared by the New loan form and request approval,
+     * which both write one per item. $attrs overrides the defaults, except
+     * `meta`, which is merged into the default meta rather than replacing it.
+     */
+    public static function recordHandover(BorrowTransaction $loan, array $attrs = []): self
+    {
+        $issued = $loan->status === 'Issued';
+        $borrower = $loan->user?->name ?? 'a deleted account';
+        $extraMeta = $attrs['meta'] ?? [];
+        unset($attrs['meta']);
+
+        $entry = array_merge([
+            'loan' => $loan,
+            'quantity' => $loan->quantity,
+            'status_to' => $issued ? 'Issued' : 'Borrowed',
+            'details' => $issued
+                ? 'Issued '.self::units($loan).' to '.$borrower.', not expected back.'
+                : 'Lent '.self::units($loan).' to '.$borrower.', '.self::dueWords($loan).'.',
+            'meta' => array_filter([
+                'borrow_date' => $loan->borrow_date?->toDateTimeString(),
+                'return_date' => $loan->return_date?->toDateTimeString(),
+                'timed' => $loan->timed,
+                'purpose' => $loan->purpose,
+                'class_schedule_id' => $loan->class_schedule_id,
+            ], fn ($value) => $value !== null),
+        ], $attrs);
+        $entry['meta'] += $extraMeta;
+
+        return self::record($issued ? 'loan_issued' : 'loan_created', $entry);
+    }
+
+    /**
      * The address of the web request being served. A console run (the
      * scheduler, artisan) gets a synthetic request that always says 127.0.0.1,
      * which is not where anything came from, so it records none.
@@ -166,6 +202,79 @@ class ActivityLog extends Model
         }
 
         return request()?->ip();
+    }
+
+    /* ---------------------------------------------------------------------
+     | Wording, shared by the controllers and the backfill so an entry reads
+     | the same whichever side wrote it
+     --------------------------------------------------------------------- */
+
+    /** "2 × Projector (Epson)" */
+    public static function units(?BorrowTransaction $loan): string
+    {
+        return $loan
+            ? $loan->quantity.' × '.($loan->equipment?->equipment_name ?? 'a deleted item')
+            : 'a deleted loan';
+    }
+
+    /** "due Oct 12, 2026", with the time for a timed loan, or "with no due date". */
+    public static function dueWords(BorrowTransaction $loan): string
+    {
+        if (! $loan->return_date) {
+            return 'with no due date';
+        }
+
+        return 'due '.$loan->return_date->format($loan->timed ? 'M j, Y, g:i A' : 'M j, Y');
+    }
+
+    /**
+     * A loan's status as a log label: derivedStatus(), with "Out" read as
+     * "Borrowed" so it matches the stored vocabulary.
+     */
+    public static function loanStatus(BorrowTransaction $loan): string
+    {
+        $status = $loan->derivedStatus();
+
+        return $status === 'Out' ? 'Borrowed' : $status;
+    }
+
+    /**
+     * The fields that differ between two snapshots, as
+     * [field => ['old' => …, 'new' => …]]. Values are compared as strings, so
+     * 3 and "3" are the same and a date compares by its text. A whole number
+     * posted as text is stored as a number, so meta reads 2 → 3, not 2 → "3".
+     */
+    public static function changes(array $old, array $new): array
+    {
+        $changes = [];
+        $plain = fn ($value) => is_string($value) && preg_match('/^-?\d+$/', $value) ? (int) $value : $value;
+
+        foreach ($new as $field => $value) {
+            $before = $old[$field] ?? null;
+            if ((string) $before !== (string) $value) {
+                $changes[$field] = ['old' => $plain($before), 'new' => $plain($value)];
+            }
+        }
+
+        return $changes;
+    }
+
+    /**
+     * "quantity 2 → 3, due date Oct 12 → Oct 14" from changes(). A long or
+     * multi-line value (a description, remarks) is only named — the full old
+     * and new text is in meta.
+     */
+    public static function changeWords(array $changes, array $labels = []): string
+    {
+        $short = fn ($value) => mb_strlen((string) $value) <= 40 && ! str_contains((string) $value, "\n");
+
+        return collect($changes)->map(function (array $change, string $field) use ($labels, $short) {
+            $label = $labels[$field] ?? str_replace('_', ' ', $field);
+
+            return $short($change['old']) && $short($change['new'])
+                ? $label.' '.($change['old'] ?? '—').' → '.($change['new'] ?? '—')
+                : $label.' changed';
+        })->join(', ');
     }
 
     /** A snapshot cut to its column, so a long name cannot fail the write. */
