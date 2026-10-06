@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Equipment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -202,6 +203,58 @@ class EquipmentController extends Controller
         }
 
         return redirect()->back()->with('success', $equipment->equipment_name.' is lendable again.');
+    }
+
+    /**
+     * Record maintenance or a repair on an item. Record-only: there is no
+     * maintenance table, no "in repair" state, and stock and availability are
+     * untouched — an item being serviced while units are lent out is normal.
+     * The record is one activity log entry, so it shows in the reports beside
+     * the item's loans and returns.
+     *
+     * occurred_at is the day it was done at the current time of day, so an
+     * entry logged a few days late still sorts onto the right day.
+     */
+    public function logMaintenance(Request $request, $id)
+    {
+        $equipment = Equipment::findOrFail($id);
+
+        $validated = $request->validate([
+            'kind' => 'required|in:maintenance,repair',
+            'performed_on' => 'nullable|date|before_or_equal:today',
+            'summary' => 'required|string|max:200',
+            'notes' => 'nullable|string|max:1000',
+            'cost' => 'nullable|numeric|min:0',
+        ], [
+            'kind.required' => 'Choose maintenance or repair.',
+            'performed_on.before_or_equal' => 'The date it was done cannot be in the future.',
+            'summary.required' => 'Say what was done — this is the line the report shows.',
+            'summary.max' => 'Keep the summary to 200 characters; put the rest in the notes.',
+            'cost.min' => 'The cost cannot be negative.',
+        ]);
+
+        if ($equipment->isRetired()) {
+            return redirect()->back()->with('error', $equipment->equipment_name
+                .' is retired. Restore it first if it is being serviced to go back into use.');
+        }
+
+        $performedOn = Carbon::parse($validated['performed_on'] ?? today())->setTimeFrom(now());
+        $isRepair = $validated['kind'] === 'repair';
+
+        ActivityLog::record($isRepair ? 'repair_logged' : 'maintenance_logged', [
+            'occurred_at' => $performedOn,
+            'equipment' => $equipment,
+            'quantity' => null,
+            'details' => $validated['summary'],
+            'meta' => [
+                'performed_on' => $performedOn->toDateString(),
+                'notes' => ($validated['notes'] ?? null) ?: null,
+                'cost' => isset($validated['cost']) && $validated['cost'] !== '' ? round((float) $validated['cost'], 2) : null,
+            ],
+        ]);
+
+        return redirect()->back()->with('success', ($isRepair ? 'Repair' : 'Maintenance').' logged for '
+            .$equipment->equipment_name.' on '.$performedOn->format('M j').'. Stock is unchanged.');
     }
 
     /**

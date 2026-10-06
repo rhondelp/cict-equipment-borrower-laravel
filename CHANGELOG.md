@@ -2,6 +2,52 @@
 
 ## 2026-10-07
 
+- **Maintenance and repair records, logged per item from the inventory list.** The reports need to show when an item was serviced or fixed, and nothing in the system recorded that. This adds the smallest thing that does: a record, with no new state.
+
+  **The entry is the record.** `POST /admin/equipment/{id}/maintenance` (`admin.equipment.maintenance`, `EquipmentController@logMaintenance`, Admin only) writes one activity log entry, `maintenance_logged` or `repair_logged`, and nothing else. There is no table, no "in repair" status, and no change to stock, availability or `status`. An item can be serviced while units are lent out, and the shelf count is a fact about the loans, not about upkeep. The entry carries:
+  - the item;
+  - `quantity` null;
+  - the summary as `details`, which is the line the report shows;
+  - `performed_on`, `notes` and `cost` in `meta`, with the cost rounded to centavos.
+
+  `occurred_at` is the day the work was done, at the current time of day. A repair entered on Thursday for Monday therefore sorts onto Monday in a date-filtered report.
+
+  **Validation and refusals:**
+  - `kind` is `maintenance` or `repair`;
+  - `performed_on` defaults to today and may not be in the future;
+  - `summary` is required, at most 200 characters;
+  - `notes` is optional, at most 1000;
+  - `cost` is optional, numeric and not negative.
+
+  A retired item is refused with "Restore it first", the same rule as lending. A borrower gets 403 from the Admin group. A refusal writes nothing, as every refused action does since this morning's audit-trail change.
+
+  **The screen.** Each inventory row gains a third icon button, a wrench, labelled "Log maintenance / repair for <item>". It opens a modal built like the others: `div[data-modal]` with the header outside the form, so the item's name is set in the header and survives the form being reset. Inside:
+  - two radio cards, Maintenance ("Routine care: cleaning, updates, a check-up") and Repair ("Something was broken and has been fixed");
+  - "What was done";
+  - a date that defaults to today, with today as the latest choice;
+  - an optional cost in ₱ and optional notes.
+
+  The text is a size larger than the other admin modals, as asked: a 22px title, and nothing smaller than 16px. On a retired row the button is disabled and its tooltip says why. The actions column widened from 6rem to 9rem for the third button. `EquipmentPageTest` counted exactly two buttons per row, and now counts three. Its real rule, that no row action is red at rest, still holds for the new one.
+
+  **Found on the way: a stale route cache.** `bootstrap/cache/routes-v7.php`, written by the `php artisan optimize` of 27 Sept, made Laravel ignore `routes/web.php`, so the new route 404'd in tests and would have in the browser. Comparing it with `routes/web.php` showed this was the only route it was missing, so nothing earlier was affected. It was cleared with `php artisan route:clear`. It is gitignored and can be rebuilt with `route:cache`, though during development it is better left off. AGENT_CONTEXT now says to check `bootstrap/cache/` first when a new route 404s.
+
+  **Verification.** `php artisan test`: **453 passed**, up from 446. The 7 new tests are in `tests/Feature/MaintenanceLogTest.php`:
+  - maintenance saves as `maintenance_logged`, dated today at the current time, with the actor, the item, null quantity and the meta;
+  - a repair for three days ago saves as `repair_logged` on that day, with notes and a cost of 1250.5;
+  - a future date, an empty summary, a 201-character summary, an unknown kind and a negative cost are each rejected, with nothing written;
+  - a retired item is refused;
+  - a borrower gets 403;
+  - two records leave `quantity`, `available_quantity`, `status`, `retired_at` and even `updated_at` unchanged, with no status-flip entry;
+  - the list renders the button and route per row and disables it on a retired row, the modal keeps the item name in its header outside the form, and the date picker's maximum is today.
+
+  In headless Chrome at 1280px and 390px, against a scratch SQLite database signed in as the seeded admin:
+  - no horizontal overflow, and the three row buttons fit on one line inside the row;
+  - the modal opened with the right item and form target, today's date and max, a 22px title and no text under 16px, within the viewport;
+  - submitting a repair with a cost through the real form showed "Repair logged for Document Camera on Oct 7. Stock is unchanged." and stored the entry;
+  - no JS errors.
+
+  `npm run build` was run. `vendor/bin/pint --test`: no new issues over the 9-file baseline.
+
 - **Every action that changes data or access now writes its audit entry.** The activity log that was built empty this morning is now filled as things happen:
   - loans, requests, equipment, users and class schedules;
   - return outcomes and corrections;

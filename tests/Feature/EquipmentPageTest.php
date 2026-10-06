@@ -223,8 +223,9 @@ class EquipmentPageTest extends TestCase
             );
         }
 
-        // Two per row — edit and remove — across the four seeded items.
-        $this->assertSame(8, count($buttons[0]), 'There are not exactly two icon buttons per row');
+        // Three per row — edit, log maintenance / repair, remove — across the
+        // four seeded items.
+        $this->assertSame(12, count($buttons[0]), 'There are not exactly three icon buttons per row');
     }
 
     /* ------------------------------------------------------------------

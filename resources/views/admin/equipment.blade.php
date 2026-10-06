@@ -125,7 +125,7 @@
                 {{-- Column head. "Quantity" and "Available" were two numeric
                      columns that only made sense read together, so they are one
                      column now: "3 of 10 available", with a bar behind it. --}}
-                <div class="hidden gap-4 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-50 border-b border-neutral-200 md:grid md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_9rem_6rem]">
+                <div class="hidden gap-4 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-50 border-b border-neutral-200 md:grid md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_9rem_9rem]">
                     <div>Equipment</div>
                     <div class="text-right">Availability</div>
                     <div>Status</div>
@@ -159,7 +159,7 @@
                              data-sort-name="{{ $item->equipment_name }}"
                              data-sort-available="{{ $item->available_quantity }}"
                              data-sort-quantity="{{ $item->quantity }}"
-                             class="grid gap-3 px-4 py-4 sm:px-5 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_9rem_6rem] md:items-center md:gap-4 hover:bg-neutral-50">
+                             class="grid gap-3 px-4 py-4 sm:px-5 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_9rem_9rem] md:items-center md:gap-4 hover:bg-neutral-50">
 
                             <div class="min-w-0">
                                 <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
@@ -206,6 +206,19 @@
                                     <i class="text-base fas fa-pen" aria-hidden="true"></i>
                                 </button>
 
+                                {{-- Record-only; stock does not move. Disabled for a
+                                     retired item, which the server refuses too. --}}
+                                <button type="button"
+                                        class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-700 hover:border-primary-300 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-neutral-300 disabled:hover:text-neutral-700"
+                                        title="{{ $item->isRetired() ? 'Retired — restore it before logging maintenance or a repair' : 'Log maintenance / repair for '.$item->equipment_name }}"
+                                        aria-label="Log maintenance / repair for {{ $item->equipment_name }}"
+                                        @disabled($item->isRetired())
+                                        data-maintenance-open
+                                        data-name="{{ $item->equipment_name }}"
+                                        data-url="{{ route('admin.equipment.maintenance', $item->id) }}">
+                                    <i class="text-base fas fa-screwdriver-wrench" aria-hidden="true"></i>
+                                </button>
+
                                 <button type="button"
                                         class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-600 hover:border-danger-300 hover:bg-danger-50 hover:text-danger-700"
                                         title="Remove {{ $item->equipment_name }}" aria-label="Remove {{ $item->equipment_name }}"
@@ -244,6 +257,7 @@
 </div>
 
 @include('components.admin.equipment.form-modal')
+@include('components.admin.equipment.maintenance-modal')
 
 <x-ui.remove-dialog
     id="remove-dialog"
@@ -374,6 +388,29 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     sync();
+});
+
+// Maintenance / repair. The header is outside the form, so its item name is
+// looked up from the modal, never from the form.
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('maintenance-modal');
+    const form = document.getElementById('maintenance-form');
+    if (!modal || !form) return;
+
+    const itemName = modal.querySelector('[data-maintenance-item]');
+    const dateField = document.getElementById('maintenance-date');
+    const today = dateField.max;
+
+    document.addEventListener('click', function (event) {
+        const trigger = event.target.closest('[data-maintenance-open]');
+        if (!trigger || trigger.disabled) return;
+
+        form.reset();
+        form.action = trigger.dataset.url;
+        itemName.textContent = trigger.dataset.name;
+        dateField.value = today;
+        window.appUI.openModal('maintenance-modal');
+    });
 });
 </script>
 @endsection

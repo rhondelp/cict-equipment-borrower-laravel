@@ -43,6 +43,8 @@ Route::middleware('auth')->group(function () {
         // while any loan or request still references the item.
         Route::post('/admin/equipment/{id}/retire', [EquipmentController::class, 'retire'])->name('admin.equipment.retire');
         Route::post('/admin/equipment/{id}/restore', [EquipmentController::class, 'restore'])->name('admin.equipment.restore');
+        // Record-only: writes one activity log entry, never touches stock.
+        Route::post('/admin/equipment/{id}/maintenance', [EquipmentController::class, 'logMaintenance'])->name('admin.equipment.maintenance');
         Route::delete('/admin/equipment/{id}', [EquipmentController::class, 'destroy'])->name('admin.equipment.destroy');
         Route::get('/admin/users', [UserController::class, 'adminUser'])->name('admin.users');
         Route::post('admin/users', [AuthenticateUser::class, 'register'])->name('admin.user.register');
