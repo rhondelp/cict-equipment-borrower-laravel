@@ -2,6 +2,80 @@
 
 ## 2026-10-07
 
+- **The report can be exported as CSV or PDF, or printed, and each export is exactly the report on screen.** Three new routes sit in the Admin group, `admin.reports.csv`, `admin.reports.pdf` and `admin.reports.print`. Each takes the screen's query string and reads it through the same `resolveFilters()` and `ActivityLog::filter()` as the screen, so a bad date falls back the same way and a filter narrows the same way. On the screen, a toolbar between the filters and the summary reads "Export or print this report — all 1,284 activities, not just this page." It has three 48px buttons, Export CSV, Export PDF and Print. Print opens in a new tab, since it goes straight to the print dialog. Each button links with the page's own query string, minus the page number. The toolbar shows only when something matches.
+
+  **`barryvdh/laravel-dompdf` ^3.1 was added** (dompdf 3.1.6). Its config is not published, and the options that matter are set at the call:
+  - remote fetching, embedded PHP and JavaScript off;
+  - file access confined to `public/images`;
+  - only `data:` and `file:` protocols allowed;
+  - DejaVu Sans, dompdf's built-in Unicode font, so "Ñ", "×" and "→" render.
+
+  Composer reported 46 security advisories during the install. None is in dompdf or its dependencies. All are in packages already installed (guzzle, laravel/framework, league/commonmark, symfony/*), and were left alone as outside this change.
+
+  **CSV.** It is streamed from a `cursor()`, so a year of activity never sits in memory, and contains every matching row rather than one page; a test exports 120 rows. The file is UTF-8 with a byte-order mark, so Excel reads accents correctly, with CRLF rows. It is named `cict-activity-report_2026-10-01_to_2026-10-31.csv`. The 13 columns are Date, Time, Activity type, Activity group, Done by, Done by role, Equipment, Affected person, Quantity, Status from, Status to, Details and Loan ID. A cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return is prefixed with an apostrophe, so a name or a note can never run as a formula; numbers are left alone. Its log entry is written after the last row, so the count is the file's own and the export never lists itself.
+
+  **PDF and print share one header and one table.** `admin/reports/_header.blade.php` holds:
+  - the logo, "CICT Equipment Borrower System" and "Activity and Transactions Report";
+  - the date range;
+  - the filters in words ("Activity: Loans; Equipment: Projector (Epson); User: Mia Santos", or "None");
+  - when and by whom it was generated;
+  - the record count.
+
+  `_table.blade.php` and `_styles.blade.php` are shared too, so the two cannot drift. To make the wording match, the screen's filter chips now say "User" rather than "Person" and "Activity: Loans" rather than "All loans". The PDF is A4 landscape, with the header row repeating and no row split. "Page X of Y" and the report name are stamped in the footer after layout, since the page count only exists then. The print view is a standalone page with no sidebar. On screen it shows "Print again" and "Back to the report" above the sheet; in print it is A4 landscape with those hidden, and it opens the print dialog on load.
+
+  **The 2,000-row cap, and what it took to meet it.** Over 2,000 matching rows, PDF and print redirect to the screen with the same filters and the message "2,001 activities match these filters — too many to lay out on paper (the limit is 2,000). Narrow the dates or filters, or use Export CSV, which has no limit." Nothing is logged. The toolbar shows both buttons disabled, with the reason, before anyone clicks.
+
+  The first build could not meet the cap. The first real PDF ran **21 pages for 64 rows**: dompdf ignores `<col>` widths, so all eight columns were equal and Details, the longest text, was the narrowest. A **1,946-row** PDF failed with a 500 at the 1 GB memory limit after 38 s, and took **96 s and 3 GB** when allowed more memory. Profiling one change at a time showed:
+  - dompdf's cost for **one long table** grows faster than its rows;
+  - the zebra `:nth-child` rule, the row no-split rule and the logo were not the cause.
+
+  The fixes:
+  - **The PDF lays rows out in consecutive tables of 100** (`PDF_TABLE_ROWS`), each with the header. A header row therefore also appears every 100 rows, about every 8 pages. The print view, in a browser, stays one table.
+  - Widths moved onto the `<th>` cells and markup was slimmed to `<b>`, `<br>` and class-based zebra rows, at 9pt.
+  - `enable_font_subsetting` was turned on, which laravel-dompdf leaves off. That put the whole of DejaVu Sans regular and bold (about 900 KB) in every file.
+  - The 1840px, 375 KB logo is still read from `public/images/logo.png`, and is scaled in memory with GD to a 192px PNG. The file path is used if GD is missing.
+  - The PDF action raises `max_execution_time` to 120 s and `memory_limit` to 1024M where they are lower, and never lowers them.
+
+  | | Before | After |
+  |---|---|---|
+  | 64–75 rows | 21 pages · 1.2 MB · 2.4 s | 9 pages · 73 KB · 1.1 s |
+  | 1,946 rows | 500 at 1 GB (96 s · 3 GB with more memory) | 152 pages · 535 KB · 21 s · 520 MB |
+
+  **Every export is logged.** Each one writes a `report_exported` entry with:
+  - `quantity` set to the rows exported;
+  - `details` "Exported CSV (1,284 rows)", "Exported PDF (…)" or "Exported print view (…)";
+  - `meta` holding the format and the resolved filters.
+
+  **Verification.** `php artisan test`: **477 passed**, up from 465. The 12 new tests are in `tests/Feature/ReportsExportTest.php`:
+  - all three routes are admin-only (borrower 403, guest to sign-in), with nothing logged;
+  - the CSV's BOM, header row, filename and a full row with "Ñ", "×" and "→";
+  - 120 rows exported, not 50;
+  - each filter honoured: inclusive range, group, type, equipment, user as actor and as subject, status, search, and the default range;
+  - formula cells for `@`, `-`, `+`, `=` and a tab neutralised, with numbers and ordinary text untouched;
+  - the PDF: 200, `application/pdf`, an attachment named by its range, a `%PDF-` body;
+  - PDF and print over the cap redirect with the message, log nothing, and the toolbar is disabled;
+  - the PDF splits 150 rows into two tables with every row kept, while print uses one table and there is no `:nth-child`;
+  - the print view's title, range, filters, generator, rows, logo, print rules and `window.print()`, with no sidebar;
+  - "None" when nothing is filtered;
+  - exactly one log entry per export, in order csv, pdf, print;
+  - the toolbar links carry the screen's query string and drop `page`.
+
+  `ReportsPageTest` follows the "Activity: Returns" wording.
+
+  **Opened and checked.** The PDFs were downloaded through a signed-in headless Chrome session against scratch SQLite databases, one with about 75 varied entries and one with 2,000. Their pages were rendered with pdf.js and looked at:
+  - A4 landscape, 842 × 595 pt;
+  - the logo, title and meta block on page 1;
+  - the header row repeating on page 2, and appearing again mid-page at the 100-row seam on page 16 of 152;
+  - two-line rows that never split;
+  - "Page 2 of 9" in the footer.
+
+  The print view was checked in Chrome on screen and in print media:
+  - the toolbar's buttons are both 46px, and the preview table is 14px;
+  - printed, the toolbar is hidden, cells are 9pt, and page 2 repeats the header;
+  - the print dialog was called once.
+
+  The CSV was checked byte by byte for the BOM. There were no JS errors. `npm run build` was run. `vendor/bin/pint --test`: no new issues over the 9-file baseline.
+
 - **A Reports screen: the activity log, filtered, on screen.** `GET /admin/reports` (`admin.reports`, `ReportsController@index`) sits in the Admin group like every other admin page: a borrower gets 403 and a guest goes to sign-in. The sidebar has a new "Records" group with a Reports link that uses the shared link markup, active state and text size, and a small bar-chart icon added to `x-icon`. Exports come next, in Prompt 26.
 
   **A report is a URL.** The filters are a plain GET form:

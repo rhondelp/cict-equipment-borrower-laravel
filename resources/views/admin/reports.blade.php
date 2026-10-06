@@ -159,6 +159,57 @@
                 </form>
             </x-ui.panel>
 
+            {{-- Export toolbar. Each link carries the page's own query string
+                 (minus the page number), and the exports read it through the
+                 same resolveFilters() + ActivityLog::filter() as this screen,
+                 so the file is exactly the report on screen — every page of it.
+                 PDF and Print stop at MAX_PAGED_ROWS; the server refuses past
+                 it too, and the CSV has no limit. --}}
+            @if($total > 0)
+                @php
+                    $exportQuery = request()->except('page');
+                    $tooMany = $total > \App\Http\Controllers\ReportsController::MAX_PAGED_ROWS;
+                    $exportButton = 'inline-flex min-h-[48px] items-center gap-2.5 rounded-md border px-5 py-2.5 text-base font-semibold';
+                @endphp
+                <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-white border sm:px-5 rounded-xl border-neutral-200" data-report-exports>
+                    <p class="text-base text-neutral-800">
+                        Export or print this report
+                        <span class="text-neutral-600">— all {{ number_format($total) }} {{ str('activity')->plural($total) }}, not just this page.</span>
+                    </p>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a href="{{ route('admin.reports.csv', $exportQuery) }}" data-export="csv"
+                           class="{{ $exportButton }} border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50">
+                            <i class="fas fa-file-csv text-success-700" aria-hidden="true"></i> Export CSV
+                        </a>
+                        @if($tooMany)
+                            <span aria-disabled="true" data-export="pdf" title="Over {{ number_format(\App\Http\Controllers\ReportsController::MAX_PAGED_ROWS) }} rows — narrow the filters or use CSV"
+                                  class="{{ $exportButton }} cursor-not-allowed border-neutral-200 bg-neutral-50 text-neutral-500">
+                                <i class="fas fa-file-pdf" aria-hidden="true"></i> Export PDF
+                            </span>
+                            <span aria-disabled="true" data-export="print" title="Over {{ number_format(\App\Http\Controllers\ReportsController::MAX_PAGED_ROWS) }} rows — narrow the filters or use CSV"
+                                  class="{{ $exportButton }} cursor-not-allowed border-neutral-200 bg-neutral-50 text-neutral-500">
+                                <i class="fas fa-print" aria-hidden="true"></i> Print
+                            </span>
+                        @else
+                            <a href="{{ route('admin.reports.pdf', $exportQuery) }}" data-export="pdf"
+                               class="{{ $exportButton }} border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50">
+                                <i class="fas fa-file-pdf text-danger-700" aria-hidden="true"></i> Export PDF
+                            </a>
+                            <a href="{{ route('admin.reports.print', $exportQuery) }}" data-export="print" target="_blank" rel="noopener"
+                               class="{{ $exportButton }} border-primary-600 bg-primary-600 text-white hover:bg-primary-700">
+                                <i class="fas fa-print" aria-hidden="true"></i> Print
+                                <span class="sr-only">(opens in a new tab)</span>
+                            </a>
+                        @endif
+                    </div>
+                    @if($tooMany)
+                        <p class="w-full text-base text-warning-700">
+                            PDF and Print stop at {{ number_format(\App\Http\Controllers\ReportsController::MAX_PAGED_ROWS) }} rows. Narrow the dates or filters, or use Export CSV, which has no limit.
+                        </p>
+                    @endif
+                </div>
+            @endif
+
             <x-ui.stat-strip :stats="$summary" />
 
             <x-ui.panel>

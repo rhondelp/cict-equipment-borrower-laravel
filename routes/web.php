@@ -88,6 +88,10 @@ Route::middleware('auth')->group(function () {
 
         // The activity log, filtered by query string so a report is a URL.
         Route::get('/admin/reports', [ReportsController::class, 'index'])->name('admin.reports');
+        // Same query string as the screen, read by the same resolveFilters().
+        Route::get('/admin/reports/export.csv', [ReportsController::class, 'exportCsv'])->name('admin.reports.csv');
+        Route::get('/admin/reports/export.pdf', [ReportsController::class, 'exportPdf'])->name('admin.reports.pdf');
+        Route::get('/admin/reports/print', [ReportsController::class, 'print'])->name('admin.reports.print');
 
         // Admin-only mail utilities (previously public)
         Route::get('/admin/send-return-alerts', [BorrowTransactionController::class, 'sendReturnAlertNotification'])

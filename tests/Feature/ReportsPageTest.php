@@ -283,7 +283,8 @@ class ReportsPageTest extends TestCase
         $response->assertSee('No activity matches these filters.');
         $response->assertSee('Search:');
         $response->assertSee('“zzz”', false);
-        $response->assertSee('All returns');
+        $response->assertSee('Activity:');
+        $response->assertSee('Returns');
         $response->assertSee('Sep 8, 2026 – Oct 7, 2026');
         $response->assertSee('href="'.route('admin.reports').'"', false);
         $response->assertSee('Clear filters');
