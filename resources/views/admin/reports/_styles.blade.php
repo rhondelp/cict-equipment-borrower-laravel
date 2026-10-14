@@ -35,4 +35,17 @@
     .report-table .num { text-align: right; }
     .report-table small { font-size: 7.5pt; color: #475569; }
     .report-empty { padding: 14pt; text-align: center; color: #475569; border: 0.75pt solid #cbd5e1; }
+    .report-table .mark { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.04em; color: #b91c1c; }
+
+    /* Official reports: the signature block. Kept on one page. */
+    .signatures { margin-top: 28pt; page-break-inside: avoid; break-inside: avoid; }
+    .signature-table { width: 100%; border-collapse: collapse; page-break-inside: avoid; break-inside: avoid; }
+    .signature-table td { width: 42%; padding: 0; vertical-align: top; }
+    .signature-table td.signature-gap { width: 16%; }
+    .signature-label { font-size: 10pt; font-weight: bold; color: #0f172a; margin-bottom: 30pt; }
+    .signature-line {
+        min-height: 13pt; padding-bottom: 2pt; border-bottom: 0.9pt solid #0f172a;
+        text-align: center; font-size: 10.5pt; font-weight: bold; text-transform: uppercase;
+    }
+    .signature-position { padding-top: 3pt; text-align: center; font-size: 9pt; color: #334155; }
 </style>

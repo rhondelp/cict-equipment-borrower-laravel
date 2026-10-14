@@ -4,6 +4,20 @@
 @include('components.admin.navbar')
 
 @php
+    // 'activity' for the activity log; otherwise one of the five official
+    // reports (ReportsController::REPORTS), drawn by _official_screen.
+    $report = $report ?? 'activity';
+    $subtitles = [
+        'activity' => 'Everything recorded in the activity log, newest first.',
+        'borrowers' => 'Every loan and issue in the date range, oldest first, with when each came back.',
+        'inventory' => 'Every item in use, how many the department owns, and whether it is serviceable.',
+        'not-returned' => 'Everyone holding equipment right now, soonest due first. Overdue loans are marked.',
+        'most-borrowed' => 'The equipment lent most often in the date range.',
+        'defective' => 'Items that came back damaged or lost and have no resolution recorded yet.',
+    ];
+@endphp
+@if($report === 'activity')
+@php
     $filters = $resolved['filters'];
     $filterErrors = $resolved['errors'];
     $total = $activities->total();
@@ -28,6 +42,7 @@
     $rangeUrl = fn ($from, $to) => request()->fullUrlWithQuery(['from' => $from->toDateString(), 'to' => $to->toDateString(), 'page' => null]);
     $isRange = fn ($from, $to) => $filters['from'] === $from->toDateString() && $filters['to'] === $to->toDateString();
 @endphp
+@endif
 
 <div class="min-h-[100dvh] page-bg md:ml-64">
 
@@ -37,12 +52,16 @@
     </a>
 
     <x-ui.page-header eyebrow="Records" title="Reports">
-        Everything recorded in the activity log, newest first.
+        {{ $subtitles[$report] }}
     </x-ui.page-header>
 
     <main id="main-content" class="p-4 mx-auto space-y-5 sm:p-6 max-w-content">
 
-        @if(! $anythingRecorded)
+        @include('admin.reports._tabs')
+
+        @if($report !== 'activity')
+            @include('admin.reports._official_screen')
+        @elseif(! $anythingRecorded)
             <x-ui.panel>
                 <x-ui.empty-state icon="fa-chart-column" title="No activity recorded yet."
                                   message="Activity appears here as soon as equipment is lent, returned or changed." />
@@ -365,6 +384,28 @@ document.addEventListener('DOMContentLoaded', function () {
     box.addEventListener('scroll', sync, { passive: true });
     window.addEventListener('resize', sync);
     sync();
+});
+
+// The report-type switcher: Tab reaches each report, and the arrow keys,
+// Home and End move between them the way a tab strip does. Enter opens one.
+document.addEventListener('DOMContentLoaded', function () {
+    const tabs = Array.from(document.querySelectorAll('[data-report-tab]'));
+    tabs.forEach(function (tab, index) {
+        tab.addEventListener('keydown', function (event) {
+            const last = tabs.length - 1;
+            const next = {
+                ArrowRight: index === last ? 0 : index + 1,
+                ArrowDown: index === last ? 0 : index + 1,
+                ArrowLeft: index === 0 ? last : index - 1,
+                ArrowUp: index === 0 ? last : index - 1,
+                Home: 0,
+                End: last,
+            }[event.key];
+            if (next === undefined) return;
+            event.preventDefault();
+            tabs[next].focus();
+        });
+    });
 });
 </script>
 @endsection

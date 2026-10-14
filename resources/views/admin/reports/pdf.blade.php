@@ -12,7 +12,15 @@
     </style>
 </head>
 <body>
-    @include('admin.reports._header')
-    @include('admin.reports._table', ['chunkSize' => \App\Http\Controllers\ReportsController::PDF_TABLE_ROWS])
+    @if($official ?? false)
+        {{-- One of the five official reports: its own header, the
+             columns-driven table, and the signature block. --}}
+        @include('admin.reports._official_header')
+        @include('admin.reports._official_table', ['chunkSize' => \App\Http\Controllers\ReportsController::PDF_TABLE_ROWS])
+        @include('admin.reports._signatures')
+    @else
+        @include('admin.reports._header')
+        @include('admin.reports._table', ['chunkSize' => \App\Http\Controllers\ReportsController::PDF_TABLE_ROWS])
+    @endif
 </body>
 </html>

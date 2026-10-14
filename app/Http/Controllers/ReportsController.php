@@ -3,17 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\BorrowTransaction;
 use App\Models\Equipment;
+use App\Models\ReturnLog;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 /**
- * The Reports screen: the activity log, filtered.
+ * The Reports screen: the activity log, filtered — and, picked with
+ * `?report=`, the office's five official report formats.
+ *
+ * The official reports are fixed formats copied from the office's paper
+ * forms: exact headings in an exact order, a title, and a signature block.
+ * Each has one method here that returns plain row arrays (borrowerRows() and
+ * the rest). The screen, CSV, PDF and print all read those rows, and print
+ * and PDF render them through one partial driven by the COLUMNS array, so no
+ * output can show a column the others lack.
  *
  * Every figure and row on the page comes from one query built by
  * ActivityLog::filter(), from filters read out of the query string by
@@ -50,8 +62,71 @@ class ReportsController extends Controller
     /** Pixel width the logo is scaled to for the PDF (shown at 48pt). */
     private const PDF_LOGO_PX = 192;
 
+    /**
+     * The official reports, keyed by their `?report=` value, in tab order.
+     * `dated` reports take the From/To range. The others are a snapshot of
+     * right now: what is out, owned or broken does not depend on a date range.
+     * `noun` counts the rows ("12 loans"); `file` names the download.
+     */
+    public const REPORTS = [
+        'borrowers' => ['tab' => 'Borrower Report', 'title' => 'Borrower Report', 'dated' => true, 'noun' => 'transaction', 'file' => 'borrower-report'],
+        'inventory' => ['tab' => 'Inventory Report', 'title' => 'Inventory Report', 'dated' => false, 'noun' => 'item', 'file' => 'inventory-report'],
+        'not-returned' => ['tab' => 'Not Yet Returned', 'title' => 'List of Borrowers Not Yet Returned', 'dated' => false, 'noun' => 'loan', 'file' => 'not-yet-returned'],
+        'most-borrowed' => ['tab' => 'Most Borrowed', 'title' => 'Most Borrowed Equipment', 'dated' => true, 'noun' => 'item', 'file' => 'most-borrowed'],
+        'defective' => ['tab' => 'Defective Items', 'title' => 'List of Defective Items', 'dated' => false, 'noun' => 'defect', 'file' => 'defective-items'],
+    ];
+
+    /**
+     * Each official report's columns, in the order and with the headings of
+     * the paper form. `width` is for print and PDF (dompdf ignores <col>, so
+     * it goes on the header cell); `num` right-aligns a figure.
+     */
+    public const COLUMNS = [
+        'borrowers' => [
+            ['label' => 'Date & Time Borrowed', 'width' => 18],
+            ['label' => 'Name of Borrower', 'width' => 22],
+            ['label' => 'Item Borrowed', 'width' => 28],
+            ['label' => 'Returned Date & Time', 'width' => 18],
+            ['label' => 'Status', 'width' => 14],
+        ],
+        'inventory' => [
+            ['label' => 'Quantity', 'width' => 10, 'num' => true],
+            ['label' => 'Unit', 'width' => 10],
+            ['label' => 'Item Description', 'width' => 58],
+            ['label' => 'Status', 'width' => 22],
+        ],
+        'not-returned' => [
+            ['label' => 'Name of Borrower', 'width' => 22],
+            ['label' => 'Course & Year', 'width' => 15],
+            ['label' => 'Item Borrowed', 'width' => 25],
+            ['label' => 'Date Borrowed', 'width' => 14],
+            ['label' => 'Due Date & Time', 'width' => 24],
+        ],
+        'most-borrowed' => [
+            ['label' => 'Rank', 'width' => 8, 'num' => true],
+            ['label' => 'Item Description', 'width' => 52],
+            ['label' => 'Times Borrowed', 'width' => 20, 'num' => true],
+            ['label' => 'Total Quantity', 'width' => 20, 'num' => true],
+        ],
+        'defective' => [
+            ['label' => 'Quantity', 'width' => 10, 'num' => true],
+            ['label' => 'Unit', 'width' => 10],
+            ['label' => 'Item Description', 'width' => 35],
+            ['label' => 'Item Defect', 'width' => 45],
+        ],
+    ];
+
+    /** How many rows Most Borrowed may show; the first is the default. */
+    public const TOP_LIMITS = [10, 25, 50];
+
+    public const INVENTORY_STATUSES = ['serviceable' => 'Serviceable', 'non-serviceable' => 'Non-serviceable'];
+
     public function index(Request $request)
     {
+        if (($report = $this->requestedReport($request)) !== 'activity') {
+            return $this->officialIndex($request, $report);
+        }
+
         $resolved = $this->resolveFilters($request);
         $filters = $resolved['filters'];
 
@@ -68,6 +143,7 @@ class ReportsController extends Controller
             ->withQueryString();
 
         return response()->view('admin.reports', [
+            'report' => 'activity',
             'activities' => $activities,
             'summary' => $this->summary($counts, $filters),
             'resolved' => $resolved,
@@ -95,6 +171,10 @@ class ReportsController extends Controller
      */
     public function exportCsv(Request $request)
     {
+        if (($report = $this->requestedReport($request)) !== 'activity') {
+            return $this->officialCsv($request, $report);
+        }
+
         $filters = $this->resolveFilters($request)['filters'];
         $query = $this->reportQuery($filters)->newestFirst();
 
@@ -144,11 +224,29 @@ class ReportsController extends Controller
      */
     public function exportPdf(Request $request)
     {
+        if (($official = $this->requestedReport($request)) !== 'activity') {
+            return $this->officialPdf($request, $official);
+        }
+
         $report = $this->pagedReport($request);
         if (! is_array($report)) {
             return $report;
         }
 
+        $pdf = $this->renderPdf('admin.reports.pdf', $report, self::TITLE);
+
+        $this->recordExport('PDF', $report['activities']->count(), $report['filters']);
+
+        return $pdf->download($this->filename($report['filters'], 'pdf'));
+    }
+
+    /**
+     * Lay a report view out as an A4 landscape PDF and stamp the footer. One
+     * place for the dompdf options, so the activity log and the official
+     * reports cannot drift apart on what dompdf is allowed to read.
+     */
+    private function renderPdf(string $view, array $data, string $footerTitle)
+    {
         // A full 2,000-row report needs about half a minute and half a
         // gigabyte; never lower a limit the server already allows.
         if ((int) ini_get('max_execution_time') !== 0 && (int) ini_get('max_execution_time') < 120) {
@@ -169,7 +267,7 @@ class ReportsController extends Controller
             // Embed only the glyphs used. Off by default, which put the
             // whole of DejaVu Sans regular and bold (~900 KB) in every file.
             'enable_font_subsetting' => true,
-        ])->loadView('admin.reports.pdf', $report + [
+        ])->loadView($view, $data + [
             'logoSrc' => $this->pdfLogo(),
         ])->setPaper('a4', 'landscape');
 
@@ -182,16 +280,18 @@ class ReportsController extends Controller
         $canvas->page_text($canvas->get_width() - 120, $canvas->get_height() - 28,
             'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 8, [0.28, 0.33, 0.41]);
         $canvas->page_text(34, $canvas->get_height() - 28,
-            'CICT Equipment Borrower System · '.self::TITLE, $font, 8, [0.28, 0.33, 0.41]);
+            'CICT Equipment Borrower System · '.$footerTitle, $font, 8, [0.28, 0.33, 0.41]);
 
-        $this->recordExport('PDF', $report['activities']->count(), $report['filters']);
-
-        return $pdf->download($this->filename($report['filters'], 'pdf'));
+        return $pdf;
     }
 
     /** The report as a printable page: no sidebar, the PDF's header, then the full table. */
     public function print(Request $request)
     {
+        if (($official = $this->requestedReport($request)) !== 'activity') {
+            return $this->officialPrint($request, $official);
+        }
+
         $report = $this->pagedReport($request);
         if (! is_array($report)) {
             return $report;
@@ -293,12 +393,18 @@ class ReportsController extends Controller
         return ActivityLog::filter($filters);
     }
 
-    private function recordExport(string $format, int $rows, array $filters): void
+    /** $report is an official report's key; null for the activity log. */
+    private function recordExport(string $format, int $rows, array $filters, ?string $report = null): void
     {
         ActivityLog::record('report_exported', [
             'quantity' => $rows,
-            'details' => 'Exported '.$format.' ('.number_format($rows).' '.str('row')->plural($rows).')',
-            'meta' => ['format' => strtolower($format) === 'print view' ? 'print' : strtolower($format), 'filters' => $filters],
+            'details' => 'Exported '.($report ? self::REPORTS[$report]['title'].' as ' : '').$format
+                .' ('.number_format($rows).' '.str('row')->plural($rows).')',
+            'meta' => array_filter([
+                'report' => $report,
+                'format' => strtolower($format) === 'print view' ? 'print' : strtolower($format),
+                'filters' => $filters,
+            ], fn ($value) => $value !== null),
         ]);
     }
 
@@ -457,5 +563,444 @@ class ReportsController extends Controller
         }
 
         return $applied;
+    }
+
+    /* ---------------------------------------------------------------------
+     | Official reports
+     |
+     | Each report is one *Rows() method returning a list of rows. A row is a
+     | list of cells, in COLUMNS order. A cell is a string or a number, or —
+     | for a cell that carries a flag, such as an overdue due date — an array
+     | ['text' => ..., 'mark' => 'Overdue']. The mark is always written out as
+     | a word (in the table and in the CSV), never left to colour alone.
+     --------------------------------------------------------------------- */
+
+    /** 'activity' unless ?report= names an official report. */
+    private function requestedReport(Request $request): string
+    {
+        $report = $request->query('report');
+
+        return is_string($report) && isset(self::REPORTS[$report]) ? $report : 'activity';
+    }
+
+    private function officialIndex(Request $request, string $report)
+    {
+        $data = $this->officialReport($request, $report);
+
+        // The rows are already worked out; the screen shows them 50 at a time
+        // and the exports take all of them.
+        $rows = collect($data['rows']);
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $rowsPage = (new LengthAwarePaginator(
+            $rows->forPage($page, self::PER_PAGE)->values(), $rows->count(), self::PER_PAGE, $page, ['path' => $request->url()]
+        ))->withQueryString();
+
+        return response()->view('admin.reports', $data + [
+            'rowsPage' => $rowsPage,
+            'categoryOptions' => $report === 'inventory' ? Equipment::categoriesInUse() : collect(),
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
+    private function officialCsv(Request $request, string $report)
+    {
+        $data = $this->officialReport($request, $report);
+
+        return response()->streamDownload(function () use ($data, $report) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\u{FEFF}");
+            fputcsv($out, array_column($data['columns'], 'label'), eol: "\r\n");
+
+            foreach ($data['rows'] as $row) {
+                fputcsv($out, array_map(fn ($cell) => self::csvCell(self::cellText($cell)), $row), eol: "\r\n");
+            }
+
+            fclose($out);
+
+            $this->recordExport('CSV', count($data['rows']), $data['filters'], $report);
+        }, $this->officialFilename($report, $data['filters'], 'csv'), [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-store, private',
+        ]);
+    }
+
+    private function officialPdf(Request $request, string $report)
+    {
+        $data = $this->officialPaged($request, $report);
+        if (! is_array($data)) {
+            return $data;
+        }
+
+        $pdf = $this->renderPdf('admin.reports.pdf', $data + ['official' => true], $data['meta']['title']);
+
+        $this->recordExport('PDF', $data['meta']['total'], $data['filters'], $report);
+
+        return $pdf->download($this->officialFilename($report, $data['filters'], 'pdf'));
+    }
+
+    private function officialPrint(Request $request, string $report)
+    {
+        $data = $this->officialPaged($request, $report);
+        if (! is_array($data)) {
+            return $data;
+        }
+
+        $this->recordExport('print view', $data['meta']['total'], $data['filters'], $report);
+
+        return response()->view('admin.reports.print', $data + [
+            'official' => true,
+            'logoSrc' => asset('images/logo.png'),
+            'backUrl' => route('admin.reports', $request->except('page')),
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
+    /** officialReport(), or a redirect back when there is too much for paper. */
+    private function officialPaged(Request $request, string $report): array|\Illuminate\Http\RedirectResponse
+    {
+        $data = $this->officialReport($request, $report);
+        $total = $data['meta']['total'];
+
+        if ($total > self::MAX_PAGED_ROWS) {
+            return redirect()->route('admin.reports', $request->except('page'))->with('error',
+                number_format($total).' '.str($data['meta']['noun'])->plural($total).' match these filters — too many to lay out on paper (the limit is '
+                .number_format(self::MAX_PAGED_ROWS).'). Narrow the dates or filters, or use Export CSV, which has no limit.');
+        }
+
+        return $data;
+    }
+
+    /** Everything one official report needs, for every output. */
+    private function officialReport(Request $request, string $report): array
+    {
+        $resolved = $this->resolveOfficial($request, $report);
+        $filters = $resolved['filters'];
+        $definition = self::REPORTS[$report];
+
+        $rows = match ($report) {
+            'borrowers' => $this->borrowerRows($filters),
+            'inventory' => $this->inventoryRows($filters),
+            'not-returned' => $this->notReturnedRows(),
+            'most-borrowed' => $this->mostBorrowedRows($filters),
+            'defective' => $this->defectiveRows(),
+        };
+
+        $user = $request->user();
+
+        return [
+            'report' => $report,
+            'definition' => $definition,
+            'columns' => self::COLUMNS[$report],
+            'rows' => $rows,
+            'filters' => $filters,
+            'resolved' => $resolved,
+            'emptyMessage' => $this->officialEmptyMessage($report, $filters),
+            'meta' => [
+                'title' => $definition['title'],
+                'range_label' => $definition['dated'] ? 'Date range' : 'As of',
+                'range' => $definition['dated'] ? $this->rangeWords($filters) : now()->format('M j, Y, g:i A'),
+                'filters' => $this->officialFilterWords($report, $filters),
+                'generated_at' => now()->format('M j, Y, g:i A'),
+                'generated_by' => $user->name.' ('.$user->user_type.')',
+                'prepared_by' => $user->name,
+                'noted_by' => [
+                    'name' => trim((string) config('office.noted_by.name', '')),
+                    'position' => trim((string) config('office.noted_by.position', '')),
+                ],
+                'total' => count($rows),
+                'noun' => $definition['noun'],
+            ],
+        ];
+    }
+
+    /**
+     * An official report's filters from the query string. Like
+     * resolveFilters(), a bad value is dropped with an error rather than
+     * failing the page. Dated reports take From/To through resolveFilters()
+     * itself, so the default range and the fallbacks are the activity log's.
+     *
+     * @return array{filters: array, errors: array<string, string>, defaultRange: bool}
+     */
+    public function resolveOfficial(Request $request, string $report): array
+    {
+        $filters = [];
+        $errors = [];
+        $defaultRange = false;
+
+        if (self::REPORTS[$report]['dated']) {
+            $dates = $this->resolveFilters($request);
+            $filters['from'] = $dates['filters']['from'];
+            $filters['to'] = $dates['filters']['to'];
+            $errors = array_intersect_key($dates['errors'], array_flip(['from', 'to', 'range']));
+            $defaultRange = $dates['defaultRange'];
+        }
+
+        $query = fn (string $key) => is_string($value = $request->query($key)) ? trim($value) : '';
+
+        if ($report === 'inventory') {
+            $category = $query('category');
+            if ($category !== '' && mb_strlen($category) <= 60) {
+                $filters['category'] = $category;
+            } elseif ($category !== '') {
+                $errors['category'] = 'That category is longer than any on file.';
+            }
+
+            $status = $query('status');
+            if (isset(self::INVENTORY_STATUSES[$status])) {
+                $filters['status'] = $status;
+            } elseif ($status !== '') {
+                $errors['status'] = 'Choose Serviceable or Non-serviceable.';
+            }
+        }
+
+        if ($report === 'most-borrowed') {
+            $limit = $query('limit');
+            $filters['limit'] = self::TOP_LIMITS[0];
+            if (in_array($limit, array_map('strval', self::TOP_LIMITS), true)) {
+                $filters['limit'] = (int) $limit;
+            } elseif ($limit !== '') {
+                $errors['limit'] = 'Show the top 10, 25 or 50.';
+            }
+        }
+
+        return ['filters' => $filters, 'errors' => $errors, 'defaultRange' => $defaultRange];
+    }
+
+    /**
+     * 1 · Borrower Report — every loan and issue in the range, oldest first,
+     * voided ones excluded. A non-returnable hand-over reads "Issued" and has
+     * no return.
+     */
+    private function borrowerRows(array $filters): array
+    {
+        return BorrowTransaction::query()
+            ->whereNull('voided_at')
+            ->whereBetween('borrow_date', $this->dayBounds($filters))
+            ->with(['user:id,name', 'equipment:id,equipment_name,unit', 'returnLog'])
+            ->orderBy('borrow_date')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (BorrowTransaction $loan) => [
+                $this->borrowedAtWords($loan),
+                $loan->user?->name ?? '—',
+                $this->itemWords($loan),
+                $loan->isIssued() ? '—' : $this->returnedAtWords($loan),
+                match (true) {
+                    $loan->isIssued() => 'Issued',
+                    $loan->isReturned() => 'Returned',
+                    default => 'Not yet returned',
+                },
+            ])
+            ->all();
+    }
+
+    /**
+     * 2 · Inventory Report — every item still in use (retired ones excluded),
+     * A–Z, with Equipment::isServiceable() preloaded in the same query.
+     */
+    private function inventoryRows(array $filters): array
+    {
+        $query = Equipment::lendable()
+            ->withExists(['returnLogs as has_open_defects' => fn ($logs) => $logs->needsFollowUp()])
+            ->orderBy('equipment_name')
+            ->orderBy('id');
+
+        if (isset($filters['category'])) {
+            $query->where('category', $filters['category']);
+        }
+        match ($filters['status'] ?? null) {
+            'serviceable' => $query->serviceable(),
+            'non-serviceable' => $query->nonServiceable(),
+            default => null,
+        };
+
+        return $query->get()
+            ->map(fn (Equipment $item) => [
+                (int) $item->quantity,
+                $item->unit,
+                $item->equipment_name.($item->description ? ' — '.$item->description : ''),
+                self::INVENTORY_STATUSES[$item->isServiceable() ? 'serviceable' : 'non-serviceable'],
+            ])
+            ->all();
+    }
+
+    /**
+     * 3 · List of Borrowers Not Yet Returned — every loan out right now
+     * (BorrowTransaction::out(): never voided, never Issued), soonest due
+     * first, so the most overdue lead. An overdue due date carries the word.
+     */
+    private function notReturnedRows(): array
+    {
+        return BorrowTransaction::out()
+            ->with(['user:id,name,course,year_level', 'equipment:id,equipment_name,unit'])
+            ->orderBy('return_date')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (BorrowTransaction $loan) => [
+                $loan->user?->name ?? '—',
+                $loan->user?->courseAndYear() ?? '—',
+                $this->itemWords($loan),
+                $loan->borrow_date?->format('M j, Y') ?? '—',
+                $loan->isOverdue()
+                    ? ['text' => $this->dueWords($loan), 'mark' => 'Overdue']
+                    : $this->dueWords($loan),
+            ])
+            ->all();
+    }
+
+    /**
+     * 4 · Most Borrowed Equipment — transactions per item in the range
+     * (voided ones excluded, issues included), most first; ties on times
+     * borrowed share a rank (1, 2, 2, 4). Ties are then broken by units and
+     * by name, which also decides who makes the cut at the limit.
+     */
+    private function mostBorrowedRows(array $filters): array
+    {
+        $top = BorrowTransaction::query()
+            ->join('equipment', 'equipment.id', '=', 'borrow_transactions.equipment_id')
+            ->whereNull('borrow_transactions.voided_at')
+            ->whereBetween('borrow_transactions.borrow_date', $this->dayBounds($filters))
+            ->groupBy('borrow_transactions.equipment_id', 'equipment.equipment_name', 'equipment.unit', 'equipment.retired_at')
+            ->selectRaw('equipment.equipment_name as name, equipment.unit as unit, equipment.retired_at as retired_at,'
+                .' COUNT(*) as times, SUM(borrow_transactions.quantity) as units')
+            ->orderByDesc('times')
+            ->orderByDesc('units')
+            ->orderBy('equipment.equipment_name')
+            ->limit($filters['limit'])
+            ->toBase()
+            ->get();
+
+        $rank = 0;
+        $previous = null;
+
+        return $top->values()->map(function ($row, int $index) use (&$rank, &$previous) {
+            if ((int) $row->times !== $previous) {
+                $rank = $index + 1;
+                $previous = (int) $row->times;
+            }
+
+            return [
+                $rank,
+                $row->name.($row->retired_at ? ' (retired)' : ''),
+                (int) $row->times,
+                (int) $row->units.' '.$row->unit,
+            ];
+        })->all();
+    }
+
+    /**
+     * 5 · List of Defective Items — ReturnLog::defects(): every return that
+     * came back other than Good with no resolution recorded. The defect is
+     * the log's remarks, or its condition when nobody wrote any.
+     */
+    private function defectiveRows(): array
+    {
+        return ReturnLog::defects()->get()
+            ->map(fn (ReturnLog $log) => [
+                (int) ($log->borrowTransaction?->quantity ?? 0),
+                $log->borrowTransaction?->equipment?->unit ?? Equipment::DEFAULT_UNIT,
+                $log->borrowTransaction?->equipment?->equipment_name ?? '—',
+                filled($log->remarks) ? trim($log->remarks) : $log->condition,
+            ])
+            ->all();
+    }
+
+    /** From 00:00 on the first day to the end of the last, inclusive. */
+    private function dayBounds(array $filters): array
+    {
+        return [Carbon::parse($filters['from'])->startOfDay(), Carbon::parse($filters['to'])->endOfDay()];
+    }
+
+    /** "Projector (Epson), 2 pc" */
+    private function itemWords(BorrowTransaction $loan): string
+    {
+        return ($loan->equipment?->equipment_name ?? 'Removed item').', '.$loan->quantity.' '
+            .($loan->equipment?->unit ?? Equipment::DEFAULT_UNIT);
+    }
+
+    /**
+     * "Oct 5, 2026, 2:30 PM". A date-only loan is stored at midnight, which
+     * is not when anyone borrowed it. Its time is taken from when the loan
+     * was recorded if that was the same day, and left off otherwise (a loan
+     * entered later for an earlier day) rather than printed as 12:00 AM.
+     */
+    private function borrowedAtWords(BorrowTransaction $loan): string
+    {
+        return $this->momentWords($loan->borrow_date, $loan->timed ? $loan->borrow_date : $loan->created_at);
+    }
+
+    /**
+     * The return log's day, with the time it was logged that day:
+     * return_logs.return_date is a DATE column and holds no time of its own.
+     */
+    private function returnedAtWords(BorrowTransaction $loan): string
+    {
+        return $this->momentWords($loan->returnLog?->return_date, $loan->returnLog?->created_at);
+    }
+
+    /** "Oct 5, 2026, 2:30 PM" when $time falls on $day; "Oct 5, 2026" otherwise; "—" for no day. */
+    private function momentWords(?CarbonInterface $day, ?CarbonInterface $time): string
+    {
+        if ($day === null) {
+            return '—';
+        }
+
+        return $time !== null && $time->isSameDay($day)
+            ? $day->format('M j, Y').', '.$time->format('g:i A')
+            : $day->format('M j, Y');
+    }
+
+    /** A timed loan is due at its time; a date-only one by the end of its day (see dueAt()). */
+    private function dueWords(BorrowTransaction $loan): string
+    {
+        if ($loan->return_date === null) {
+            return 'No due date';
+        }
+
+        return $loan->timed
+            ? $loan->return_date->format('M j, Y, g:i A')
+            : $loan->return_date->format('M j, Y').', end of day';
+    }
+
+    /** A cell as text: its mark written out, "Oct 7, 2026, end of day (Overdue)". */
+    public static function cellText(mixed $cell): mixed
+    {
+        if (is_array($cell)) {
+            return $cell['text'].(! empty($cell['mark']) ? ' ('.$cell['mark'].')' : '');
+        }
+
+        return $cell;
+    }
+
+    /** "Category: Projectors; Status: Non-serviceable", "Top 10", or "None". */
+    private function officialFilterWords(string $report, array $filters): string
+    {
+        $words = array_filter([
+            isset($filters['category']) ? 'Category: '.$filters['category'] : null,
+            isset($filters['status']) ? 'Status: '.self::INVENTORY_STATUSES[$filters['status']] : null,
+            isset($filters['limit']) ? 'Top '.$filters['limit'] : null,
+        ]);
+
+        return $words !== [] ? implode('; ', $words) : 'None';
+    }
+
+    /** What an empty report says, on screen and on paper. */
+    private function officialEmptyMessage(string $report, array $filters): string
+    {
+        return match ($report) {
+            'borrowers' => 'Nothing was borrowed or issued between '.$this->rangeWords($filters).'.',
+            'inventory' => isset($filters['category']) || isset($filters['status'])
+                ? 'No equipment matches these filters.'
+                : 'There is no equipment in use.',
+            'not-returned' => 'Every loan has been returned. Nothing is out right now.',
+            'most-borrowed' => 'Nothing was borrowed between '.$this->rangeWords($filters).'.',
+            'defective' => 'No defective items. Every damaged or lost return has a resolution recorded.',
+        };
+    }
+
+    /** cict-borrower-report_2026-10-01_to_2026-10-31.pdf, or cict-inventory-report_2026-10-14.csv */
+    private function officialFilename(string $report, array $filters, string $extension): string
+    {
+        $span = self::REPORTS[$report]['dated'] ? $filters['from'].'_to_'.$filters['to'] : today()->toDateString();
+
+        return 'cict-'.self::REPORTS[$report]['file'].'_'.$span.'.'.$extension;
     }
 }

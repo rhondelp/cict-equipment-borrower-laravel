@@ -39,6 +39,7 @@
             .report-table thead { display: table-header-group; }
             .report-table tr, .report-table td { break-inside: avoid; page-break-inside: avoid; }
             .report-table tr.alt td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .signatures, .signature-table { break-inside: avoid; page-break-inside: avoid; }
         }
     </style>
 </head>
@@ -46,12 +47,18 @@
     <div class="print-toolbar" data-print-toolbar>
         <button type="button" onclick="window.print()">Print again</button>
         <a href="{{ $backUrl }}">Back to the report</a>
-        <p>{{ number_format($meta['total']) }} {{ str('activity')->plural($meta['total']) }} · A4 landscape</p>
+        <p>{{ number_format($meta['total']) }} {{ str($meta['noun'] ?? 'activity')->plural($meta['total']) }} · A4 landscape</p>
     </div>
 
     <div class="sheet">
-        @include('admin.reports._header')
-        @include('admin.reports._table')
+        @if($official ?? false)
+            @include('admin.reports._official_header')
+            @include('admin.reports._official_table')
+            @include('admin.reports._signatures')
+        @else
+            @include('admin.reports._header')
+            @include('admin.reports._table')
+        @endif
     </div>
 
     <script>

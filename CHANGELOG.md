@@ -1,5 +1,57 @@
 # Changelog
 
+## 2026-10-14 — Official reports
+
+- **The Reports page now carries the office's five official reports beside the activity log, each printable, exportable and signed.** A switcher at the top of the page reads Activity Log | Borrower Report | Inventory Report | Not Yet Returned | Most Borrowed | Defective Items. The choice is in the query string (`?report=borrowers`, `inventory`, `not-returned`, `most-borrowed`, `defective`), so a report is still a URL to bookmark or share. No route was added or renamed. The four existing actions (`index`, `exportCsv`, `exportPdf`, `print`) look at `report` first and hand an official one to its own method. With no `report`, or an unknown one, they run the activity log exactly as before. Its 24 existing tests pass unchanged. A From/To range already picked travels with the switch.
+
+  **The switcher is links, not an ARIA tablist.** Each choice loads a different page, which is navigation: a `<nav aria-label="Report type">` with `aria-current="page"` on the current report. It still behaves like tabs from the keyboard. Tab reaches it, the arrow keys move along it and wrap, Home and End jump to the ends, and Enter opens one. The targets are 48px tall in 16px text, 18px from `sm` up. On a phone they sit in a two-column grid, three rows of two, with no sideways scroll at 390px.
+
+  **Columns, in the form's order and with its headings.** `ReportsController::COLUMNS` is the only place a heading is written. The screen, CSV, PDF and print all read it.
+  1. **Borrower Report** — Date & Time Borrowed · Name of Borrower · Item Borrowed · Returned Date & Time · Status. Every loan and issue in the range, oldest first, voided rows left out. Status is Returned, Not yet returned or Issued, and an issue has "—" for its return. A date-only loan is stored at midnight, which is not when anyone borrowed it. Its time is taken from when the loan was recorded if that was the same day; a loan entered later for an earlier day shows the date alone, rather than "12:00 AM" or another day's clock. The return time is read the same way from the return log, whose `return_date` is a DATE column.
+  2. **Inventory Report** — Quantity · Unit · Item Description · Status. Every item in use, A–Z, retired ones left out, Serviceable or Non-serviceable from Prompt 27's rule, preloaded in the same query. It filters by category and by status.
+  3. **List of Borrowers Not Yet Returned** — Name of Borrower · Course & Year · Item Borrowed · Date Borrowed · Due Date & Time. Every loan out right now, soonest due first, so the most overdue lead. Course & Year is "—" when empty. A date-only due date reads "Oct 10, 2026, end of day", which is when `dueAt()` makes it late. An overdue row says **Overdue** in words: on screen under the date with an icon, on paper in small capitals, and in the CSV as "(Overdue)". It is never colour alone.
+  4. **Most Borrowed Equipment** — Rank · Item Description · Times Borrowed · Total Quantity. Transactions per item in the range, most first, top 10 by default with 25 or 50 on offer. Ties on times borrowed share a rank (1, 2, 2, 4); units, then name, decide the order within a tie and who makes the cut. Total Quantity carries the unit ("4 set").
+  5. **List of Defective Items** — Quantity · Unit · Item Description · Item Defect. Straight from `ReturnLog::defects()`. Item Defect is the log's remarks, or its condition ("Lost") when nobody wrote any.
+
+  Borrower Report and Most Borrowed take the date range, with the activity log's default, its quick ranges and its fallbacks. The other three are snapshots of the moment they are generated, headed "As of Oct 14, 2026, 3:00 PM": what is out, owned or broken right now does not depend on a range. A bad `status` or `limit` is dropped with an inline error instead of failing the page.
+
+  **One row method per report, one table partial.** `borrowerRows()`, `inventoryRows()`, `notReturnedRows()`, `mostBorrowedRows()` and `defectiveRows()` each return plain row arrays, and every output reads them. `_official_table.blade.php` renders print and PDF from `COLUMNS`, with the activity table's dompdf rules: widths on the header cells, zebra rows by class, and 100-row chunks in the PDF. There is no service layer.
+
+  **Print and PDF: title, range, generated date, table, then signatures.** The header shows:
+  - the logo and system name;
+  - the report's title;
+  - its date range, or "As of";
+  - any filters, in words;
+  - when it was generated and by whom;
+  - the count.
+
+  The block below the table reads "Prepared By:", with the generating admin's name on a signature line, and "Noted By:", with `config('office.noted_by')` name on its line and the position under it. When the config is empty the line is left blank to sign over. The block has `page-break-inside: avoid` and `break-inside: avoid`, so it never splits across a page. The PDF footer names the report.
+
+  **The activity log's pipeline, reused.** It keeps:
+  - **A4 landscape.**
+  - **CSV:** a UTF-8 BOM and CRLF rows, with the same `csvCell()` formula guard. A borrower named `=HYPERLINK(…)` exports as text.
+  - **The 2,000-row cap for paper,** worded with the report's noun: "2,001 items match these filters…".
+  - **Every export logged:** `meta.report` is set, and details read "Exported Borrower Report as CSV (4 rows)".
+
+  The dompdf options moved out of `exportPdf()` into one `renderPdf()` that both kinds of report use, so the security settings cannot drift apart. The activity PDF is otherwise unchanged. Files are named `cict-borrower-report_2026-09-15_to_2026-10-14.pdf`, or `cict-inventory-report_2026-10-14.csv` for a snapshot.
+
+  **On screen,** each report has its own filters, the export toolbar, a sticky-header table of the same rows at 16px, 50 per page, and its own `x-ui.empty-state` ("Everything has been returned", "No defective items", …). Unlike the activity log's, the toolbar stays visible when a report is empty, because "nothing is out" may still need printing and signing.
+
+  **Verification.** `php artisan test`: **517 passed**, up from 493. The 24 new tests are in `tests/Feature/OfficialReportsTest.php`:
+  - **The switcher:** order, `aria-current`, the activity fallback, and the range carried across.
+  - **Access:** admin only.
+  - **Columns:** exact headings in order in `COLUMNS`, the CSV, the screen and print, for all five reports.
+  - **Each report's rows:** voided rows and loans outside the range excluded, no invented 12:00 AM, retired items excluded, the serviceability and category/status filters, the overdue marker, shared ranks and the 10/25/50 limit, remarks falling back to the condition.
+  - **Outputs:** print and PDF for every report, with title, range or "As of", generated line and signatures; a blank Noted By line; the keep-together rule; the formula guard; the cap; logging; the toolbar links; and every report's empty state, which still prints signed.
+
+  A seeded scratch database was also checked in headless Chrome:
+  - **Not Yet Returned** at 1280px: the "Overdue" marker sits under the due date.
+  - **Tabs:** the arrow keys, End and wrap-around move focus correctly. At 390px there is no sideways scroll.
+  - **The print view,** as printed, ends with both signature lines.
+  - **A real PDF** of Defective Items, rendered with pdf.js: 842 × 595 pt (A4 landscape), with the signatures, "Dean, CICT" and "Page 1 of 1".
+
+  `vendor/bin/pint --test` passes on the touched PHP files, and `npm run build` compiled the new utilities. One Blade lesson came out of it: `<td@if(...)` is not compiled, because Blade needs a non-word character before `@`. The attribute is now written with `{!! … !!}`.
+
 ## 2026-10-14
 
 - **The data the office's official reports need is now stored. There is no report UI yet.** The admin keeps five handwritten report formats, separate from the activity log built in Prompts 22–26. They print things no screen ever collected: what each quantity is counted in, each student's course and year, whether an item is serviceable, what is wrong with a defective one, and who notes the report. This change adds that data and nothing else. The "Official reports" tab, which reuses the Reports page, its filters and the print/PDF/CSV pipeline, is Prompt 28. One migration, `2026_10_14_120000_add_unit_and_course_year_level`, adds `equipment.unit`, `users.course` and `users.year_level`. Stock sync, derived status and the routes are untouched.
