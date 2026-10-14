@@ -312,6 +312,9 @@
                             <div class="min-w-0">
                                 <p class="text-sm truncate text-neutral-700">{{ $user->email }}</p>
                                 <p class="text-sm text-neutral-600">{{ $user->contact_number ?: 'No contact number' }}</p>
+                                @if($user->user_type === 'Student' && $user->courseAndYear())
+                                    <p class="text-sm text-neutral-600" data-course-year>{{ $user->courseAndYear() }}</p>
+                                @endif
                             </div>
 
                             {{-- Standing, not account fields. Whoever has to
@@ -355,7 +358,8 @@
                                         title="Edit {{ $user->name }}" aria-label="Edit {{ $user->name }}"
                                         data-user-edit
                                         data-id="{{ $user->id }}" data-name="{{ $user->name }}" data-email="{{ $user->email }}"
-                                        data-user-type="{{ $user->user_type }}" data-contact="{{ $user->contact_number }}">
+                                        data-user-type="{{ $user->user_type }}" data-contact="{{ $user->contact_number }}"
+                                        data-course="{{ $user->course }}" data-year-level="{{ $user->year_level }}">
                                     <i class="text-base fas fa-pen" aria-hidden="true"></i>
                                 </button>
 
@@ -448,6 +452,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const email = document.getElementById('user-email');
         const type = document.getElementById('user-type');
         const contact = document.getElementById('user-contact');
+        const course = document.getElementById('user-course');
+        const yearLevel = document.getElementById('user-year-level');
         const password = document.getElementById('user-password');
         const confirmation = document.getElementById('user-password-confirmation');
         const submit = userForm.querySelector('[data-user-submit]');
@@ -501,6 +507,8 @@ document.addEventListener('DOMContentLoaded', function () {
             name.value = editing ? data.name : '';
             email.value = editing ? data.email : '';
             contact.value = editing ? (data.contact || '') : '';
+            course.value = editing ? (data.course || '') : '';
+            yearLevel.value = editing ? (data.yearLevel || '') : '';
             password.value = '';
             confirmation.value = '';
 

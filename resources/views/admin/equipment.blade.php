@@ -177,7 +177,7 @@
 
                             <div class="min-w-0">
                                 <p class="text-sm text-right text-neutral-700 tabular-nums">
-                                    <span class="font-semibold">{{ $item->available_quantity }}</span> of {{ $item->quantity }} available
+                                    <span class="font-semibold">{{ $item->available_quantity }}</span> of {{ $item->quantity }} <span data-unit>{{ $item->unit }}</span> available
                                     @if($out > 0)
                                         <span class="text-neutral-600">· {{ $out }} out</span>
                                     @endif
@@ -202,6 +202,7 @@
                                         data-category="{{ $item->category }}"
                                         data-loan-type="{{ $item->loan_type }}"
                                         data-quantity="{{ $item->quantity }}"
+                                        data-unit="{{ $item->unit }}"
                                         data-out="{{ $out }}">
                                     <i class="text-base fas fa-pen" aria-hidden="true"></i>
                                 </button>
@@ -277,6 +278,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const descField = document.getElementById('equipment-description');
     const categoryField = document.getElementById('equipment-category');
     const qtyField = document.getElementById('equipment-quantity');
+    const unitField = document.getElementById('equipment-unit');
+    const unitError = modal.querySelector('[data-error-for="equipment-unit"]');
     const submit = modal.querySelector('[data-equipment-submit]');
     const hint = modal.querySelector('[data-equipment-hint]');
     const previewText = modal.querySelector('[data-equipment-preview-text]');
@@ -287,6 +290,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const ADD_URL = @json(route('admin.equipment.store'));
     const UPDATE_URL = @json(route('admin.equipment.update'));
+    const DEFAULT_UNIT = @json(\App\Models\Equipment::DEFAULT_UNIT);
 
     let unitsOut = 0;
     let editing = false;
@@ -300,6 +304,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const nameOk = name.length > 1;
         const qtyOk = !isNaN(qty) && qty >= (editing ? 0 : 1);
         const tooFew = editing && qtyOk && qty < unitsOut;
+        const unitOk = unitField.value.trim().length > 0;
+
+        unitError.hidden = unitOk;
+        unitError.textContent = 'Say what the quantity is counted in — pc, set, box.';
 
         nameError.hidden = nameOk || name.length === 0;
         nameError.textContent = 'Give the item a name of at least two characters.';
@@ -320,11 +328,12 @@ document.addEventListener('DOMContentLoaded', function () {
             previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-success-600';
         }
 
-        const ok = nameOk && qtyOk && !tooFew;
+        const ok = nameOk && qtyOk && !tooFew && unitOk;
         submit.disabled = !ok;
         hint.textContent = !nameOk ? 'Name required'
             : tooFew ? 'Check the units back in first'
             : !qtyOk ? 'Enter a unit count'
+            : !unitOk ? 'Unit required'
             : editing ? 'Saves immediately' : 'Appears in the list at once';
         hint.classList.toggle('text-danger-700', !ok);
         hint.classList.toggle('text-neutral-600', ok);
@@ -340,6 +349,7 @@ document.addEventListener('DOMContentLoaded', function () {
         descField.value = editing ? (data.description || '') : '';
         categoryField.value = editing ? (data.category || '') : '';
         qtyField.value = editing ? data.quantity : 1;
+        unitField.value = editing ? (data.unit || DEFAULT_UNIT) : DEFAULT_UNIT;
         qtyField.min = editing ? Math.max(unitsOut, 0) : 1;
 
         // The loan type cannot change under a loan already out. The current
@@ -383,7 +393,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    [nameField, qtyField].forEach(function (field) {
+    [nameField, qtyField, unitField].forEach(function (field) {
         field.addEventListener('input', sync);
     });
 

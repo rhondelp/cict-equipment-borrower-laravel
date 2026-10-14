@@ -75,6 +75,39 @@
                     @enderror
                 </div>
 
+                {{-- Students only — the "Course & Year" column of the official
+                     reports. Hidden and disabled for any other role; the
+                     server clears both whenever the role is not Student. --}}
+                <div class="hidden" data-student-box>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="user-course" class="flex items-baseline gap-2 text-base font-medium text-neutral-800">
+                                Course <span class="text-sm font-normal text-neutral-600">optional</span>
+                            </label>
+                            <input type="text" id="user-course" name="course" maxlength="50" placeholder="e.g. BSIT" autocomplete="off"
+                                   class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                        </div>
+                        <div>
+                            <label for="user-year-level" class="flex items-baseline gap-2 text-base font-medium text-neutral-800">
+                                Year level <span class="text-sm font-normal text-neutral-600">optional</span>
+                            </label>
+                            <select id="user-year-level" name="year_level"
+                                    class="mt-2 w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-base text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                                <option value="">Not given</option>
+                                @foreach(\App\Models\User::YEAR_LEVELS as $level)
+                                    <option value="{{ $level }}">{{ $level }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    @error('course')
+                        <p class="mt-1 text-sm text-danger-700">{{ $message }}</p>
+                    @enderror
+                    @error('year_level')
+                        <p class="mt-1 text-sm text-danger-700">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 {{-- Step-up check for a new admin: proves the person at the
                      keyboard is the signed-in admin, not just their session. --}}
                 <div class="hidden" data-admin-confirm-box>
@@ -154,6 +187,17 @@ document.addEventListener('DOMContentLoaded', function () {
         if (input) {
             input.required = needsReason;
             if (!needsReason) input.value = '';
+        }
+
+        // Course and year follow the role picked here, so switching a
+        // student to Instructor hides them; the server clears them on save.
+        const studentBox = document.querySelector('[data-student-box]');
+        if (studentBox) {
+            const student = role.value === 'Student';
+            studentBox.classList.toggle('hidden', !student);
+            studentBox.querySelectorAll('input, select').forEach(function (field) {
+                field.disabled = !student;
+            });
         }
 
         if (confirmBox && confirmInput) {

@@ -9,6 +9,7 @@ use App\Support\OfficeHours;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -146,8 +147,12 @@ class UserController extends Controller
             'email' => "required|string|email|max:255|unique:users,email,{$userId}",
             'password' => 'nullable|string|min:4|confirmed',
             'contact_number' => 'nullable|string|max:15',
+            'course' => 'nullable|string|max:50',
+            'year_level' => ['nullable', Rule::in(UserModel::YEAR_LEVELS)],
             // Required only when the submitted role differs from the stored one.
             'role_override_reason' => 'nullable|string|max:500',
+        ], [
+            'year_level.in' => 'Choose a year level from the list.',
         ]);
 
         $user = UserModel::findOrFail($userId);
@@ -173,6 +178,13 @@ class UserController extends Controller
         $user->email = $validated['email'];
         $user->contact_number = $validated['contact_number'] ?? null;
 
+        // Course and year describe a student's enrolment, so they are kept
+        // only while the account is a Student. Changing the role away clears
+        // them, rather than leaving an instructor printed as "BSIT 3rd Year".
+        $isStudent = $validated['user_type'] === 'Student';
+        $user->course = $isStudent ? ($validated['course'] ?? null) : null;
+        $user->year_level = $isStudent ? ($validated['year_level'] ?? null) : null;
+
         if ($roleChanged) {
             $user->user_type = $validated['user_type'];
             $user->role_overridden_at = now();
@@ -195,7 +207,7 @@ class UserController extends Controller
         $changes = ActivityLog::changes($before, $this->accountSnapshot($user));
         $passwordSet = ! empty($validated['password']);
         if ($changes !== [] || $passwordSet) {
-            $words = array_filter([ActivityLog::changeWords($changes, ['contact_number' => 'contact number']), $passwordSet ? 'password reset by an admin' : null]);
+            $words = array_filter([ActivityLog::changeWords($changes, ['contact_number' => 'contact number', 'year_level' => 'year level']), $passwordSet ? 'password reset by an admin' : null]);
             ActivityLog::record('user_updated', [
                 'subject' => $user,
                 'details' => 'Edited the account of '.$user->name.': '.implode(', ', $words).'.',
@@ -223,6 +235,8 @@ class UserController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'contact_number' => $user->contact_number,
+            'course' => $user->course,
+            'year_level' => $user->year_level,
         ];
     }
 

@@ -174,7 +174,7 @@ class ScreenSmokeTest extends TestCase
 
         $this->assertStringContainsString('Retired', $html);
         $this->assertStringContainsString('Fully out', $html);
-        $this->assertStringContainsString('of 10 available', $html);
+        $this->assertStringContainsString('of 10 <span data-unit>pc</span> available', $html);
     }
 
     public function test_the_return_logs_screen_flags_late_and_damaged_returns(): void

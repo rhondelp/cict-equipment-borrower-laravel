@@ -11,7 +11,7 @@ class Equipment extends Model
     //
     protected $table = 'equipment';
 
-    protected $fillable = ['equipment_name', 'description', 'category', 'loan_type', 'quantity', 'available_quantity', 'status', 'retired_at'];
+    protected $fillable = ['equipment_name', 'description', 'category', 'loan_type', 'quantity', 'unit', 'available_quantity', 'status', 'retired_at'];
 
     /**
      * How an item leaves the room. Returnable is lent and brought back by a due
@@ -31,8 +31,11 @@ class Equipment extends Model
         self::LOAN_NON_RETURNABLE => 'Non-Returnable',
     ];
 
-    /** Mirrors the column default, so an unsaved model answers the same way. */
-    protected $attributes = ['loan_type' => self::LOAN_RETURNABLE];
+    /** What one of `quantity` is counted in, when nobody says otherwise. */
+    public const DEFAULT_UNIT = 'pc';
+
+    /** Mirrors the column defaults, so an unsaved model answers the same way. */
+    protected $attributes = ['loan_type' => self::LOAN_RETURNABLE, 'unit' => self::DEFAULT_UNIT];
 
     protected function casts(): array
     {
@@ -310,9 +313,55 @@ class Equipment extends Model
         return ['key' => 'all-in', 'label' => 'All in', 'tone' => 'success'];
     }
 
+    /**
+     * Serviceable unless something of it came back damaged or lost (any
+     * condition other than Good) and nobody has recorded a resolution yet:
+     * exactly the rows ReturnLog::needsFollowUp() flags. Recording the
+     * resolution on the return logs screen is what makes it serviceable
+     * again. Derived on every call, never stored, like availability.
+     *
+     * It describes the item, not each unit: one open incident on a 10-unit
+     * set makes the set non-serviceable until it is resolved.
+     */
+    public function isServiceable(): bool
+    {
+        if (isset($this->attributes['has_open_defects'])) {
+            return ! $this->attributes['has_open_defects'];
+        }
+
+        return ! $this->returnLogs()->needsFollowUp()->exists();
+    }
+
+    /** Items with no unresolved damage or loss on file. */
+    public function scopeServiceable(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('returnLogs', fn ($logs) => $logs->needsFollowUp());
+    }
+
+    /** Items with at least one unresolved damage or loss on file. */
+    public function scopeNonServiceable(Builder $query): Builder
+    {
+        return $query->whereHas('returnLogs', fn ($logs) => $logs->needsFollowUp());
+    }
+
+    /**
+     * This item's open defects, oldest first. ReturnLog::defects() lists
+     * them across every item.
+     */
+    public function defects()
+    {
+        return ReturnLog::defects()->whereHas('borrowTransaction', fn ($loan) => $loan->where('equipment_id', $this->id));
+    }
+
     public function borrowTransactions()
     {
         return $this->hasMany(BorrowTransaction::class);
+    }
+
+    /** Every return logged against a loan of this item. */
+    public function returnLogs()
+    {
+        return $this->hasManyThrough(ReturnLog::class, BorrowTransaction::class);
     }
 
     public function itemRequests()

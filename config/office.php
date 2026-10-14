@@ -73,4 +73,22 @@ return [
 
     'time_limited_minutes' => (int) env('OFFICE_TIME_LIMITED_MINUTES', 60),
 
+    /*
+    |--------------------------------------------------------------------------
+    | "Noted by" on the official reports
+    |--------------------------------------------------------------------------
+    |
+    | The signatory printed under "Noted by" on the office's official report
+    | formats, usually the department head. "Prepared by" is not configured:
+    | it is the admin who generates the report. Empty by default, because a
+    | name printed above a signature line has to be one somebody confirmed;
+    | an empty value prints a blank line to sign over instead.
+    |
+    */
+
+    'noted_by' => [
+        'name' => env('OFFICE_NOTED_BY_NAME', ''),
+        'position' => env('OFFICE_NOTED_BY_POSITION', ''),
+    ],
+
 ];

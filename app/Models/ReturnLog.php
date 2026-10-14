@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class ReturnLog extends Model
@@ -78,6 +79,33 @@ class ReturnLog extends Model
     public function needsFollowUp(): bool
     {
         return $this->isIncident() && ! $this->isResolved();
+    }
+
+    /**
+     * needsFollowUp() as a query, so a list, a count or an existence check
+     * can ask the database instead of loading every log. The two must agree:
+     * an incident is any condition other than Good. It shares the method's
+     * name, so call it on a builder — ReturnLog::query()->needsFollowUp() or
+     * a relation — never ReturnLog::needsFollowUp() statically.
+     */
+    public function scopeNeedsFollowUp(Builder $query): Builder
+    {
+        return $query->where('condition', '!=', 'Good')->whereNull('resolved_at');
+    }
+
+    /**
+     * The defect list: every unresolved incident with what the report needs
+     * already loaded — the item (borrowTransaction.equipment), how many
+     * units came back that way (borrowTransaction.quantity), and the defect
+     * itself, which is the log's `remarks`. Oldest first.
+     */
+    public static function defects(): Builder
+    {
+        return static::query()
+            ->needsFollowUp()
+            ->with(['borrowTransaction.equipment', 'borrowTransaction.user'])
+            ->orderBy('return_date')
+            ->orderBy('id');
     }
 
     /** "Resolved Sep 20 by Quincy Jane O." */

@@ -228,6 +228,47 @@
                     </p>
                 </fieldset>
 
+                {{-- Course and year — students only. They fill the "Course &
+                     Year" column of the office's official reports. Hidden and
+                     disabled for anyone else, so an instructor applicant posts
+                     neither, and AuthenticateUser::registerPublic drops them
+                     for an Instructor answer anyway. `hidden` sits on a
+                     wrapper with no display class: on the grid itself,
+                     Tailwind's `.grid` would outrank it and keep it shown. --}}
+                <div data-student-fields @unless($oldRole === 'Student') hidden @endunless>
+                <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+                    <div class="flex flex-col gap-1.5">
+                        <label for="course" class="flex items-baseline gap-1.5 text-[12.5px] font-medium text-neutral-900">
+                            Course <span class="font-normal text-neutral-500">optional</span>
+                        </label>
+                        <input type="text" name="course" id="course" value="{{ old('course') }}"
+                               maxlength="50" autocomplete="off" placeholder="BSIT"
+                               aria-describedby="course-error"
+                               @disabled($oldRole !== 'Student')
+                               @if($errors->has('course')) aria-invalid="true" @endif
+                               class="h-11 min-w-0 rounded-[10px] border px-[13px] text-[14px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500
+                                      {{ $errors->has('course') ? 'border-danger-300' : 'border-neutral-200' }}">
+                        <p id="course-error" class="text-[12px] text-danger-700" @unless($errors->has('course')) hidden @endunless>{{ $errors->first('course') }}</p>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label for="year_level" class="flex items-baseline gap-1.5 text-[12.5px] font-medium text-neutral-900">
+                            Year level <span class="font-normal text-neutral-500">optional</span>
+                        </label>
+                        <select name="year_level" id="year_level" aria-describedby="year-error"
+                                @disabled($oldRole !== 'Student')
+                                @if($errors->has('year_level')) aria-invalid="true" @endif
+                                class="h-11 min-w-0 rounded-[10px] border bg-white px-[11px] text-[14px] text-neutral-900 outline-none transition-colors focus:border-primary-500
+                                       {{ $errors->has('year_level') ? 'border-danger-300' : 'border-neutral-200' }}">
+                            <option value="">Select</option>
+                            @foreach (\App\Models\User::YEAR_LEVELS as $level)
+                                <option value="{{ $level }}" @selected(old('year_level') === $level)>{{ $level }}</option>
+                            @endforeach
+                        </select>
+                        <p id="year-error" class="text-[12px] text-danger-700" @unless($errors->has('year_level')) hidden @endunless>{{ $errors->first('year_level') }}</p>
+                    </div>
+                </div>
+                </div>
+
                 {{-- Contact number. Optional in the database and optional here;
                      the note says what it is actually for, which is the admin
                      users screen and nothing automated. --}}
@@ -365,6 +406,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const toggle = document.getElementById('password-toggle');
     const emailNote = form.querySelector('[data-email-note]');
     const roleNote = form.querySelector('[data-role-note]');
+    const studentFields = form.querySelector('[data-student-fields]');
     const roleInputs = Array.from(form.querySelectorAll('input[name="requested_role"]'));
     const hint = form.querySelector('[data-submit-hint]');
     const agreeBox = form.querySelector('[data-agree-box]');
@@ -492,6 +534,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function paintRole() {
         roleNote.hidden = pickedRole() !== 'Instructor';
+
+        // Disabled as well as hidden, so they are not posted for anyone else.
+        const student = pickedRole() === 'Student';
+        studentFields.hidden = !student;
+        studentFields.querySelectorAll('input, select').forEach(function (field) {
+            field.disabled = !student;
+        });
     }
 
     const STRENGTH = {

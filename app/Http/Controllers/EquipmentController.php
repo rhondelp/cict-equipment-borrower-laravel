@@ -26,11 +26,11 @@ class EquipmentController extends Controller
      *
      * `loan_type` is required, but a post without it (an older form, a
      * script) means Returnable, which is what every item was before the
-     * field existed.
+     * field existed. A post without `unit` means "pc", the column default.
      */
     public function store(Request $request)
     {
-        $request->mergeIfMissing(['loan_type' => Equipment::LOAN_RETURNABLE]);
+        $request->mergeIfMissing(['loan_type' => Equipment::LOAN_RETURNABLE, 'unit' => Equipment::DEFAULT_UNIT]);
 
         $validated = $request->validate([
             'equipment_name' => 'required|string|max:255',
@@ -38,6 +38,7 @@ class EquipmentController extends Controller
             'category' => 'nullable|string|max:60',
             'loan_type' => ['required', Rule::in(array_keys(Equipment::LOAN_TYPES))],
             'quantity' => 'required|integer|min:1',
+            'unit' => 'required|string|max:20',
         ]);
         $validated['category'] = Equipment::canonicalCategory($validated['category'] ?? null);
 
@@ -68,7 +69,7 @@ class EquipmentController extends Controller
      * was made under the old type's terms, and switching underneath it would
      * leave it due by a date it was never given, or turn it into a hand-over
      * nobody recorded. A post without `loan_type` keeps the current one,
-     * rather than quietly resetting the item to Returnable.
+     * rather than quietly resetting the item to Returnable; `unit` likewise.
      */
     public function update(Request $request)
     {
@@ -79,6 +80,7 @@ class EquipmentController extends Controller
             'category' => 'nullable|string|max:60',
             'loan_type' => ['sometimes', 'required', Rule::in(array_keys(Equipment::LOAN_TYPES))],
             'quantity' => 'required|integer|min:0',
+            'unit' => 'sometimes|required|string|max:20',
         ]);
         $validated['category'] = Equipment::canonicalCategory($validated['category'] ?? null);
 
@@ -114,6 +116,7 @@ class EquipmentController extends Controller
             $equipment->category = $validated['category'];
             $equipment->loan_type = $loanType;
             $equipment->quantity = $validated['quantity'];
+            $equipment->unit = $validated['unit'] ?? $equipment->unit;
             $equipment->available_quantity = $validated['quantity'] - $out - $issued;
             $equipment->status = $equipment->lendableStatus();
             $equipment->save();
@@ -310,6 +313,7 @@ class EquipmentController extends Controller
             'category' => $equipment->category,
             'loan_type' => $equipment->loanTypeLabel(),
             'quantity' => $equipment->quantity,
+            'unit' => $equipment->unit,
             'available_quantity' => $equipment->available_quantity,
         ];
     }

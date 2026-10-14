@@ -1,5 +1,46 @@
 # Changelog
 
+## 2026-10-14
+
+- **The data the office's official reports need is now stored. There is no report UI yet.** The admin keeps five handwritten report formats, separate from the activity log built in Prompts 22–26. They print things no screen ever collected: what each quantity is counted in, each student's course and year, whether an item is serviceable, what is wrong with a defective one, and who notes the report. This change adds that data and nothing else. The "Official reports" tab, which reuses the Reports page, its filters and the print/PDF/CSV pipeline, is Prompt 28. One migration, `2026_10_14_120000_add_unit_and_course_year_level`, adds `equipment.unit`, `users.course` and `users.year_level`. Stock sync, derived status and the routes are untouched.
+
+  **Every item has a unit, and it defaults to "pc".** `equipment.unit` is a string of up to 20 characters, defaulting to `pc` at both the column and the model (`Equipment::DEFAULT_UNIT`). Every existing row therefore reads `pc` without a backfill. On the add/edit form the Unit field sits beside the quantity stepper, since the two read as one phrase on paper ("3 set", "12 pc"). It is required, and it suggests pc, set, pair, box, pack and roll but takes any word. Emptying it disables the submit with "Unit required". The server treats it like `loan_type`: a post without it means `pc` on add and keeps the current unit on edit, so an older form cannot reset a "set" to "pc". The inventory list shows it beside the total ("6 of 10 pc available"). It is in the audit snapshot, so changing it is logged as "unit set → box". It never moves stock, and a test pins that.
+
+  **Students can give a course and year level, and only students keep them.** `users.course` (free text, up to 50 characters) and `users.year_level` (up to 20) are nullable.
+  - **Sign-up** shows them only once "Student" is picked. They are disabled as well as hidden for anyone else, so an instructor applicant posts neither. `registerPublic` drops them for an Instructor answer anyway: that account starts as a Student, but it has no enrolment.
+  - **The admin add/edit modal** shows them only while the role select reads Student.
+  - **The server keeps them for a Student only.** `AuthenticateUser::register` and `UserController::update` write null for any other role, so moving a student to Instructor clears them rather than leaving an instructor printed as "BSIT 3rd Year".
+  - **The users list** shows "BSIT · 3rd Year" under the contact number, from `User::courseAndYear()`. Edits are logged ("year level 1st Year → 2nd Year").
+
+  The year level is a select of 1st–4th Year (`User::YEAR_LEVELS`), not free text, so the reports' Course & Year column does not mix "3", "III" and "third". The column is a plain string, so the list can grow without a migration. That select is the first `<select>` on the sign-up form. `RegisterPageTest` had banned any select there, but the rule was written against the old user-type dropdown, a privilege boundary (2026-09-21). The assertion now bans a role select by name, and allows exactly one select.
+
+  **Serviceable is derived from the return logs, never stored.** `Equipment::isServiceable()` is false while any return of the item still `needsFollowUp()`, meaning a condition other than Good with no resolution recorded. That is the rule the return logs screen already leads with, so the two cannot disagree. Recording the resolution there makes the item serviceable again.
+  - The same rule as SQL is `ReturnLog::query()->needsFollowUp()`. It shares the method's name, so it must be called on a builder, not statically.
+  - It backs `Equipment::serviceable()` and `nonServiceable()`, through a new `Equipment::returnLogs()` has-many-through.
+  - A list can preload the answer with `withExists([... as has_open_defects])`, which `isServiceable()` reads before it queries.
+  - A test runs every condition, legacy "Missing parts" included, through both the method and the scope and requires them to agree.
+
+  **The defect list is `ReturnLog::defects()`.** It returns unresolved incidents, oldest first, with each loan's item and borrower eager-loaded. The item comes from `borrowTransaction.equipment`, the quantity from `borrowTransaction.quantity`, and the defect from the log's `remarks`. `$equipment->defects()` narrows it to one item.
+
+  **"Noted by" is config; "Prepared by" is the admin who generates the report.** `config('office.noted_by')` holds `name` and `position`, from `OFFICE_NOTED_BY_NAME` / `OFFICE_NOTED_BY_POSITION`. Both are in `.env.example` and both are empty by default: a name printed above a signature line has to be one somebody confirmed, and an empty value can print a blank line to sign over instead.
+
+  **Verification.** `php artisan test`: **493 passed**, up from 477. The 16 new tests are in `tests/Feature/OfficialReportDataTest.php`:
+  - the unit default, adding with a unit, the list showing it, missing/empty/over-long units, edit-keeps-unit and logging, and unit-doesn't-touch-stock;
+  - sign-up with a course and year, both optional, a year off the list refused, an instructor applicant's values dropped, and the form hiding and disabling the fields until Student is picked;
+  - admin add/edit with logging and the list line, and course and year cleared for non-students;
+  - serviceable before a return, after a Good one, after Damaged, and after resolving, plus method/scope parity for every condition, the scopes, the preloaded path and the defect list;
+  - the "Noted by" config and `.env.example`.
+
+  Three existing assertions changed with the spec: two "of 10 available" strings, in `EquipmentPageTest` and `ScreenSmokeTest`, now include the unit, and the select ban described above.
+
+  On a scratch SQLite database, the migration ran up, down and up again. A script booting the app printed `unit default: pc` and `serviceable before: true`. After a Damaged return it printed `serviceable after Damaged: false`, `defects: Check Projector x1 pc - Cracked lens`, and the item under `nonServiceable()`. After resolving it, it printed `serviceable after resolve: true`. In headless Chrome:
+  - **Sign-up** hides and disables the fields until Student is picked, and does so again on Instructor. At 390px there is no horizontal scroll.
+  - **The equipment modal** opens with `pc`. An empty unit disables the submit with "Unit required".
+  - **The user modal** shows the fields for Student only.
+  - No page raised a JavaScript error.
+
+  `vendor/bin/pint --test` shows no new issues: the touched files are clean apart from `User.php`, whose findings are identical before and after. The repo-wide count is now 9 files, because `database/seeders/AdminSeeder.php`, last changed in `318feef`, joined the baseline. `npm run build` compiled the new grid utilities.
+
 ## 2026-10-07
 
 - **The report can be exported as CSV or PDF, or printed, and each export is exactly the report on screen.** Three new routes sit in the Admin group, `admin.reports.csv`, `admin.reports.pdf` and `admin.reports.print`. Each takes the screen's query string and reads it through the same `resolveFilters()` and `ActivityLog::filter()` as the screen, so a bad date falls back the same way and a filter narrows the same way. On the screen, a toolbar between the filters and the summary reads "Export or print this report — all 1,284 activities, not just this page." It has three 48px buttons, Export CSV, Export PDF and Print. Print opens in a new tab, since it goes straight to the print dialog. Each button links with the page's own query string, minus the page number. The toolbar shows only when something matches.

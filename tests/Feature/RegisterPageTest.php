@@ -69,7 +69,10 @@ class RegisterPageTest extends TestCase
         $this->assertStringContainsString('name="requested_role" value="Instructor"', $html);
         $this->assertSame(2, substr_count($html, 'type="radio" name="requested_role"'), 'A third role choice appeared');
         $this->assertStringNotContainsString('name="user_type"', $html, 'The user type field is back');
-        $this->assertStringNotContainsString('<select', $html, 'A select is back on the sign-up form');
+        // The banned select was the role dropdown, a privilege boundary. The
+        // year-level select (students only) carries no privilege.
+        $this->assertDoesNotMatchRegularExpression('/<select[^>]*name="(user_type|requested_role|role)"/', $html, 'A role select is back on the sign-up form');
+        $this->assertSame(1, substr_count($html, '<select'), 'A select other than year level appeared on the sign-up form');
         $this->assertStringNotContainsString('value="Admin"', $html);
     }
 

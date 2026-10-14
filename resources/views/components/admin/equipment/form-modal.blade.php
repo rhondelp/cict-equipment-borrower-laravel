@@ -1,5 +1,5 @@
 {{-- Add / edit equipment — one modal for both, because they ask for the same
-     five things.
+     six things.
 
      Two fields that used to be here are gone:
 
@@ -100,7 +100,12 @@
                               class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"></textarea>
                 </div>
 
-                <div>
+                {{-- Quantity and what it is counted in, side by side because
+                     they read as one phrase on the official reports: "3 set",
+                     "12 pc". The unit suggests the common ones but takes any
+                     word up to 20 characters. --}}
+                <div class="grid grid-cols-[minmax(0,1fr)_7.5rem] gap-3">
+                <div class="min-w-0">
                     <label for="equipment-quantity" data-quantity-label class="block text-base font-medium text-neutral-800">Units to add</label>
                     <div class="flex items-center gap-2 mt-2">
                         <button type="button" data-step="-1" aria-label="Fewer units"
@@ -115,6 +120,19 @@
                         </button>
                     </div>
                 </div>
+                <div>
+                    <label for="equipment-unit" class="block text-base font-medium text-neutral-800">Unit</label>
+                    <input type="text" id="equipment-unit" name="unit" required maxlength="20" value="{{ \App\Models\Equipment::DEFAULT_UNIT }}"
+                           list="equipment-units" autocomplete="off" aria-describedby="equipment-unit-error"
+                           class="mt-2 h-12 w-full rounded-md border border-neutral-300 px-4 text-base text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                    <datalist id="equipment-units">
+                        @foreach(['pc', 'set', 'pair', 'box', 'pack', 'roll'] as $unit)
+                            <option value="{{ $unit }}"></option>
+                        @endforeach
+                    </datalist>
+                </div>
+                </div>
+                <p id="equipment-unit-error" data-error-for="equipment-unit" class="-mt-2 text-sm font-medium text-danger-700" hidden></p>
 
                 {{-- What the row will read after saving, written out in the same
                      words the table uses. It turns red the moment the total

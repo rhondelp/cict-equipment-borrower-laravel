@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class AuthenticateUser extends Controller
@@ -554,6 +555,11 @@ class AuthenticateUser extends Controller
             // reveal toggle already prevents, at the cost of a whole field.
             'password' => ['required', 'string', 'min:8', 'regex:/[A-Za-z]/', 'regex:/[0-9]/'],
             'contact_number' => 'nullable|string|max:15',
+            // Asked of students only, and only kept for one: an instructor
+            // applicant's account starts as a Student, but these describe
+            // an enrolment they do not have.
+            'course' => 'nullable|string|max:50',
+            'year_level' => ['nullable', Rule::in(User::YEAR_LEVELS)],
             'agree' => 'accepted',
         ], [
             'requested_role.required' => 'Say whether you are a student or an instructor.',
@@ -561,6 +567,7 @@ class AuthenticateUser extends Controller
             'password.min' => 'Your password needs at least 8 characters.',
             'password.regex' => 'Your password needs both letters and numbers.',
             'agree.accepted' => 'Tick the agreement to continue.',
+            'year_level.in' => 'Choose your year level from the list.',
         ]);
 
         $wantsInstructor = $validated['requested_role'] === 'Instructor';
@@ -572,6 +579,8 @@ class AuthenticateUser extends Controller
             'email' => strtolower(trim($validated['email'])),
             'password' => Hash::make($validated['password']),
             'contact_number' => $validated['contact_number'] ?? null,
+            'course' => $wantsInstructor ? null : ($validated['course'] ?? null),
+            'year_level' => $wantsInstructor ? null : ($validated['year_level'] ?? null),
             'instructor_requested_at' => $wantsInstructor ? now() : null,
         ]);
 
@@ -614,6 +623,9 @@ class AuthenticateUser extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:4|confirmed',
             'contact_number' => 'nullable|string|max:15',
+            // Kept for a Student only; see UserController::update.
+            'course' => 'nullable|string|max:50',
+            'year_level' => ['nullable', Rule::in(User::YEAR_LEVELS)],
         ];
 
         if ($makingAdmin) {
@@ -635,7 +647,10 @@ class AuthenticateUser extends Controller
             'role_override_reason.min' => 'Give a usable reason (at least 5 characters).',
             'current_password.required' => 'Enter your own password to create an admin account.',
             'current_password.current_password' => 'That is not your password.',
+            'year_level.in' => 'Choose a year level from the list.',
         ]);
+
+        $isStudent = $validatedData['user_type'] === 'Student';
 
         $user = User::create([
             'user_type' => $validatedData['user_type'],
@@ -643,6 +658,8 @@ class AuthenticateUser extends Controller
             'email' => strtolower(trim($validatedData['email'])),
             'password' => Hash::make($validatedData['password']),
             'contact_number' => $validatedData['contact_number'] ?? null,
+            'course' => $isStudent ? ($validatedData['course'] ?? null) : null,
+            'year_level' => $isStudent ? ($validatedData['year_level'] ?? null) : null,
         ] + ($makingAdmin ? [
             'role_overridden_at' => now(),
             'role_overridden_by' => auth()->id(),

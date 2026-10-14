@@ -206,8 +206,8 @@ offer instead of a hard delete: `equipment.retired_at`, `users.deactivated_at`,
 
 | Model | Table | Key fields | Relationships |
 |---|---|---|---|
-| `User` | `users` | `user_type` (enum Admin/Instructor/Student), `name`, `email` (unique), `password` (hashed cast), `contact_number`, `deactivated_at`, `instructor_requested_at` | hasMany `borrowTransactions`, `itemRequests`, `notifications`, `classSchedules` |
-| `Equipment` | `equipment` (explicit `$table`) | `equipment_name`, `description`, `category` (nullable free text, max 60, indexed; set only through `Equipment::canonicalCategory()`), `loan_type` (string 20, indexed, default `returnable`; one of `Equipment::LOAN_TYPES`: `returnable` / `time_limited` / `non_returnable`, labels Returnable / Time-Limited / Non-Returnable), `quantity` (total owned, issued units included), `available_quantity` (on shelf), `status` (enum Available/Unavailable, **derived**), `retired_at` (nullable) | hasMany `borrowTransactions`, `itemRequests` |
+| `User` | `users` | `user_type` (enum Admin/Instructor/Student), `name`, `email` (unique), `password` (hashed cast), `contact_number`, `course` (string 50, nullable), `year_level` (string 20, nullable; one of `User::YEAR_LEVELS`), `deactivated_at`, `instructor_requested_at` | hasMany `borrowTransactions`, `itemRequests`, `notifications`, `classSchedules` |
+| `Equipment` | `equipment` (explicit `$table`) | `equipment_name`, `description`, `category` (nullable free text, max 60, indexed; set only through `Equipment::canonicalCategory()`), `loan_type` (string 20, indexed, default `returnable`; one of `Equipment::LOAN_TYPES`: `returnable` / `time_limited` / `non_returnable`, labels Returnable / Time-Limited / Non-Returnable), `quantity` (total owned, issued units included), `unit` (string 20, default `pc`; what `quantity` is counted in), `available_quantity` (on shelf), `status` (enum Available/Unavailable, **derived**), `retired_at` (nullable) | hasMany `borrowTransactions`, `itemRequests`; hasManyThrough `returnLogs` (via transactions) |
 | `ItemRequest` | `item_requests` | `user_id`, `equipment_id`, `quantity`, `status` (string: Pending/Approved/Declined), `requested_date`, `remarks`, `decision_reason`, `decided_at`, `decided_by` | belongsTo `user`, `equipment`, `decider` |
 | `BorrowTransaction` | `borrow_transactions` | `user_id`, `equipment_id`, `borrow_date` (DATETIME), `return_date` (DATETIME, nullable), `timed` (bool, default false), `quantity`, `purpose`, `status` (enum Borrowed/Returned/Overdue/Issued), `remarks`, `class_schedule_id` (nullable, `onDelete('set null')`), `voided_at`, `void_reason` | belongsTo `user`, `equipment`, `classSchedule`; hasOne `returnLog` |
 | `ReturnLog` | `return_logs` | `borrow_transaction_id`, `user_id` (the *staff receiver*, nullable, `set null`), `return_date`, `condition`, `remarks` | belongsTo `borrowTransaction`, `receiver` (User via `user_id`); hasOneThrough `borrower` (User via transaction) and `equipment` (via transaction) |
@@ -263,6 +263,39 @@ retirement, reminders), the actor is "Not recorded". For each type it stops at t
 entry, so once live logging is wired in it cannot write the same event twice. Some history is
 unrecoverable and is not invented: lifted suspensions, reactivations, restores, declined instructor
 requests, and every role change but the latest. Pinned by `tests/Feature/ActivityLogTest`.
+
+**Official-report data (since 14 Oct 2026, "Prompt 27").** The office's five fixed report formats
+(Prompt 28, not built yet) need four things the screens never stored. The migration is
+`2026_10_14_120000_add_unit_and_course_year_level`.
+- **`equipment.unit`** defaults to `pc` (`Equipment::DEFAULT_UNIT`). On the add/edit form it is
+  required, max 20, and a free word with suggestions (pc, set, pair, box, pack, roll). A post
+  without it means `pc` on add and keeps the current one on edit, the same way `loan_type` is
+  handled. It is printed beside the total in the inventory list ("6 of 10 pc available"), it is in
+  the audit snapshot, and it never touches stock.
+- **`users.course` / `users.year_level`** are kept for a Student only. Sign-up shows them only
+  when Student is picked, and drops them for an Instructor applicant. The admin add/edit modal
+  shows them only while the role select says Student. `AuthenticateUser::register` and
+  `UserController::update` write null for any other role, so a role change away from Student
+  clears them. `year_level` must be one of `User::YEAR_LEVELS` (1st–4th Year); `course` is free
+  text, max 50. `User::courseAndYear()` returns "BSIT · 3rd Year", or null. The users list shows it
+  under the contact number.
+- **Serviceable / non-serviceable is derived, never stored.** `Equipment::isServiceable()` is false
+  while any return log of the item `needsFollowUp()`: any condition other than Good (so Minor damage
+  and Lost count too), with no `resolved_at`. Recording the resolution on the return logs screen
+  makes it serviceable again. It describes the item, not each unit. The same rule exists as SQL:
+  `ReturnLog::query()->needsFollowUp()`. It shares the method's name, so never call it statically.
+  It also backs `Equipment::serviceable()` / `nonServiceable()`. A list can preload the answer
+  with `withExists(['returnLogs as has_open_defects' => fn ($q) => $q->needsFollowUp()])`, which
+  `isServiceable()` reads before it queries.
+- **The defect list** is `ReturnLog::defects()`: unresolved incidents, oldest first, with
+  `borrowTransaction.equipment` and `.user` eager-loaded. The item is `borrowTransaction.equipment`,
+  the quantity is `borrowTransaction.quantity`, and the defect is `remarks`.
+  `$equipment->defects()` narrows it to one item.
+- **"Noted by"** is `config('office.noted_by')` = `['name' => …, 'position' => …]`, from env
+  `OFFICE_NOTED_BY_NAME` / `OFFICE_NOTED_BY_POSITION`, both empty by default and listed in
+  `.env.example`. "Prepared by" is not config: it is the admin who generates the report.
+
+Pinned by `tests/Feature/OfficialReportDataTest`.
 
 `App\Models\Notification` is a custom table, unrelated to the framework notifications table;
 `User` still uses the `Notifiable` trait but nothing dispatches framework notifications.
@@ -447,6 +480,8 @@ loan period, used by the approve branch and quoted on the landing page.
 time-limited loan created by approval; `Equipment::timeLimitLabel()` words it ("1 hour", "90 minutes")
 for the borrower's request form. `config('office.location')`
 ("Equipment room, CICT building") came from the landing mockup and is unconfirmed.
+`config('office.noted_by')` is the "Noted by" signatory on the official reports; it is empty
+until someone sets `OFFICE_NOTED_BY_NAME` / `OFFICE_NOTED_BY_POSITION` (see Data model).
 
 ## Derived state
 

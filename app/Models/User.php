@@ -25,6 +25,8 @@ class User extends Authenticatable
         'email',
         'password',
         'contact_number',
+        'course',
+        'year_level',
         'deactivated_at',
         'suspended_at',
         'suspension_reason',
@@ -68,6 +70,25 @@ class User extends Authenticatable
      * sign-up form, and an Instructor answer waits for an admin to confirm it.
      */
     public const SCHOOL_DOMAIN = 'nmsc.edu.ph';
+
+    /**
+     * The year levels a student can give, in order. A fixed list rather than
+     * free text, so "Course & Year" on the official reports reads "BSIT 3rd
+     * Year" for everyone instead of "3", "III" and "third". The column is a
+     * plain string, so the list can grow without a migration.
+     */
+    public const YEAR_LEVELS = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+
+    /**
+     * "BSIT · 3rd Year", either half alone, or null when neither is on file —
+     * the Course & Year cell of the official reports.
+     */
+    public function courseAndYear(): ?string
+    {
+        $parts = array_filter([$this->course, $this->year_level]);
+
+        return $parts === [] ? null : implode(' · ', $parts);
+    }
 
     /**
      * The domain half of an address, lowercased. Null when there is not exactly

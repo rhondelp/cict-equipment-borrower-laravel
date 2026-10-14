@@ -62,8 +62,8 @@ class EquipmentPageTest extends TestCase
         $this->shelf();
         $html = $this->html();
 
-        $this->assertStringContainsString('of 10 available', $html);
-        $this->assertStringContainsString('6</span> of 10 available', $html, 'The available figure is not rendered');
+        $this->assertStringContainsString('of 10 <span data-unit>pc</span> available', $html);
+        $this->assertStringContainsString('6</span> of 10 <span data-unit>pc</span> available', $html, 'The available figure is not rendered');
         // The proportion bar, width driven by the real ratio.
         $this->assertStringContainsString('style="width: 60%"', $html, 'No proportion bar for a partly-out item');
         $this->assertStringContainsString('style="width: 0%"', $html, 'No proportion bar for a fully-out item');
