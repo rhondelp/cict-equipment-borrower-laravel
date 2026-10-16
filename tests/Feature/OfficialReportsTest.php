@@ -28,7 +28,7 @@ class OfficialReportsTest extends TestCase
         'inventory' => ['Quantity', 'Unit', 'Item Description', 'Status'],
         'not-returned' => ['Name of Borrower', 'Course & Year', 'Item Borrowed', 'Date Borrowed', 'Due Date & Time'],
         'most-borrowed' => ['Rank', 'Item Description', 'Times Borrowed', 'Total Quantity'],
-        'defective' => ['Quantity', 'Unit', 'Item Description', 'Item Defect'],
+        'defective' => ['Date & Time Reported', 'Quantity', 'Unit', 'Item Description', 'Item Defect'],
     ];
 
     private User $admin;
@@ -110,7 +110,7 @@ class OfficialReportsTest extends TestCase
         $august = $this->loan($leo, $projector, ['borrow_date' => '2026-08-03 00:00:00', 'return_date' => '2026-08-05 00:00:00', 'status' => 'Returned'], '2026-08-03 13:00:00');
         $this->returnLog($august, '2026-08-05', '2026-08-05 09:00:00');
 
-        return compact('mia', 'leo', 'projector', 'cable', 'markers', 'returned', 'overdue', 'timed', 'issued');
+        return compact('mia', 'leo', 'projector', 'cable', 'markers', 'returned', 'overdue', 'timed', 'issued', 'august');
     }
 
     /** The CSV as rows (header first), after checking and stripping the BOM. */
@@ -364,9 +364,96 @@ class OfficialReportsTest extends TestCase
         ]);
 
         $this->assertSame([
-            ['1', 'pc', 'Projector (Epson)', 'Cracked lens'],
-            ['2', 'pc', 'HDMI cable', 'Lost'],
+            ['2026-10-12 10:00', '2', 'pc', 'HDMI cable', 'Lost'],
+            ['2026-10-07 16:20', '1', 'pc', 'Projector (Epson)', 'Cracked lens'],
         ], array_slice($this->csv('defective'), 1), 'Resolved or clean returns are listed, or the defect text is wrong');
+    }
+
+    public function test_defective_items_show_when_the_return_was_recorded_newest_first(): void
+    {
+        $this->assertSame('Asia/Manila', config('app.timezone'));
+        $month = $this->month();
+        // Recorded the morning after the day it came back: the report shows the
+        // moment it was recorded, never return_date's midnight.
+        $late = $this->returnLog($month['returned'], '2026-10-07', '2026-10-08 09:05:00', 'Damaged', ['remarks' => 'Cracked lens']);
+        $this->returnLog($month['overdue'], '2026-10-14', '2026-10-14 15:33:00', 'Minor damage', ['remarks' => 'Frayed end']);
+        // Logged in August and never resolved: an older row still carries its time.
+        $this->returnLog($month['august'], '2026-08-20', '2026-08-20 13:45:00', 'Lost');
+
+        $this->assertSame([
+            ['2026-10-14 15:33', '2', 'pc', 'HDMI cable', 'Frayed end'],
+            ['2026-10-08 09:05', '1', 'pc', 'Projector (Epson)', 'Cracked lens'],
+            ['2026-08-20 13:45', '1', 'pc', 'Projector (Epson)', 'Lost'],
+        ], array_slice($this->csv('defective'), 1), 'The CSV is not newest first, or its time is not Y-m-d H:i from created_at');
+
+        $screen = $this->screen('defective');
+        $print = $this->actingAs($this->admin)->get(route('admin.reports.print', ['report' => 'defective']))->getContent();
+        foreach (['screen' => $screen, 'print' => $print] as $where => $html) {
+            $this->assertMatchesRegularExpression('/Oct 14, 2026 3:33 PM.*Oct 8, 2026 9:05 AM.*Aug 20, 2026 1:45 PM/s', $html, $where);
+            $this->assertStringNotContainsString('12:00 AM', $html, $where.' shows return_date\'s midnight');
+        }
+
+        // The same moment the return log holds.
+        $this->assertSame('Oct 8, 2026 9:05 AM', $late->fresh()->created_at->format('M j, Y g:i A'));
+    }
+
+    public function test_a_damaged_return_checked_in_at_the_counter_shows_its_moment_on_the_report(): void
+    {
+        $mia = $this->student('Mia Santos');
+        $camera = $this->item('DSLR camera', ['quantity' => 2, 'available_quantity' => 1]);
+        $loan = $this->loan($mia, $camera, ['borrow_date' => '2026-10-13 00:00:00', 'return_date' => '2026-10-15 00:00:00'], '2026-10-13 08:00:00');
+
+        Carbon::setTestNow(Carbon::parse('2026-10-14 15:33:00'));
+        $this->actingAs($this->admin)->post('/admin/transaction/check-in', [
+            'id' => $loan->id, 'condition' => 'Damaged', 'remarks' => 'Cracked lens',
+        ])->assertSessionHasNoErrors();
+
+        $log = ReturnLog::where('borrow_transaction_id', $loan->id)->sole();
+        $this->assertSame('2026-10-14 15:33', $log->created_at->format('Y-m-d H:i'));
+
+        $this->assertSame([['2026-10-14 15:33', '1', 'pc', 'DSLR camera', 'Cracked lens']], array_slice($this->csv('defective', ['from' => '2026-10-14', 'to' => '2026-10-14']), 1));
+        $this->assertStringContainsString('Oct 14, 2026 3:33 PM', $this->screen('defective'));
+    }
+
+    public function test_defective_items_take_an_optional_reported_range_with_the_end_day_whole(): void
+    {
+        $month = $this->month();
+        $this->returnLog($month['returned'], '2026-10-13', '2026-10-13 23:59:00', 'Damaged', ['remarks' => 'Cracked lens']);
+        $this->returnLog($month['overdue'], '2026-10-14', '2026-10-14 08:00:00', 'Lost');
+        $this->returnLog($month['august'], '2026-08-20', '2026-08-20 13:45:00', 'Lost');
+
+        // No range: every open defect, however old, "as of" now.
+        $this->assertCount(4, $this->csv('defective'));
+        $html = $this->screen('defective');
+        $this->assertStringContainsString('As of: Oct 14, 2026, 3:00 PM', $html);
+        $this->assertMatchesRegularExpression('/id="report-from" name="from" value=""/', $html, 'The range is filled in by default');
+        $this->assertStringContainsString('Leave both empty to list every open defect.', $html);
+
+        // Today only: the 08:00 report is in, yesterday's 23:59 is out.
+        $today = ['from' => '2026-10-14', 'to' => '2026-10-14'];
+        $this->assertSame([['2026-10-14 08:00', '2', 'pc', 'HDMI cable', 'Lost']], array_slice($this->csv('defective', $today), 1));
+        $this->assertCount(3, $this->csv('defective', ['from' => '2026-10-13', 'to' => '2026-10-14']), 'The To day is not included whole');
+        $this->assertStringContainsString('Date range: Oct 14, 2026 – Oct 14, 2026', $this->screen('defective', $today));
+
+        $print = $this->actingAs($this->admin)->get(route('admin.reports.print', ['report' => 'defective'] + $today))->getContent();
+        $this->assertStringContainsString('Oct 14, 2026 – Oct 14, 2026', $print);
+        $this->assertStringNotContainsString('Oct 13, 2026 11:59 PM', $print);
+        $pdf = $this->actingAs($this->admin)->get(route('admin.reports.pdf', ['report' => 'defective'] + $today))->assertOk();
+        $this->assertStringContainsString('cict-defective-items_2026-10-14_to_2026-10-14.pdf', $pdf->headers->get('Content-Disposition'));
+
+        // An inverted range is dropped, and says so, rather than emptying the list.
+        $html = $this->screen('defective', ['from' => '2026-10-14', 'to' => '2026-10-01']);
+        $this->assertStringContainsString('the report lists every open defect instead.', $html);
+        $this->assertCount(4, $this->csv('defective', ['from' => '2026-10-14', 'to' => '2026-10-01']));
+
+        // A range with no match has its own empty state and a way back.
+        $html = $this->screen('defective', ['from' => '2026-09-01', 'to' => '2026-09-30']);
+        $this->assertStringContainsString('No defects reported in this date range', $html);
+        $this->assertStringContainsString('href="'.e(route('admin.reports', ['report' => 'defective'])).'"', $html);
+
+        // A range picked on another report does not narrow this one.
+        $html = $this->screen('borrowers', ['from' => '2026-10-01', 'to' => '2026-10-14']);
+        $this->assertStringContainsString('href="'.e(route('admin.reports', ['report' => 'defective'])).'"', $html);
     }
 
     /* ------------------------------------------------------------------
@@ -423,7 +510,8 @@ class OfficialReportsTest extends TestCase
         // The PDF is compressed; what dompdf lays out is the same view, rendered here.
         $html = view('admin.reports.pdf', [
             'official' => true, 'logoSrc' => 'logo.png', 'emptyMessage' => 'None.',
-            'columns' => ReportsController::COLUMNS['defective'], 'rows' => [[1, 'pc', 'Projector', 'Cracked lens']],
+            'columns' => ReportsController::COLUMNS['defective'],
+            'rows' => [[['text' => 'Oct 14, 2026 3:33 PM', 'csv' => '2026-10-14 15:33'], 1, 'pc', 'Projector', 'Cracked lens']],
             'meta' => [
                 'title' => 'List of Defective Items', 'range_label' => 'As of', 'range' => 'Oct 14, 2026, 3:00 PM', 'filters' => 'None',
                 'generated_at' => 'Oct 14, 2026, 3:00 PM', 'generated_by' => 'Quincy Jane Oliver (Admin)', 'total' => 1, 'noun' => 'defect',
@@ -433,6 +521,7 @@ class OfficialReportsTest extends TestCase
         $this->assertStringContainsString('Prepared By:', $html);
         $this->assertStringContainsString('Dr. Ramon Cruz', $html);
         $this->assertStringContainsString('<td>Cracked lens</td>', $html);
+        $this->assertMatchesRegularExpression('/<td>Oct 14, 2026 3:33 PM\s*<\/td>/', $html, 'The PDF prints the CSV form of the date, or no date');
     }
 
     public function test_the_csv_neutralises_formula_cells(): void

@@ -4,16 +4,24 @@
      keys, Home and End move between them like tabs (script in reports.blade).
 
      A date range already chosen travels with the switch, so comparing the
-     Borrower Report with Most Borrowed for the same month is one click. --}}
+     Borrower Report with Most Borrowed for the same month is one click. It
+     does not travel into a report whose range is optional (Defective
+     Items): that opens on its whole list, not on a range picked elsewhere. --}}
 @php
-    $tabs = ['activity' => 'Activity Log'] + array_map(fn ($definition) => $definition['tab'], \App\Http\Controllers\ReportsController::REPORTS);
+    $definitions = \App\Http\Controllers\ReportsController::REPORTS;
+    $tabs = ['activity' => 'Activity Log'] + array_map(fn ($definition) => $definition['tab'], $definitions);
     $carry = array_filter(request()->only(['from', 'to']), 'is_string');
+    $tabQuery = fn (string $key) => match (true) {
+        $key === 'activity' => $carry,
+        ! empty($definitions[$key]['optional_range']) => ['report' => $key],
+        default => ['report' => $key] + $carry,
+    };
 @endphp
 <nav aria-label="Report type" data-report-tabs>
     <ul class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         @foreach($tabs as $key => $tabLabel)
             <li>
-                <a href="{{ route('admin.reports', $key === 'activity' ? $carry : ['report' => $key] + $carry) }}"
+                <a href="{{ route('admin.reports', $tabQuery($key)) }}"
                    data-report-tab="{{ $key }}"
                    @if($key === $report) aria-current="page" @endif
                    @class([

@@ -23,8 +23,12 @@
     $rangeUrl = fn ($from, $to) => request()->fullUrlWithQuery(['from' => $from->toDateString(), 'to' => $to->toDateString(), 'page' => null]);
     $isRange = fn ($from, $to) => ($filters['from'] ?? null) === $from->toDateString() && ($filters['to'] ?? null) === $to->toDateString();
 
-    $hasForm = $definition['dated'] || in_array($report, ['inventory', 'most-borrowed'], true);
-    $narrowed = isset($filters['category']) || isset($filters['status']);
+    // An optional range (Defective Items) shows the same From/To, empty by
+    // default, and an empty pair means the whole list.
+    $optionalRange = ! empty($definition['optional_range']);
+    $takesRange = $definition['dated'] || $optionalRange;
+    $hasForm = $takesRange || in_array($report, ['inventory', 'most-borrowed'], true);
+    $narrowed = isset($filters['category']) || isset($filters['status']) || ($optionalRange && isset($filters['from']));
 
     $empty = [
         'borrowers' => ['fa-handshake', 'Nothing borrowed in this date range', 'No loans or issues were recorded between '.$meta['range'].'. Voided transactions are never listed.'],
@@ -33,7 +37,9 @@
             : ['fa-boxes-stacked', 'No equipment in use', 'Equipment added on the inventory screen appears here. Retired items are left out.'],
         'not-returned' => ['fa-circle-check', 'Everything has been returned', 'No loan is out right now. Issued items are given for good, so they never appear here.'],
         'most-borrowed' => ['fa-chart-simple', 'Nothing borrowed in this date range', 'Nothing was lent or issued between '.$meta['range'].'. Try a wider range.'],
-        'defective' => ['fa-screwdriver-wrench', 'No defective items', 'Every return that came back damaged or lost has a resolution recorded.'],
+        'defective' => $narrowed
+            ? ['fa-filter-circle-xmark', 'No defects reported in this date range', 'No open defect was reported between '.$meta['range'].'. Clear the dates to list every open defect.']
+            : ['fa-screwdriver-wrench', 'No defective items', 'Every return that came back damaged or lost has a resolution recorded.'],
     ][$report];
 
     $exportQuery = request()->except('page');
@@ -48,17 +54,22 @@
             <input type="hidden" name="report" value="{{ $report }}">
 
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                @if($definition['dated'])
+                @if($takesRange)
                     <div>
-                        <label for="report-from" class="{{ $label }}">From</label>
-                        <input type="date" id="report-from" name="from" value="{{ $filters['from'] }}" max="{{ $today->toDateString() }}"
-                               class="mt-1.5 {{ $field }}" @if(isset($filterErrors['from']) || isset($filterErrors['range'])) aria-invalid="true" aria-describedby="report-range-error" @endif>
+                        <label for="report-from" class="{{ $label }}">{{ $optionalRange ? 'Reported from' : 'From' }}</label>
+                        <input type="date" id="report-from" name="from" value="{{ $filters['from'] ?? '' }}" max="{{ $today->toDateString() }}"
+                               class="mt-1.5 {{ $field }}" @if(isset($filterErrors['from']) || isset($filterErrors['range'])) aria-invalid="true" aria-describedby="report-range-error" @elseif($optionalRange) aria-describedby="report-range-hint" @endif>
                     </div>
                     <div>
-                        <label for="report-to" class="{{ $label }}">To <span class="font-normal text-neutral-600">(whole day included)</span></label>
-                        <input type="date" id="report-to" name="to" value="{{ $filters['to'] }}"
-                               class="mt-1.5 {{ $field }}" @if(isset($filterErrors['to']) || isset($filterErrors['range'])) aria-invalid="true" aria-describedby="report-range-error" @endif>
+                        <label for="report-to" class="{{ $label }}">{{ $optionalRange ? 'Reported to' : 'To' }} <span class="font-normal text-neutral-600">(whole day included)</span></label>
+                        <input type="date" id="report-to" name="to" value="{{ $filters['to'] ?? '' }}"
+                               class="mt-1.5 {{ $field }}" @if(isset($filterErrors['to']) || isset($filterErrors['range'])) aria-invalid="true" aria-describedby="report-range-error" @elseif($optionalRange) aria-describedby="report-range-hint" @endif>
                     </div>
+                    @if($optionalRange)
+                        <p id="report-range-hint" class="self-end text-sm text-neutral-600 sm:col-span-2 lg:pb-3">
+                            Filters on Date &amp; Time Reported. Leave both empty to list every open defect.
+                        </p>
+                    @endif
                 @endif
 
                 @if($report === 'inventory')
@@ -113,7 +124,7 @@
 
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center gap-2" aria-label="Quick date ranges">
-                    @if($definition['dated'])
+                    @if($takesRange)
                         @foreach($ranges as $rangeLabel => [$rFrom, $rTo])
                             <a href="{{ $rangeUrl($rFrom, $rTo) }}"
                                @if($isRange($rFrom, $rTo)) aria-current="true" @endif

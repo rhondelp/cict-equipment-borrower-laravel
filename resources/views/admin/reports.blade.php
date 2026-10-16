@@ -13,7 +13,7 @@
         'inventory' => 'Every item in use, how many the department owns, and whether it is serviceable.',
         'not-returned' => 'Everyone holding equipment right now, soonest due first. Overdue loans are marked.',
         'most-borrowed' => 'The equipment lent most often in the date range.',
-        'defective' => 'Items that came back damaged or lost and have no resolution recorded yet.',
+        'defective' => 'Items that came back damaged or lost and have no resolution recorded yet, newest report first.',
     ];
 @endphp
 @if($report === 'activity')

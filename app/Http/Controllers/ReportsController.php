@@ -66,6 +66,9 @@ class ReportsController extends Controller
      * The official reports, keyed by their `?report=` value, in tab order.
      * `dated` reports take the From/To range. The others are a snapshot of
      * right now: what is out, owned or broken does not depend on a date range.
+     * `optional_range` lets a snapshot be narrowed by From/To. With both left
+     * empty it is still the whole snapshot, so a defect reported months ago
+     * and never resolved is not dropped by a default range.
      * `noun` counts the rows ("12 loans"); `file` names the download.
      */
     public const REPORTS = [
@@ -73,7 +76,7 @@ class ReportsController extends Controller
         'inventory' => ['tab' => 'Inventory Report', 'title' => 'Inventory Report', 'dated' => false, 'noun' => 'item', 'file' => 'inventory-report'],
         'not-returned' => ['tab' => 'Not Yet Returned', 'title' => 'List of Borrowers Not Yet Returned', 'dated' => false, 'noun' => 'loan', 'file' => 'not-yet-returned'],
         'most-borrowed' => ['tab' => 'Most Borrowed', 'title' => 'Most Borrowed Equipment', 'dated' => true, 'noun' => 'item', 'file' => 'most-borrowed'],
-        'defective' => ['tab' => 'Defective Items', 'title' => 'List of Defective Items', 'dated' => false, 'noun' => 'defect', 'file' => 'defective-items'],
+        'defective' => ['tab' => 'Defective Items', 'title' => 'List of Defective Items', 'dated' => false, 'optional_range' => true, 'noun' => 'defect', 'file' => 'defective-items'],
     ];
 
     /**
@@ -109,10 +112,11 @@ class ReportsController extends Controller
             ['label' => 'Total Quantity', 'width' => 20, 'num' => true],
         ],
         'defective' => [
-            ['label' => 'Quantity', 'width' => 10, 'num' => true],
-            ['label' => 'Unit', 'width' => 10],
-            ['label' => 'Item Description', 'width' => 35],
-            ['label' => 'Item Defect', 'width' => 45],
+            ['label' => 'Date & Time Reported', 'width' => 18],
+            ['label' => 'Quantity', 'width' => 9, 'num' => true],
+            ['label' => 'Unit', 'width' => 8],
+            ['label' => 'Item Description', 'width' => 30],
+            ['label' => 'Item Defect', 'width' => 35],
         ],
     ];
 
@@ -572,7 +576,9 @@ class ReportsController extends Controller
      | list of cells, in COLUMNS order. A cell is a string or a number, or —
      | for a cell that carries a flag, such as an overdue due date — an array
      | ['text' => ..., 'mark' => 'Overdue']. The mark is always written out as
-     | a word (in the table and in the CSV), never left to colour alone.
+     | a word (in the table and in the CSV), never left to colour alone. A
+     | cell whose CSV form differs from the page's (a date Excel should sort)
+     | is ['text' => 'Oct 16, 2026 3:33 PM', 'csv' => '2026-10-16 15:33'].
      --------------------------------------------------------------------- */
 
     /** 'activity' unless ?report= names an official report. */
@@ -680,10 +686,12 @@ class ReportsController extends Controller
             'inventory' => $this->inventoryRows($filters),
             'not-returned' => $this->notReturnedRows(),
             'most-borrowed' => $this->mostBorrowedRows($filters),
-            'defective' => $this->defectiveRows(),
+            'defective' => $this->defectiveRows($filters),
         };
 
         $user = $request->user();
+        // Dated reports always have a range; an optional one only when given.
+        $ranged = isset($filters['from']);
 
         return [
             'report' => $report,
@@ -695,8 +703,8 @@ class ReportsController extends Controller
             'emptyMessage' => $this->officialEmptyMessage($report, $filters),
             'meta' => [
                 'title' => $definition['title'],
-                'range_label' => $definition['dated'] ? 'Date range' : 'As of',
-                'range' => $definition['dated'] ? $this->rangeWords($filters) : now()->format('M j, Y, g:i A'),
+                'range_label' => $ranged ? 'Date range' : 'As of',
+                'range' => $ranged ? $this->rangeWords($filters) : now()->format('M j, Y, g:i A'),
                 'filters' => $this->officialFilterWords($report, $filters),
                 'generated_at' => now()->format('M j, Y, g:i A'),
                 'generated_by' => $user->name.' ('.$user->user_type.')',
@@ -716,6 +724,8 @@ class ReportsController extends Controller
      * resolveFilters(), a bad value is dropped with an error rather than
      * failing the page. Dated reports take From/To through resolveFilters()
      * itself, so the default range and the fallbacks are the activity log's.
+     * A report with an optional range takes one only when a valid From or To
+     * is given; otherwise, and after a bad range, it has none.
      *
      * @return array{filters: array, errors: array<string, string>, defaultRange: bool}
      */
@@ -724,13 +734,22 @@ class ReportsController extends Controller
         $filters = [];
         $errors = [];
         $defaultRange = false;
+        $definition = self::REPORTS[$report];
+        $optional = ! empty($definition['optional_range']);
 
-        if (self::REPORTS[$report]['dated']) {
+        if ($definition['dated'] || $optional) {
             $dates = $this->resolveFilters($request);
-            $filters['from'] = $dates['filters']['from'];
-            $filters['to'] = $dates['filters']['to'];
             $errors = array_intersect_key($dates['errors'], array_flip(['from', 'to', 'range']));
             $defaultRange = $dates['defaultRange'];
+
+            if ($definition['dated'] || ! $defaultRange) {
+                $filters['from'] = $dates['filters']['from'];
+                $filters['to'] = $dates['filters']['to'];
+            }
+            if ($optional && isset($errors['range'])) {
+                $errors['range'] = 'The start date is after the end date, so the report lists every open '
+                    .$definition['noun'].' instead.';
+            }
         }
 
         $query = fn (string $key) => is_string($value = $request->query($key)) ? trim($value) : '';
@@ -888,13 +907,26 @@ class ReportsController extends Controller
 
     /**
      * 5 · List of Defective Items — ReturnLog::defects(): every return that
-     * came back other than Good with no resolution recorded. The defect is
-     * the log's remarks, or its condition when nobody wrote any.
+     * came back other than Good with no resolution recorded, newest first.
+     * The defect is the log's remarks, or its condition when nobody wrote any.
+     *
+     * "Reported" is the log's created_at, the moment the return was recorded.
+     * return_date is a DATE column and holds no time. An optional From/To
+     * narrows by that same moment, the To day included whole.
      */
-    private function defectiveRows(): array
+    private function defectiveRows(array $filters): array
     {
-        return ReturnLog::defects()->get()
+        $query = ReturnLog::defects()->reorder()->orderByDesc('created_at')->orderByDesc('id');
+
+        if (isset($filters['from'])) {
+            $query->whereBetween('created_at', $this->dayBounds($filters));
+        }
+
+        return $query->get()
             ->map(fn (ReturnLog $log) => [
+                $log->created_at
+                    ? ['text' => $log->created_at->format('M j, Y g:i A'), 'csv' => $log->created_at->format('Y-m-d H:i')]
+                    : '—',
                 (int) ($log->borrowTransaction?->quantity ?? 0),
                 $log->borrowTransaction?->equipment?->unit ?? Equipment::DEFAULT_UNIT,
                 $log->borrowTransaction?->equipment?->equipment_name ?? '—',
@@ -960,11 +992,14 @@ class ReportsController extends Controller
             : $loan->return_date->format('M j, Y').', end of day';
     }
 
-    /** A cell as text: its mark written out, "Oct 7, 2026, end of day (Overdue)". */
+    /**
+     * A cell as CSV text: its CSV form when it has one ("2026-10-16 15:33"),
+     * otherwise its text with the mark written out, "Oct 7, 2026, end of day (Overdue)".
+     */
     public static function cellText(mixed $cell): mixed
     {
         if (is_array($cell)) {
-            return $cell['text'].(! empty($cell['mark']) ? ' ('.$cell['mark'].')' : '');
+            return $cell['csv'] ?? $cell['text'].(! empty($cell['mark']) ? ' ('.$cell['mark'].')' : '');
         }
 
         return $cell;
@@ -992,14 +1027,16 @@ class ReportsController extends Controller
                 : 'There is no equipment in use.',
             'not-returned' => 'Every loan has been returned. Nothing is out right now.',
             'most-borrowed' => 'Nothing was borrowed between '.$this->rangeWords($filters).'.',
-            'defective' => 'No defective items. Every damaged or lost return has a resolution recorded.',
+            'defective' => isset($filters['from'])
+                ? 'No open defects were reported between '.$this->rangeWords($filters).'.'
+                : 'No defective items. Every damaged or lost return has a resolution recorded.',
         };
     }
 
     /** cict-borrower-report_2026-10-01_to_2026-10-31.pdf, or cict-inventory-report_2026-10-14.csv */
     private function officialFilename(string $report, array $filters, string $extension): string
     {
-        $span = self::REPORTS[$report]['dated'] ? $filters['from'].'_to_'.$filters['to'] : today()->toDateString();
+        $span = isset($filters['from']) ? $filters['from'].'_to_'.$filters['to'] : today()->toDateString();
 
         return 'cict-'.self::REPORTS[$report]['file'].'_'.$span.'.'.$extension;
     }
