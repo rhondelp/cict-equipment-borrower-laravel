@@ -1,5 +1,5 @@
 @extends('components.default')
-@section('title', 'Loans - CICT Equipment Borrower System')
+@section('title', 'Borrow Transactions - CICT Equipment Borrower System')
 @section('content')
 @include('components.admin.navbar')
 
@@ -26,12 +26,12 @@
         Skip to content
     </a>
 
-    <x-ui.page-header eyebrow="Circulation" title="Loans">
+    <x-ui.page-header eyebrow="Circulation" title="Borrow Transactions">
         {{ $unitsOut }} {{ str('unit')->plural($unitsOut) }} out · {{ $overdue->count() }} overdue
         <x-slot:actions>
             <button type="button" data-modal-open="new-loan-modal"
                     class="inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700">
-                <i class="text-base fas fa-plus" aria-hidden="true"></i> New loan
+                <i class="text-base fas fa-plus" aria-hidden="true"></i> New transaction
             </button>
         </x-slot:actions>
     </x-ui.page-header>
@@ -219,7 +219,7 @@
                                          return reminder, and nothing is due back. --}}
                                     @if($tx->user && ! $isIssued)
                                         <button type="button"
-                                                class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-700 hover:border-primary-300 hover:text-primary-700"
+                                                class="grid w-10 h-10 bg-white border rounded-md place-items-center border-neutral-300 text-neutral-700 hover:border-primary-300 hover:text-primary-700"
                                                 title="Email borrower" aria-label="Email the borrower"
                                                 data-email-trigger data-id="{{ $tx->id }}" data-email="{{ $tx->user->email }}"
                                                 data-summary="{{ ($tx->equipment->equipment_name ?? 'Equipment').($tx->quantity > 1 ? ' ×'.$tx->quantity : '').' · '.($tx->user->name ?? 'Deleted user') }}"
@@ -232,7 +232,7 @@
 
                                     @if($isOpen)
                                         <button type="button"
-                                                class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-700 hover:border-primary-300 hover:text-primary-700"
+                                                class="grid w-10 h-10 bg-white border rounded-md place-items-center border-neutral-300 text-neutral-700 hover:border-primary-300 hover:text-primary-700"
                                                 title="Edit loan" aria-label="Edit this loan"
                                                 data-loan-edit
                                                 data-id="{{ $tx->id }}"
@@ -252,7 +252,7 @@
 
                                     @unless($tx->isVoided())
                                         <button type="button"
-                                                class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-600 hover:border-danger-300 hover:bg-danger-50 hover:text-danger-700"
+                                                class="grid w-10 h-10 bg-white border rounded-md place-items-center border-neutral-300 text-neutral-600 hover:border-danger-300 hover:bg-danger-50 hover:text-danger-700"
                                                 title="Remove record" aria-label="Remove this loan record"
                                                 data-remove-trigger data-dialog="remove-dialog"
                                                 data-title="Remove loan #{{ $tx->id }}?"
@@ -348,7 +348,7 @@
         <label for="void-reason" class="block text-base font-medium text-neutral-800">Reason for voiding</label>
         <textarea id="void-reason" name="void_reason" rows="2" minlength="5" maxlength="500" required
                   data-requires-reason data-autofocus placeholder="e.g. Recorded against the wrong borrower"
-                  class="w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"></textarea>
+                  class="w-full px-4 py-3 text-base border rounded-md border-neutral-300 text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"></textarea>
     </x-slot:safeFields>
 </x-ui.remove-dialog>
 

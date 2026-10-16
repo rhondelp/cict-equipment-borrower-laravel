@@ -80,7 +80,7 @@
         <x-slot:actions>
             <a href="{{ route('admin.transaction') }}"
                class="inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-base font-semibold text-white rounded-md bg-primary-600 hover:bg-primary-700">
-                <i class="text-base fas fa-plus" aria-hidden="true"></i> New loan
+                <i class="text-base fas fa-plus" aria-hidden="true"></i> New transaction
             </a>
         </x-slot:actions>
     </x-ui.page-header>
@@ -104,7 +104,7 @@
                 @forelse($attention as $item)
                     <div class="flex flex-wrap items-center gap-4 px-5 py-4 border-b border-neutral-100 last:border-b-0">
                         <span class="w-2.5 h-2.5 rounded-full shrink-0 {{ $tones[$item['tone']]['dot'] }}" aria-hidden="true"></span>
-                        <div class="min-w-0 flex-1">
+                        <div class="flex-1 min-w-0">
                             <p class="text-base font-semibold text-neutral-900">{{ $item['title'] }}</p>
                             <p class="mt-0.5 text-sm text-neutral-600 text-pretty">{{ $item['detail'] }}</p>
                         </div>
@@ -115,7 +115,7 @@
                     </div>
                 @empty
                     <x-ui.empty-state icon="fa-check" title="Nothing outstanding"
-                                      message="No overdue loans, nothing due back today, and every request has been decided." />
+                                      message="No overdue transaction, nothing due back today, and every request has been decided." />
                 @endforelse
             </x-ui.panel>
         </section>
@@ -142,7 +142,7 @@
 
                     @forelse($openLoans->take(6) as $loan)
                         <div class="flex items-center gap-3 px-5 py-3 border-b border-neutral-100 last:border-b-0">
-                            <div class="min-w-0 flex-1">
+                            <div class="flex-1 min-w-0">
                                 <p class="text-base font-semibold truncate text-neutral-900">
                                     {{ $loan->equipment->equipment_name ?? 'Deleted equipment' }}@if($loan->quantity > 1) <span class="text-neutral-600">×{{ $loan->quantity }}</span>@endif
                                 </p>
@@ -179,7 +179,7 @@
                         <a href="{{ route('admin.equipment', ['filter' => $state['key'] === 'out' ? 'out' : 'low']) }}"
                            data-stock-watch-entry
                            class="flex items-center gap-3 px-5 py-3 border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50">
-                            <div class="min-w-0 flex-1">
+                            <div class="flex-1 min-w-0">
                                 <p class="text-base font-semibold truncate text-neutral-900">{{ $item->equipment_name }}</p>
                                 <p class="text-sm truncate text-neutral-600 tabular-nums">
                                     {{ $item->available_quantity }} of {{ $item->quantity }} available
