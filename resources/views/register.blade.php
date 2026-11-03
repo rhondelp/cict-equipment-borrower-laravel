@@ -84,7 +84,7 @@
         {{-- Success state. Reached only by the redirect that follows a written
              row, so everything it reports is a fact about that row. --}}
         <div class="flex w-full max-w-[400px] flex-col gap-[18px]" data-register-success>
-            <span class="grid w-11 h-11 rounded-full shrink-0 place-items-center bg-success-100 text-success-700" aria-hidden="true">
+            <span class="grid rounded-full w-11 h-11 shrink-0 place-items-center bg-success-100 text-success-700" aria-hidden="true">
                 <i class="fa-solid fa-check text-[17px]"></i>
             </span>
 
@@ -98,7 +98,7 @@
             <dl class="flex flex-col gap-[9px] rounded-[11px] border border-neutral-200 px-[15px] py-[13px]">
                 <div class="flex items-center justify-between gap-3 text-[13px]">
                     <dt class="text-neutral-500 shrink-0">Email</dt>
-                    <dd class="font-semibold text-neutral-900 truncate">{{ $registered['email'] }}</dd>
+                    <dd class="font-semibold truncate text-neutral-900">{{ $registered['email'] }}</dd>
                 </div>
                 <div class="flex items-center justify-between gap-3 text-[13px]">
                     <dt class="text-neutral-500 shrink-0">Registered as</dt>
@@ -127,9 +127,9 @@
                         @if (! empty($registered['instructor_requested']))
                             <span>You asked for instructor access. Until the equipment office confirms it, your account
                                   works as a student account. Nothing in the system puts a clock on that check — ask at
-                                  the equipment room if you need it looked at today (open {{ \App\Support\OfficeHours::fromConfig()->label() }}).</span>
+                                  the CICT Office if you need it looked at today (open {{ \App\Support\OfficeHours::fromConfig()->label() }}).</span>
                         @else
-                            <span>Your account is a student account. If you teach at CICT, ask at the equipment room
+                            <span>Your account is a student account. If you teach at CICT, ask at the CICT Office
                                   to have it switched to instructor (open {{ \App\Support\OfficeHours::fromConfig()->label() }}).</span>
                         @endif
                     </li>
@@ -380,7 +380,7 @@
             <nav class="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-neutral-500" aria-label="Legal">
                 <a href="{{ route('legal.privacy') }}" class="text-neutral-600 hover:text-neutral-900">Privacy policy</a>
                 <a href="{{ route('legal.terms') }}" class="text-neutral-600 hover:text-neutral-900">Terms of service</a>
-                <span class="sm:ml-auto">Need help? Ask at the equipment room.</span>
+                <span class="sm:ml-auto">Need help? Ask at the CICT Office.</span>
             </nav>
         </div>
     @endif

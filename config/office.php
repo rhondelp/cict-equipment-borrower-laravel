@@ -19,11 +19,11 @@ return [
     |
     */
 
-    'email' => env('OFFICE_EMAIL', 'quincyjane.oliver@nmsc.edu.ph'),
+    'email' => env('OFFICE_EMAIL', 'quincyjil.oliver@nmsc.edu.ph'),
 
     // Shown on the landing page's visit panel. From design-reference/
     // Landing.dc.html — confirm it before relying on it.
-    'location' => env('OFFICE_LOCATION', 'Equipment room, CICT building'),
+    'location' => env('OFFICE_LOCATION', 'CICT Office'),
 
     /*
     |--------------------------------------------------------------------------

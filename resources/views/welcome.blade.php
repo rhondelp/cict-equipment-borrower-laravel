@@ -55,7 +55,7 @@
          'body' => 'An administrator reviews the request, and the decision shows on your dashboard.',
          'note' => 'Stock is held once approved'],
         ['n' => '03', 'title' => 'Collect, then bring it back',
-         'body' => 'Pick it up at the counter. A custodian logs its condition when you return it and closes the loan.',
+         'body' => 'Pick it up at the CICT office. A custodian logs its condition when you return it and closes the loan.',
          'note' => 'Email reminder on the day it is due'],
     ];
 
@@ -118,20 +118,20 @@
                     <span class="h-[7px] w-[7px] flex-none rounded-full {{ $openToday ? 'bg-[oklch(0.78_0.15_158)]' : 'bg-white/40' }}" aria-hidden="true"></span>
                     <span>
                         @if($openToday)
-                            Equipment room open today · <span class="whitespace-nowrap">{{ $hours->timeRange() }}</span>
+                            CICT Office open today · <span class="whitespace-nowrap">{{ $hours->timeRange() }}</span>
                         @else
-                            Equipment room closed today · <span class="whitespace-nowrap">{{ $hours->dayRange(short: true) }}, {{ $hours->timeRange() }}</span>
+                            CICT Office closed today · <span class="whitespace-nowrap">{{ $hours->dayRange(short: true) }}, {{ $hours->timeRange() }}</span>
                         @endif
                     </span>
                 </span>
 
                 <h1 class="text-[clamp(2.5rem,1.2rem+4.4vw,4rem)] font-semibold leading-[1.02] tracking-[-0.035em] text-balance">
-                    The equipment room, without the paper logbook.
+                    The equipment borrowing, without the paper logbook.
                 </h1>
 
                 <p class="max-w-[34em] text-[17px] leading-[1.65] text-white/70 text-pretty">
                     Projectors, laptops, cables and lab kits for CICT students and instructors — requested online,
-                    handed over at the counter, and tracked until they come back.
+                    handed over at the CICT Office, and tracked until they come back.
                 </p>
 
                 <div class="flex flex-wrap items-center gap-3 pt-1">
@@ -222,7 +222,7 @@
                     </span>
                     <div class="min-w-0">
                         <div class="text-[13px] font-semibold text-white">Projector (Epson) is due tomorrow</div>
-                        <div class="mt-0.5 text-[12px] leading-[1.5] text-white/[0.62] text-pretty">Return it to the equipment room by {{ $hours->closingTime() }}.</div>
+                        <div class="mt-0.5 text-[12px] leading-[1.5] text-white/[0.62] text-pretty">Return it to the CICT Office by {{ $hours->closingTime() }}.</div>
                     </div>
                 </div>
             </div>
@@ -252,7 +252,7 @@
                     </h2>
                 </div>
                 <p class="max-w-[360px] text-[15px] leading-[1.65] text-[oklch(0.5_0.012_258)] text-pretty">
-                    No more waiting at the counter to find out whether a projector is free. You know before you walk over.
+                    No more waiting at the outside at office to find out whether a projector is free. You know before you walk over.
                 </p>
             </div>
 
@@ -348,7 +348,7 @@
                             @if($officeEmail)
                                 <a href="mailto:{{ $officeEmail }}" class="rounded text-white underline decoration-white/30 underline-offset-4 transition-colors hover:decoration-white {{ $focusDark }}">{{ $officeEmail }}</a>
                             @else
-                                Ask at the equipment room
+                                Ask at the CICT Office
                             @endif
                         </dd>
                     </div>

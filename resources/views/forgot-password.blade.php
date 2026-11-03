@@ -83,7 +83,7 @@
              nothing happen, press again. Everything below is what the send
              actually did. --}}
         <div class="flex w-full max-w-[396px] flex-col gap-5" data-reset-sent>
-            <span class="grid w-11 h-11 rounded-full shrink-0 place-items-center bg-success-100 text-success-700" aria-hidden="true">
+            <span class="grid rounded-full w-11 h-11 shrink-0 place-items-center bg-success-100 text-success-700" aria-hidden="true">
                 <i class="fa-regular fa-envelope text-[17px]"></i>
             </span>
 
@@ -134,7 +134,7 @@
                           @if($officeEmail)
                               at <a href="mailto:{{ $officeEmail }}" class="font-medium text-primary-700 [overflow-wrap:anywhere] hover:text-primary-800">{{ $officeEmail }}</a>.
                           @else
-                              at the equipment room.
+                              at the CICT Office.
                           @endif
                     </span>
                 </p>
@@ -230,12 +230,12 @@
                  cannot remember which address they registered with has nowhere
                  to go but the field they already cannot fill in. --}}
             <p class="text-[13px] leading-[1.6] text-neutral-600 text-pretty">
-                Forgot which address you registered with? The equipment office can look it up
+                Forgot which address you registered with? The CICT office can look it up
                 @if($officeEmail)
                     — <a href="mailto:{{ $officeEmail }}" class="font-medium text-primary-700 [overflow-wrap:anywhere] hover:text-primary-800">{{ $officeEmail }}</a>,
-                    or ask at the counter, open {{ $officeHours }}.
+                    or ask at the cict office, open {{ $officeHours }}.
                 @else
-                    — ask at the equipment room counter, open {{ $officeHours }}.
+                    — ask at the cict office , open {{ $officeHours }}.
                 @endif
             </p>
 

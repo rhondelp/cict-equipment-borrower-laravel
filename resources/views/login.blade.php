@@ -53,7 +53,7 @@
                 @endif
                 <li class="flex items-center gap-2.5 text-[13.5px] text-white/80">
                     <span class="w-[5px] h-[5px] rounded-full shrink-0 bg-[#63d99b]" aria-hidden="true"></span>
-                    Equipment room open {{ \App\Support\OfficeHours::fromConfig()->label() }}
+                    CICT Office open {{ \App\Support\OfficeHours::fromConfig()->label() }}
                 </li>
                 <li class="flex items-center gap-2.5 text-[13.5px] text-white/80">
                     <span class="w-[5px] h-[5px] rounded-full shrink-0 bg-[#63d99b]" aria-hidden="true"></span>
@@ -75,7 +75,7 @@
                 @php($officeEmail = config('office.email'))
                 <div role="status" data-password-reset-done
                      class="flex items-start gap-3 rounded-[11px] border border-success-200 bg-success-50 px-4 py-3.5">
-                    <span class="grid w-7 h-7 mt-px rounded-full shrink-0 place-items-center bg-success-100 text-success-700" aria-hidden="true">
+                    <span class="grid mt-px rounded-full w-7 h-7 shrink-0 place-items-center bg-success-100 text-success-700" aria-hidden="true">
                         <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3.4 8.4 6.4 11.4l6.2-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </span>
                     <div class="flex flex-col min-w-0 gap-1">
@@ -88,7 +88,7 @@
                             @if($officeEmail)
                                 at <a href="mailto:{{ $officeEmail }}" class="font-medium text-primary-700 [overflow-wrap:anywhere] hover:text-primary-800">{{ $officeEmail }}</a>.
                             @else
-                                at the equipment room.
+                                at the CICT Office.
                             @endif
                         </p>
                     </div>
@@ -174,9 +174,9 @@
                  that way: one outlined button, no accent colour, under a line
                  that says where sign-in stops. --}}
             <div class="flex items-center gap-3" aria-hidden="true">
-                <span class="h-px flex-1 bg-neutral-200"></span>
+                <span class="flex-1 h-px bg-neutral-200"></span>
                 <span class="text-[11.5px] text-neutral-500">OR</span>
-                <span class="h-px flex-1 bg-neutral-200"></span>
+                <span class="flex-1 h-px bg-neutral-200"></span>
             </div>
 
             <div class="flex flex-col gap-3">
@@ -193,7 +193,7 @@
             <nav class="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-neutral-500" aria-label="Legal">
                 <a href="{{ route('legal.privacy') }}" class="text-neutral-600 hover:text-neutral-900">Privacy policy</a>
                 <a href="{{ route('legal.terms') }}" class="text-neutral-600 hover:text-neutral-900">Terms of service</a>
-                <span class="sm:ml-auto">Need help? Ask at the equipment room.</span>
+                <span class="sm:ml-auto">Need help? Ask at the CICT Office.</span>
             </nav>
         </div>
     </main>
