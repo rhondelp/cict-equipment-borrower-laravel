@@ -46,6 +46,12 @@ class ActivityLog extends Model
     /** Groups in the order a report lists them. */
     public const GROUPS = ['Loans', 'Requests', 'Equipment', 'Users', 'Returns', 'Account & system'];
 
+    /**
+     * Display names for group keys. A key is also a filter value in the URL
+     * (?type=Loans), so it stays as it is and only its label changes.
+     */
+    public const GROUP_LABELS = ['Loans' => 'Borrows'];
+
     /** What the backfill writes as the actor where the old schema never stored who. */
     public const ACTOR_NOT_RECORDED = 'Not recorded';
 
@@ -57,12 +63,12 @@ class ActivityLog extends Model
      * label is what a screen shows and can change freely.
      */
     public const TYPES = [
-        'loan_created' => ['label' => 'Loan recorded', 'group' => 'Loans'],
+        'loan_created' => ['label' => 'Borrow recorded', 'group' => 'Loans'],
         'loan_issued' => ['label' => 'Item issued', 'group' => 'Loans'],
-        'loan_updated' => ['label' => 'Loan edited', 'group' => 'Loans'],
+        'loan_updated' => ['label' => 'Borrow edited', 'group' => 'Loans'],
         'loan_checked_in' => ['label' => 'Checked in', 'group' => 'Loans'],
-        'loan_voided' => ['label' => 'Loan voided', 'group' => 'Loans'],
-        'loan_deleted' => ['label' => 'Loan deleted', 'group' => 'Loans'],
+        'loan_voided' => ['label' => 'Borrow voided', 'group' => 'Loans'],
+        'loan_deleted' => ['label' => 'Borrow deleted', 'group' => 'Loans'],
         'loan_marked_overdue' => ['label' => 'Marked overdue', 'group' => 'Loans'],
         'loan_reminder_sent' => ['label' => 'Reminder sent', 'group' => 'Loans'],
 
@@ -214,7 +220,7 @@ class ActivityLog extends Model
     {
         return $loan
             ? $loan->quantity.' × '.($loan->equipment?->equipment_name ?? 'a deleted item')
-            : 'a deleted loan';
+            : 'a deleted borrow';
     }
 
     /** "due Oct 12, 2026", with the time for a timed loan, or "with no due date". */
@@ -354,9 +360,21 @@ class ActivityLog extends Model
         return self::TYPES[$this->type]['label'] ?? Str::headline((string) $this->type);
     }
 
-    public function groupLabel(): string
+    /** The group key, as stored in TYPES and used in ?type= — not for display. */
+    public function group(): string
     {
         return self::TYPES[$this->type]['group'] ?? 'Other';
+    }
+
+    public function groupLabel(): string
+    {
+        return self::groupName($this->group());
+    }
+
+    /** What a screen shows for a group key; keys without an entry show as they are. */
+    public static function groupName(string $group): string
+    {
+        return self::GROUP_LABELS[$group] ?? $group;
     }
 
     /** The type keys in one group, in TYPES order. */

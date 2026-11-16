@@ -73,7 +73,7 @@ class ResetPasswordPageTest extends TestCase
         $this->assertStringContainsString('What happens when you save', $html);
         $this->assertStringContainsString('Your old password stops working', $html);
         $this->assertStringContainsString('Other sessions are signed out', $html);
-        $this->assertStringContainsString('Your loans and requests are untouched', $html);
+        $this->assertStringContainsString('Your borrowed items and requests are untouched', $html);
         $this->assertStringContainsString('lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]', $html);
         $this->assertStringContainsString('text-[24px] font-semibold', $html);
         $this->assertStringContainsString('Save new password', $html);

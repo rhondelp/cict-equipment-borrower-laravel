@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-16 — "Borrow" wording instead of "loan"
+
+- **Every screen, flash message, validation error, report heading and CSV column now says "borrow" instead of "loan" (display text only; routes, `loan_type` values, activity-log type keys, the `Loans` group key in `?type=` and stored statuses are unchanged, with the group shown as "Borrows" through the new `ActivityLog::GROUP_LABELS`), and already-stored notifications and activity details keep their old wording.**
+
 ## 2026-10-16 — Date and time on Defective Items
 
 - **The List of Defective Items now says when each defect was reported, newest first.** A new first column, **Date & Time Reported**, comes before Quantity · Unit · Item Description · Item Defect. It is the return log's `created_at`, the moment the return was recorded at the counter. It is not `return_date`, which is a DATE column and would print as midnight or not at all. The screen, print and PDF read it as "Oct 16, 2026 3:33 PM", in the app's Asia/Manila timezone (`config/app.php`). The CSV writes "2026-10-16 15:33" so Excel sorts it as a date. Both forms come from one cell, `['text' => …, 'csv' => …]`, which `cellText()` reads for the CSV only. The heading is in `ReportsController::COLUMNS`, so all four outputs follow it, and the print widths were rebalanced to 18 / 9 / 8 / 30 / 35. Rows are ordered by `created_at` descending, then id, inside `defectiveRows()`. `ReturnLog::defects()` keeps its own oldest-first order for anything else that calls it. Every existing row has a time already: each return is written through Eloquent, which always stamps `created_at`. A row with none would read "—" rather than an invented time.

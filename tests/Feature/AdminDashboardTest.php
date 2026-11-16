@@ -80,7 +80,7 @@ class AdminDashboardTest extends TestCase
 
         $this->assertStringContainsString('Needs your attention', $html);
         $this->assertLessThan(
-            strpos($html, 'Units out on loan'),
+            strpos($html, 'Equipment currently released'),
             strpos($html, 'Needs your attention'),
             'The counters are above the work queue'
         );
@@ -109,7 +109,7 @@ class AdminDashboardTest extends TestCase
 
         $html = $this->html();
 
-        $this->assertStringContainsString('1 loan overdue', $html);
+        $this->assertStringContainsString('1 borrow overdue', $html);
         $this->assertStringContainsString(route('admin.transaction', ['filter' => 'overdue']), $html);
     }
 
@@ -211,7 +211,7 @@ class AdminDashboardTest extends TestCase
         $this->equipment();
         $html = $this->html();
 
-        foreach (['Units out on loan', 'Overdue', 'Pending requests', 'Items fully out'] as $label) {
+        foreach (['Equipment currently released', 'Overdue', 'Pending requests', 'Items fully out'] as $label) {
             $this->assertStringContainsString($label, $html, "The $label figure is missing");
         }
 
@@ -237,7 +237,7 @@ class AdminDashboardTest extends TestCase
         $html = $this->html();
 
         // Isolate the strip: the figures are the only place this matters.
-        preg_match('/Units out on loan(.*?)Needs your attention|Units out on loan(.*?)Currently out/s', $html, $strip);
+        preg_match('/Equipment currently released(.*?)Needs your attention|Equipment currently released(.*?)Currently released/s', $html, $strip);
         $this->assertNotEmpty($strip, 'Could not isolate the summary strip');
         $region = $strip[1] ?: ($strip[2] ?? '');
 

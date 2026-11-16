@@ -133,7 +133,7 @@ class EquipmentLoanTypeTest extends TestCase
             ->assertSessionHasErrors('loan_type');
 
         $message = session('errors')->first('loan_type');
-        $this->assertStringContainsString('2 units out on loan', $message);
+        $this->assertStringContainsString('2 units currently borrowed', $message);
         $this->assertStringContainsString('from Returnable to Time-Limited', $message);
 
         // Refused as a whole: nothing else on the form was saved either.

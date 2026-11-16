@@ -17,7 +17,7 @@
             id="remove-dialog"
             safe-label="Retire item"
             safe-icon="fa-box-archive"
-            :facts="['Units owned', 'Out with borrowers', 'Loans in the history log']" />
+            :facts="['Units owned', 'Out with borrowers', 'Borrows in the history log']" />
 
      A safe action that needs a reason passes one through the `safeFields` slot
      with `data-requires-reason`; the submit stays disabled, and the hint says

@@ -110,7 +110,7 @@ class AuthenticateUser extends Controller
             $worst = $overdue->sortBy(fn ($loan) => $loan->dueAt()?->timestamp)->first();
             $attention[] = [
                 'tone' => 'danger',
-                'title' => $overdue->count().' '.str('loan')->plural($overdue->count()).' overdue',
+                'title' => $overdue->count().' '.str('borrow')->plural($overdue->count()).' overdue',
                 'detail' => ($worst->equipment->equipment_name ?? 'Equipment').' ×'.$worst->quantity
                     .' with '.($worst->user->name ?? 'a deleted user').' · '.$worst->dateLine(),
                 'action' => 'Follow up',
@@ -140,7 +140,7 @@ class AuthenticateUser extends Controller
         if ($dueToday->isNotEmpty()) {
             $attention[] = [
                 'tone' => 'warning',
-                'title' => $dueToday->count().' '.str('loan')->plural($dueToday->count()).' due back today',
+                'title' => $dueToday->count().' '.str('borrow')->plural($dueToday->count()).' due back today',
                 'detail' => $dueToday->take(2)->map(fn ($loan) => ($loan->equipment->equipment_name ?? 'Equipment')
                     .' · '.($loan->user->name ?? 'deleted user'))->implode(' · '),
                 'action' => 'Send reminders',
@@ -262,7 +262,7 @@ class AuthenticateUser extends Controller
                 'kind' => 'loan',
                 'rank' => $overdue ? 0 : ($soon ? 1 : 4),
                 'date' => $loan->return_date,
-                'tag' => $overdue ? 'Overdue' : ($soon ? 'Due soon' : 'On loan'),
+                'tag' => $overdue ? 'Overdue' : ($soon ? 'Due soon' : 'Borrowed'),
                 'tone' => $overdue ? 'danger' : ($soon ? 'warning' : 'primary'),
                 'title' => $many
                     ? 'Return '.$booking->count().' items'

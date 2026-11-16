@@ -150,7 +150,7 @@ class LegalPagesTest extends TestCase
     {
         $this->get('/terms')
             ->assertSee('A request is not a reservation')
-            ->assertSee('The default loan is seven days')
+            ->assertSee('The default borrow period is seven days')
             ->assertSee('Overdue items pause your ability to borrow more');
     }
 
@@ -257,7 +257,7 @@ class LegalPagesTest extends TestCase
     {
         $this->get('/terms')
             ->assertSee('A request reserves nothing until an administrator approves it. Stock is deducted at approval, not at request.')
-            ->assertSee('Items are due on the return date shown on your transaction. The default loan period is seven days.')
+            ->assertSee('Items are due on the return date shown on your transaction. The default borrow period is seven days.')
             ->assertSee('Return the item to a custodian, who records its condition. A transaction is not closed until that return is logged.')
             ->assertSee('Report damage when you return the item rather than leaving it to be found.')
             ->assertSee('The department may decline further requests from an account with items still overdue')

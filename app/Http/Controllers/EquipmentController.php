@@ -91,13 +91,13 @@ class EquipmentController extends Controller
 
             if ($loanType !== $equipment->loan_type && $out > 0) {
                 return ['field' => 'loan_type', 'error' => $equipment->equipment_name.' has '.$out.' '.str('unit')->plural($out)
-                    .' out on loan, so its loan type cannot change from '.$equipment->loanTypeLabel()
+                    .' currently borrowed, so its borrow type cannot change from '.$equipment->loanTypeLabel()
                     .' to '.Equipment::LOAN_TYPES[$loanType].'. Check '.($out === 1 ? 'it' : 'them').' in first.'];
             }
 
             if ($validated['quantity'] < $out) {
                 return ['error' => $out.' '.str('unit')->plural($out).' of '.$equipment->equipment_name
-                    .' '.($out === 1 ? 'is' : 'are').' still out on loan, so the total cannot go below '.$out.'. Check them in first.'];
+                    .' '.($out === 1 ? 'is' : 'are').' still borrowed, so the total cannot go below '.$out.'. Check them in first.'];
             }
 
             // Issued units left for good but still count in the total owned.
@@ -105,7 +105,7 @@ class EquipmentController extends Controller
             if ($validated['quantity'] < $out + $issued) {
                 return ['error' => $issued.' '.str('unit')->plural($issued).' of '.$equipment->equipment_name
                     .' '.($issued === 1 ? 'has' : 'have').' been issued and '.$out.' '.($out === 1 ? 'is' : 'are')
-                    .' out on loan, so the total cannot go below '.($out + $issued).'.'];
+                    .' currently borrowed, so the total cannot go below '.($out + $issued).'.'];
             }
 
             $before = $this->snapshot($equipment);
@@ -132,7 +132,7 @@ class EquipmentController extends Controller
                     'status_to' => $equipment->status,
                     'details' => 'Edited '.$equipment->equipment_name.': '.(ActivityLog::changeWords($changes, [
                         'equipment_name' => 'name', 'quantity' => 'total', 'available_quantity' => 'available',
-                        'loan_type' => 'loan type',
+                        'loan_type' => 'borrow type',
                     ]) ?: 'status '.$statusBefore.' → '.$equipment->status).'.',
                     'meta' => ['changes' => $changes],
                 ]);
@@ -180,7 +180,7 @@ class EquipmentController extends Controller
         ]);
 
         $note = $out > 0
-            ? ' '.$out.' '.str('unit')->plural($out).' still out — the loans stay tracked.'
+            ? ' '.$out.' '.str('unit')->plural($out).' still out — the borrowed units stay tracked.'
             : '';
 
         return redirect()->back()->with('success', $equipment->equipment_name.' retired and is no longer lendable.'.$note);
@@ -296,12 +296,12 @@ class EquipmentController extends Controller
                 'equipment_id' => null,
                 'quantity' => $equipment->quantity,
                 'status_from' => $statusBefore,
-                'details' => 'Deleted '.$equipment->equipment_name.'. It had no loan history.',
+                'details' => 'Deleted '.$equipment->equipment_name.'. It had no borrow history.',
                 'meta' => ['equipment_id' => $equipment->id] + $this->snapshot($equipment),
             ]);
         });
 
-        return redirect()->back()->with('success', $name.' deleted. It had no loan history.');
+        return redirect()->back()->with('success', $name.' deleted. It had no borrow history.');
     }
 
     /** The fields an admin edits, as the log records them. */

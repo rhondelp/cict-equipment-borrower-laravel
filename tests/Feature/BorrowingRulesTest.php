@@ -357,7 +357,7 @@ class BorrowingRulesTest extends TestCase
         // Dashboard: one loan out, one overdue, worded in minutes.
         $dashboard = $this->actingAs($admin)->get('/admin/dashboard')->assertOk();
         $this->assertCount(1, $dashboard->viewData('openLoans'));
-        $this->assertSame('1 loan overdue', $dashboard->viewData('attention')[0]['title']);
+        $this->assertSame('1 borrow overdue', $dashboard->viewData('attention')[0]['title']);
         $dashboard->assertSee('Longest: 1 hr late');
 
         // Users screen: the issue is not "held", the late timed loan is overdue.

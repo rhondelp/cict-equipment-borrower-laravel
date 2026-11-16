@@ -40,10 +40,10 @@
 
         @if($transactions->isNotEmpty())
             <x-ui.stat-strip :stats="[
-                ['label' => 'Units out on loan', 'value' => $unitsOut, 'unit' => 'across '.$open->count().' '.str('loan')->plural($open->count()), 'sub' => $open->isEmpty() ? 'Everything is on the shelf' : 'Tracked until each comes back'],
+                ['label' => 'Equipment currently released', 'value' => $unitsOut, 'unit' => 'across '.$open->count().' '.str('borrow')->plural($open->count()), 'sub' => $open->isEmpty() ? 'Everything is on the shelf' : 'Tracked until each comes back'],
                 ['label' => 'Overdue', 'value' => $overdue->count(), 'unit' => '', 'sub' => $overdue->isEmpty() ? 'Nothing past its due date' : 'Longest: '.$worstOverdue->timingLabel(), 'tone' => $overdue->isEmpty() ? 'neutral' : 'danger'],
                 ['label' => 'Due back today', 'value' => $dueToday, 'unit' => '', 'sub' => $dueToday > 0 ? 'Reminders go out at 08:00' : 'Nothing due today', 'tone' => $dueToday > 0 ? 'warning' : 'neutral'],
-                ['label' => 'Returned', 'value' => $returned->count(), 'unit' => str('loan')->plural($returned->count()), 'sub' => 'Logged in Return Logs', 'tone' => 'success', 'url' => route('admin.logs')],
+                ['label' => 'Returned', 'value' => $returned->count(), 'unit' => str('borrow')->plural($returned->count()), 'sub' => 'Logged in Return Logs', 'tone' => 'success', 'url' => route('admin.logs')],
             ]" />
         @endif
 
@@ -55,17 +55,17 @@
         @endphp
         <x-ui.panel data-list data-active-chip="{{ $defaultChip }}">
             @if($transactions->isEmpty())
-                <x-ui.empty-state icon="fa-right-left" title="No loans yet"
+                <x-ui.empty-state icon="fa-right-left" title="No borrows yet"
                                   message="Approving a request creates one automatically, or record a handover by hand.">
                     <x-slot:action>
                         <button type="button" class="btn-primary" data-modal-open="new-loan-modal">
-                            <i class="text-base fas fa-plus" aria-hidden="true"></i> New loan
+                            <i class="text-base fas fa-plus" aria-hidden="true"></i> New borrow
                         </button>
                     </x-slot:action>
                 </x-ui.empty-state>
             @else
                 <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b sm:px-5 border-neutral-200">
-                    <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter loans">
+                    <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter borrows">
                         @php
                             $chips = [
                                 'active' => 'Active '.$open->count(),
@@ -101,7 +101,7 @@
                     </div>
 
                     <label class="relative flex-1 min-w-[12rem] max-w-xs">
-                        <span class="sr-only">Search loans</span>
+                        <span class="sr-only">Search borrows</span>
                         <i class="absolute text-sm -translate-y-1/2 pointer-events-none fas fa-search left-4 top-1/2 text-neutral-500" aria-hidden="true"></i>
                         <input type="search" data-list-search autocomplete="off" placeholder="Search person or item"
                                class="w-full min-h-[40px] rounded-md border border-neutral-300 py-2 pl-10 pr-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
@@ -113,7 +113,7 @@
                      every row; they now live in the row's detail panel, which is
                      where anyone who actually wants them goes looking. --}}
                 <div class="hidden gap-4 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-50 border-b border-neutral-200 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_8rem_10rem]">
-                    <div>Loan</div>
+                    <div>Borrow</div>
                     <div>Dates</div>
                     <div>Status</div>
                     <div class="text-right">Actions</div>
@@ -139,7 +139,7 @@
                             $isIssued = $tx->isIssued();
                             $log = $tx->returnLog;
                             $blocked = $isOpen
-                                ? "Can't delete — the loan is still open"
+                                ? "Can't delete — the borrow is still open"
                                 : ($isIssued ? "Can't delete — its units are counted as given out"
                                 : ($log ? "Can't delete — it is part of the return history" : ''));
                             // Sorted on the moment it falls due, not the stored
@@ -205,7 +205,7 @@
                                     @if($isOpen)
                                         <button type="button"
                                                 class="grid w-10 h-10 border rounded-md place-items-center border-success-200 bg-success-50 text-success-700 hover:bg-success-100"
-                                                title="Check in" aria-label="Check in this loan"
+                                                title="Check in" aria-label="Check in this borrow"
                                                 data-checkin-trigger
                                                 data-id="{{ $tx->id }}"
                                                 data-summary="{{ ($tx->equipment->equipment_name ?? 'Equipment').($tx->quantity > 1 ? ' ×'.$tx->quantity : '').' · '.($tx->user->name ?? 'Deleted user') }}"
@@ -233,7 +233,7 @@
                                     @if($isOpen)
                                         <button type="button"
                                                 class="grid w-10 h-10 bg-white border rounded-md place-items-center border-neutral-300 text-neutral-700 hover:border-primary-300 hover:text-primary-700"
-                                                title="Edit loan" aria-label="Edit this loan"
+                                                title="Edit borrow" aria-label="Edit this borrow"
                                                 data-loan-edit
                                                 data-id="{{ $tx->id }}"
                                                 data-user="{{ $tx->user_id }}"
@@ -253,14 +253,14 @@
                                     @unless($tx->isVoided())
                                         <button type="button"
                                                 class="grid w-10 h-10 bg-white border rounded-md place-items-center border-neutral-300 text-neutral-600 hover:border-danger-300 hover:bg-danger-50 hover:text-danger-700"
-                                                title="Remove record" aria-label="Remove this loan record"
+                                                title="Remove record" aria-label="Remove this borrow record"
                                                 data-remove-trigger data-dialog="remove-dialog"
-                                                data-title="Remove loan #{{ $tx->id }}?"
+                                                data-title="Remove borrow #{{ $tx->id }}?"
                                                 data-body="{{ $isOpen
-                                                    ? 'This loan is still open — the equipment is with the borrower. Voiding puts its units back in stock and keeps the record visible, marked as an error.'
+                                                    ? 'This borrow is still open — the equipment is with the borrower. Voiding puts its units back in stock and keeps the record visible, marked as an error.'
                                                     : ($isIssued
                                                         ? 'This item was issued — given out for good. Voiding puts its units back in stock and keeps the record visible, marked as an error.'
-                                                        : 'Returned loans are the department\'s audit trail. Voiding keeps the record and marks it as an error; deleting erases it from the logs and the return history.') }}"
+                                                        : 'Returned borrows are the department\'s audit trail. Voiding keeps the record and marks it as an error; deleting erases it from the logs and the return history.') }}"
                                                 data-fact-a="{{ $tx->user->name ?? 'Deleted user' }}"
                                                 data-fact-b="{{ $tx->quantity }}" data-fact-b-alert="{{ $isOpen || $isIssued ? '1' : '0' }}"
                                                 data-fact-c="{{ $status }}"
@@ -319,11 +319,11 @@
                 </div>
 
                 <p data-list-empty hidden class="px-5 py-12 text-base text-center text-neutral-600">
-                    No loans match that filter.
+                    No borrows match that filter.
                 </p>
 
                 <div class="px-5 py-3 text-sm border-t text-neutral-600 border-neutral-200">
-                    <span data-list-count data-total="{{ $transactions->count() }}" data-noun="loans"></span>
+                    <span data-list-count data-total="{{ $transactions->count() }}" data-noun="borrows"></span>
                 </div>
             @endif
         </x-ui.panel>
@@ -337,7 +337,7 @@
 
 <x-ui.remove-dialog
     id="remove-dialog"
-    safe-label="Void loan"
+    safe-label="Void borrow"
     safe-icon="fa-ban"
     cancel-label="Keep record"
     delete-label="Delete permanently"
@@ -505,7 +505,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Say what the mixed cases mean before anyone has to ask.
             const notes = [];
             if (mode === 'time' && datedCount > 0) {
-                notes.push('Time-limited items are due at this exact time; returnable items in the same loan are due by the end of that day.');
+                notes.push('Time-limited items are due at this exact time; returnable items in the same borrow are due by the end of that day.');
             }
             if (issuedCount > 0) {
                 notes.push(issuedCount === picked.length
@@ -684,8 +684,8 @@ document.addEventListener('DOMContentLoaded', function () {
             datesGrid.classList.toggle('sm:grid-cols-2', timed);
             kindIcon.className = 'text-xs fas ' + (timed ? 'fa-clock' : 'fa-rotate-left');
             kindText.textContent = timed
-                ? 'Time-limited loan · due back at an exact time'
-                : 'Returnable loan · due back by the end of the day';
+                ? 'Time-limited borrow · due back at an exact time'
+                : 'Returnable borrow · due back by the end of the day';
 
             // Only items of the same loan type can take this loan over;
             // update() refuses the rest anyway.

@@ -222,7 +222,7 @@ class ReportsPageTest extends TestCase
         $this->assertStringContainsStringIgnoringCase('group by', $counts->first());
 
         $this->assertSame(
-            [['Activities', '9'], ['Loans recorded', '3'], ['Returns', '3'], ['Requests decided', '2']],
+            [['Activities', '9'], ['Borrows recorded', '3'], ['Returns', '3'], ['Requests decided', '2']],
             collect($response->viewData('summary'))->map(fn ($s) => [$s['label'], $s['value']])->all()
         );
         $this->assertSame('2 lent · 1 issued for good', $response->viewData('summary')[1]['sub']);
@@ -255,7 +255,7 @@ class ReportsPageTest extends TestCase
         // Date over time, stacked to keep the column narrow.
         $this->assertMatchesRegularExpression('/>Oct 6, 2026<\/span>\s*<span[^>]*>2:35 PM</', $html);
         $this->assertStringContainsString('Checked in', $html);
-        $this->assertMatchesRegularExpression('/bg-primary-100[^"]*"[^>]*>\s*Loans\s*</', $html);   // group badge
+        $this->assertMatchesRegularExpression('/bg-primary-100[^"]*"[^>]*>\s*Borrows\s*</', $html);   // group badge
         $this->assertStringContainsString('Quincy Jane Oliver', $html);
         $this->assertStringContainsString('System', $html);                                        // the sweep
         $this->assertMatchesRegularExpression('/Borrowed <span aria-label="to">→<\/span><\/span>\s*<span class="block font-semibold whitespace-nowrap">Returned/', $html);

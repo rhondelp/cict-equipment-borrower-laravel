@@ -150,7 +150,7 @@ class LoansPageTest extends TestCase
         $html = $this->html();
 
         $this->assertStringContainsString('data-checkin-trigger', $html);
-        $this->assertStringContainsString('aria-label="Check in this loan"', $html);
+        $this->assertStringContainsString('aria-label="Check in this borrow"', $html);
         // A labelled wide button would put the words in the row.
         $this->assertStringNotContainsString('>Check in</button>', $html);
     }
@@ -221,7 +221,7 @@ class LoansPageTest extends TestCase
         $this->loan($borrower, $this->equipment());
         $html = $this->html();
 
-        $this->assertStringContainsString('Return reminder (written for this loan)', $html);
+        $this->assertStringContainsString('Return reminder (written for this borrow)', $html);
         $this->assertStringContainsString('data-email="'.$borrower->email.'"', $html);
         $this->assertStringContainsString('id="modalEmail"', $html);
     }
@@ -360,7 +360,7 @@ class LoansPageTest extends TestCase
             'class_schedule_id' => '',
         ])->assertRedirect('/admin/transaction')
             ->assertSessionHasNoErrors()
-            ->assertSessionHas('success', 'Loan updated.');
+            ->assertSessionHas('success', 'Borrow updated.');
 
         $loan->refresh();
         $this->assertSame(5, $loan->quantity);

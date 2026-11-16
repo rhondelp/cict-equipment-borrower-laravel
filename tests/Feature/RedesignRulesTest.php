@@ -442,10 +442,10 @@ class RedesignRulesTest extends TestCase
 
         $html = $this->actingAs($admin)->get('/admin/dashboard')->assertOk()->getContent();
 
-        $this->assertStringContainsString('1 loan overdue', $html);
+        $this->assertStringContainsString('1 borrow overdue', $html);
         // The queue comes before the counters, not after them.
         $this->assertLessThan(
-            strpos($html, 'Units out on loan'),
+            strpos($html, 'Equipment currently released'),
             strpos($html, 'Needs your attention'),
             'The counters are being shown above the work queue'
         );

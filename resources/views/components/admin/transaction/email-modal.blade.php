@@ -32,7 +32,7 @@
                 <label for="emailType" class="block text-base font-medium text-neutral-800">Message</label>
                 <select id="emailType"
                         class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
-                    <option value="template">Return reminder (written for this loan)</option>
+                    <option value="template">Return reminder (written for this borrow)</option>
                     <option value="custom">Write my own</option>
                 </select>
             </div>

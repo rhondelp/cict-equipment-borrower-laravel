@@ -18,7 +18,7 @@
     <div class="w-full max-w-xl my-auto bg-white border border-neutral-200 rounded-xl shadow-pop">
         <div class="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
             <div class="min-w-0">
-                <h2 id="edit-loan-title" class="text-lg font-semibold text-neutral-900">Edit loan</h2>
+                <h2 id="edit-loan-title" class="text-lg font-semibold text-neutral-900">Edit borrow</h2>
                 <p data-edit-summary class="mt-1 text-sm text-neutral-600"></p>
             </div>
             <button type="button" data-modal-close="edit-loan-modal" aria-label="Close"
@@ -63,7 +63,7 @@
                      edits a date and time, a date-only loan edits dates. --}}
                 <p data-edit-kind class="flex items-center gap-2 text-sm text-neutral-700">
                     <i data-edit-kind-icon class="text-xs fas fa-rotate-left" aria-hidden="true"></i>
-                    <span data-edit-kind-text>Returnable loan · due back by the end of the day</span>
+                    <span data-edit-kind-text>Returnable borrow · due back by the end of the day</span>
                 </p>
 
                 <div data-edit-dates class="grid grid-cols-1 gap-4 sm:grid-cols-3">

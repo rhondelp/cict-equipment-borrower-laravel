@@ -42,7 +42,7 @@
                     <p class="text-sm text-neutral-600">
                         @if($oneType)
                             All messages are <span class="font-semibold text-neutral-800">{{ $types->first() }}</span> reminders,
-                            sent automatically at 08:00 on the day a loan falls due.
+                            sent automatically at 08:00 on the day a borrowed item falls due.
                         @else
                             {{ $types->implode(' · ') }}
                         @endif

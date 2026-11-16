@@ -274,7 +274,7 @@ class WelcomePageTest extends TestCase
         $html = $this->html();
 
         $this->assertMatchesRegularExpression('/>10 days<\/dd>/', $html);
-        $this->assertStringContainsString('Loans run ten days by default', $html);
+        $this->assertStringContainsString('Items are borrowed for ten days by default', $html);
     }
 
     /* ---------------------------------------------------------------------

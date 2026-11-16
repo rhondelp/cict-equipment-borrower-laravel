@@ -14,7 +14,7 @@
     <div class="w-full max-w-xl my-auto bg-white border border-neutral-200 rounded-xl shadow-pop">
         <div class="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
             <div class="min-w-0">
-                <h2 id="new-loan-title" class="text-lg font-semibold text-neutral-900">New loan</h2>
+                <h2 id="new-loan-title" class="text-lg font-semibold text-neutral-900">New borrow</h2>
                 <p class="mt-1 text-sm text-neutral-600 text-pretty">
                     Units come off the shelf the moment you save.
                 </p>
@@ -189,7 +189,7 @@
                     </button>
                     <button type="submit" data-loan-submit
                             class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md bg-primary-600 px-5 py-3 text-base font-semibold text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-primary-600">
-                        <i class="text-base fas fa-save" aria-hidden="true"></i> Record loan
+                        <i class="text-base fas fa-save" aria-hidden="true"></i> Record borrow
                     </button>
                 </div>
             </div>

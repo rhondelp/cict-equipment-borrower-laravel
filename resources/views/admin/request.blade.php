@@ -66,7 +66,7 @@
                                 @if($request->user) · {{ $request->user->user_type }} @endif
                                 · asked {{ $waited === 0 ? 'today' : $waited.' '.str('day')->plural($waited).' ago' }}
                             </p>
-                            <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" data-borrower-standing>
+                            <p class="flex flex-wrap items-center mt-1 text-sm gap-x-2 gap-y-1" data-borrower-standing>
                                 @if($unitsOut > 0)
                                     <span class="text-neutral-700 tabular-nums">Holding {{ $unitsOut }} {{ str('unit')->plural($unitsOut) }}</span>
                                 @else
@@ -199,7 +199,7 @@
                                     <p class="text-sm truncate text-neutral-700">{{ $request->decisionLine() }}</p>
                                     <p class="text-sm text-pretty {{ $approved ? 'text-neutral-600' : 'text-neutral-700' }}">
                                         {{ $approved
-                                            ? 'Handed over as a loan'
+                                            ? 'Released for temporary use'
                                             : ($request->decision_reason ?: 'No reason recorded — decided before reasons were required') }}
                                     </p>
                                 </div>
@@ -227,7 +227,7 @@
      ItemRequestController::requestActions, so there is no path that writes
      Declined without one — and the borrower's dashboard shows it back to them. --}}
 <div id="decline-modal" data-modal
-     class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
+     class="fixed inset-0 items-center justify-center hidden p-4 overflow-y-auto z-modal bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="decline-title">
     <div class="w-full max-w-lg my-auto bg-white border border-neutral-200 rounded-xl shadow-pop">
         <div class="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
@@ -251,12 +251,12 @@
                 </label>
                 <p class="text-sm text-neutral-600">The borrower reads this on their dashboard, so write it to them.</p>
                 <textarea id="decline-reason" name="reason" rows="3" minlength="5" maxlength="500" required data-autofocus
-                          placeholder="e.g. A cable already comes with the projector loan you have."
-                          class="w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"></textarea>
+                          placeholder="e.g. A cable already comes with the projector you borrowed."
+                          class="w-full px-4 py-3 text-base border rounded-md border-neutral-300 text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"></textarea>
             </div>
 
             <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
-                <p data-decline-hint class="text-sm min-w-0 text-danger-700">A reason is required</p>
+                <p data-decline-hint class="min-w-0 text-sm text-danger-700">A reason is required</p>
                 <div class="flex items-center gap-2 shrink-0">
                     <button type="button" data-modal-close="decline-modal"
                             class="inline-flex min-h-[44px] items-center justify-center rounded-md border border-neutral-300 bg-white px-5 py-3 text-base font-semibold text-neutral-700 hover:bg-neutral-50">
@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         window.showConfirm({
             title: 'Approve this request?',
-            text: 'Stock is deducted straight away and a loan is created, due back in 7 days.',
+            text: 'Stock is deducted straight away and a borrow record is created, due back in 7 days.',
             icon: 'question',
             confirmText: 'Yes, approve',
         }).then(function (result) {

@@ -74,7 +74,7 @@ class ReportsController extends Controller
     public const REPORTS = [
         'borrowers' => ['tab' => 'Borrower Report', 'title' => 'Borrower Report', 'dated' => true, 'noun' => 'transaction', 'file' => 'borrower-report'],
         'inventory' => ['tab' => 'Inventory Report', 'title' => 'Inventory Report', 'dated' => false, 'noun' => 'item', 'file' => 'inventory-report'],
-        'not-returned' => ['tab' => 'Not Yet Returned', 'title' => 'List of Borrowers Not Yet Returned', 'dated' => false, 'noun' => 'loan', 'file' => 'not-yet-returned'],
+        'not-returned' => ['tab' => 'Not Yet Returned', 'title' => 'List of Borrowers Not Yet Returned', 'dated' => false, 'noun' => 'borrow', 'file' => 'not-yet-returned'],
         'most-borrowed' => ['tab' => 'Most Borrowed', 'title' => 'Most Borrowed Equipment', 'dated' => true, 'noun' => 'item', 'file' => 'most-borrowed'],
         'defective' => ['tab' => 'Defective Items', 'title' => 'List of Defective Items', 'dated' => false, 'optional_range' => true, 'noun' => 'defect', 'file' => 'defective-items'],
     ];
@@ -187,7 +187,7 @@ class ReportsController extends Controller
             fwrite($out, "\u{FEFF}");
             fputcsv($out, [
                 'Date', 'Time', 'Activity type', 'Activity group', 'Done by', 'Done by role', 'Equipment',
-                'Affected person', 'Quantity', 'Status from', 'Status to', 'Details', 'Loan ID',
+                'Affected person', 'Quantity', 'Status from', 'Status to', 'Details', 'Borrow ID',
             ], eol: "\r\n");
 
             $rows = 0;
@@ -522,7 +522,7 @@ class ReportsController extends Controller
                     .' · '.$days.' '.str('day')->plural($days),
             ],
             [
-                'label' => 'Loans recorded', 'value' => number_format($lent + $issued), 'unit' => '',
+                'label' => 'Borrows recorded', 'value' => number_format($lent + $issued), 'unit' => '',
                 'sub' => $issued > 0 ? $lent.' lent · '.$issued.' issued for good' : 'Lent from the counter or by approval',
             ],
             [
@@ -551,7 +551,7 @@ class ReportsController extends Controller
         if (isset($filters['type'])) {
             $applied['Activity'] = isset(ActivityLog::TYPES[$filters['type']])
                 ? ActivityLog::TYPES[$filters['type']]['label']
-                : $filters['type'];
+                : ActivityLog::groupName($filters['type']);
         }
         if (isset($filters['equipment_id'])) {
             $applied['Equipment'] = Equipment::find($filters['equipment_id'])?->equipment_name ?? 'Item #'.$filters['equipment_id'];
@@ -1025,7 +1025,7 @@ class ReportsController extends Controller
             'inventory' => isset($filters['category']) || isset($filters['status'])
                 ? 'No equipment matches these filters.'
                 : 'There is no equipment in use.',
-            'not-returned' => 'Every loan has been returned. Nothing is out right now.',
+            'not-returned' => 'Every borrowed item has been returned. Nothing is out right now.',
             'most-borrowed' => 'Nothing was borrowed between '.$this->rangeWords($filters).'.',
             'defective' => isset($filters['from'])
                 ? 'No open defects were reported between '.$this->rangeWords($filters).'.'

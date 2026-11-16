@@ -15,7 +15,7 @@
 
     'summary' => [
         'A request is not a reservation — stock is only held once an administrator approves it.',
-        'The default loan is seven days, and the return is not closed until a custodian logs it.',
+        'The default borrow period is seven days, and the return is not closed until a custodian logs it.',
         'Overdue items pause your ability to borrow more until they come back.',
     ],
 
@@ -40,11 +40,11 @@
             'id' => 'borrowing',
             'heading' => 'Borrowing equipment',
             'paras' => [
-                'Every loan follows the same four steps, and each one is recorded:',
+                'Every borrow follows the same four steps, and each one is recorded:',
             ],
             'items' => [
                 'A request reserves nothing until an administrator approves it. Stock is deducted at approval, not at request.',
-                'Items are due on the return date shown on your transaction. The default loan period is seven days.',
+                'Items are due on the return date shown on your transaction. The default borrow period is seven days.',
                 'An item that passes its return date is marked overdue, and a reminder goes to the email address on your account.',
                 'Return the item to a custodian, who records its condition. A transaction is not closed until that return is logged.',
             ],

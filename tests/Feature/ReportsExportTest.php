@@ -20,7 +20,7 @@ class ReportsExportTest extends TestCase
 
     private const CSV_HEADER = [
         'Date', 'Time', 'Activity type', 'Activity group', 'Done by', 'Done by role', 'Equipment',
-        'Affected person', 'Quantity', 'Status from', 'Status to', 'Details', 'Loan ID',
+        'Affected person', 'Quantity', 'Status from', 'Status to', 'Details', 'Borrow ID',
     ];
 
     private User $admin;
@@ -115,7 +115,7 @@ class ReportsExportTest extends TestCase
         $rows = $this->csv(['from' => '2026-10-01', 'to' => '2026-10-31']);
         $this->assertSame(self::CSV_HEADER, $rows[0]);
         $this->assertSame([
-            '2026-10-06', '09:05', 'Checked in', 'Loans', 'Quincy Jane Oliver', 'Admin', 'Projector (Epson)',
+            '2026-10-06', '09:05', 'Checked in', 'Borrows', 'Quincy Jane Oliver', 'Admin', 'Projector (Epson)',
             'Mia Santos-Ñuñez', '2', 'Borrowed', 'Returned', 'Checked in 2 × Projector (Epson) → shelf.', '',
         ], $rows[1]);
     }
@@ -248,7 +248,7 @@ class ReportsExportTest extends TestCase
         $this->assertStringContainsString('CICT Equipment Borrower System', $html);
         $this->assertStringContainsString('Activity and Transactions Report', $html);
         $this->assertStringContainsString('Oct 1, 2026 – Oct 7, 2026', $html);
-        $this->assertStringContainsString('Activity: Loans; Equipment: Projector (Epson); User: Mia Santos', $html);
+        $this->assertStringContainsString('Activity: Borrows; Equipment: Projector (Epson); User: Mia Santos', $html);
         $this->assertStringContainsString('Oct 7, 2026, 2:00 PM by Quincy Jane Oliver (Admin)', $html);
         $this->assertStringContainsString('Lent 1 × Projector (Epson) to Mia Santos.', $html);
         $this->assertStringContainsString(asset('images/logo.png'), $html);

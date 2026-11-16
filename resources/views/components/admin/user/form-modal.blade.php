@@ -114,7 +114,7 @@
                     <label for="user-current-password" class="block text-base font-medium text-neutral-800">Your password</label>
                     <input type="password" id="user-current-password" name="current_password" autocomplete="current-password"
                            class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
-                    <p class="mt-1 text-sm text-neutral-600">Admins can manage every account and loan. Confirm it&rsquo;s you.</p>
+                    <p class="mt-1 text-sm text-neutral-600">Admins can manage every account and borrow record. Confirm it&rsquo;s you.</p>
                     @error('current_password')
                         <p class="mt-1 text-sm text-danger-700">{{ $message }}</p>
                     @enderror
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const needsReason = changing || addingAdmin;
 
         note.textContent = changing ? 'Changing from ' + current + ' to ' + role.value + '.'
-            : addingAdmin ? 'Admins can manage equipment, loans and every account — including other admins.'
+            : addingAdmin ? 'Admins can manage equipment, borrow records and every account — including other admins.'
             : '';
         note.classList.toggle('hidden', !needsReason);
         note.classList.toggle('text-warning-700', needsReason);

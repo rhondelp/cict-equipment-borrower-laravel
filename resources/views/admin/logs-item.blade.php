@@ -30,7 +30,7 @@
         @if($logs->isEmpty())
             <x-ui.panel>
                 <x-ui.empty-state icon="fa-book" title="Nothing returned yet"
-                                  message="Once a loan of this item is checked in, every return shows up here." />
+                                  message="Once a borrowed unit of this item is checked in, every return shows up here." />
             </x-ui.panel>
         @else
             {{-- The point of this page in one line: a single damaged return is
@@ -39,7 +39,7 @@
             <x-ui.stat-strip :stats="[
                 ['label' => 'Returned damaged or lost', 'value' => $incidents->count(), 'unit' => 'of '.$logs->count(), 'sub' => $damageRate.'% of every return of this item', 'tone' => $incidents->isEmpty() ? 'neutral' : 'warning'],
                 ['label' => 'Still unresolved', 'value' => $unresolved, 'unit' => '', 'sub' => $unresolved === 0 ? 'Every incident has an outcome' : 'No outcome recorded yet', 'tone' => $unresolved === 0 ? 'neutral' : 'danger'],
-                ['label' => 'Returned late', 'value' => $late->count(), 'unit' => 'of '.$logs->count(), 'sub' => 'Past the due date on the loan'],
+                ['label' => 'Returned late', 'value' => $late->count(), 'unit' => 'of '.$logs->count(), 'sub' => 'Past the due date of the borrow'],
                 ['label' => 'Units owned', 'value' => $equipment->quantity, 'unit' => '', 'sub' => $equipment->isRetired() ? 'Retired — no longer lendable' : $equipment->available_quantity.' on the shelf now'],
             ]" />
 
@@ -86,7 +86,7 @@
                                 @endforeach
                                 <p class="mt-2">
                                     <a href="{{ route('admin.transaction') }}#loan-{{ $log->borrow_transaction_id }}"
-                                       class="font-semibold text-primary-700 hover:text-primary-800">The loan &rarr;</a>
+                                       class="font-semibold text-primary-700 hover:text-primary-800">Borrow record &rarr;</a>
                                 </p>
                             </div>
                         </div>

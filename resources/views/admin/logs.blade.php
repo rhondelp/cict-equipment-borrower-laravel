@@ -87,7 +87,7 @@
                         <div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 mt-3 text-sm border-t border-neutral-100">
                             <a href="{{ route('admin.transaction') }}#loan-{{ $log->borrow_transaction_id }}"
                                class="font-semibold text-primary-700 hover:text-primary-800">
-                                The loan &rarr;
+                                Borrow record &rarr;
                             </a>
                             @if($log->equipment)
                                 <a href="{{ route('admin.logs.item', $log->equipment->id) }}"
@@ -104,7 +104,7 @@
         <x-ui.panel id="return-log-list" data-list data-active-chip="all">
             @if($logs->isEmpty())
                 <x-ui.empty-state icon="fa-book" title="No returns logged yet"
-                                  message="Checking a loan back in on the Loans page writes its entry here." />
+                                  message="Checking a borrowed item back in on the Borrow Transactions page writes its entry here." />
             @else
                 <div class="flex flex-wrap items-center gap-3 px-4 py-3 border-b sm:px-5 border-neutral-200">
                     <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by condition">
@@ -215,7 +215,7 @@
 
                                 <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm">
                                     <a href="{{ route('admin.transaction') }}#loan-{{ $log->borrow_transaction_id }}"
-                                       class="font-semibold text-primary-700 hover:text-primary-800">The loan &rarr;</a>
+                                       class="font-semibold text-primary-700 hover:text-primary-800">Borrow record &rarr;</a>
                                     @if($log->equipment)
                                         <a href="{{ route('admin.logs.item', $log->equipment->id) }}"
                                            class="font-semibold text-primary-700 hover:text-primary-800">Item history &rarr;</a>

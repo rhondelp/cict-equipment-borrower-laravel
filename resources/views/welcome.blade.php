@@ -43,7 +43,7 @@
     $facts = [
         ['value' => $inventory ? number_format($inventory['units']) : '—', 'label' => 'units tracked'],
         ['value' => $inventory ? number_format($inventory['types']) : '—', 'label' => 'item types'],
-        ['value' => $loanDays.' '.str('day')->plural($loanDays), 'label' => 'default loan period'],
+        ['value' => $loanDays.' '.str('day')->plural($loanDays), 'label' => 'default borrow period'],
         ['value' => $hours->dayRange(short: true), 'label' => $hours->timeRange()],
     ];
 
@@ -55,14 +55,14 @@
          'body' => 'An administrator reviews the request, and the decision shows on your dashboard.',
          'note' => 'Stock is held once approved'],
         ['n' => '03', 'title' => 'Collect, then bring it back',
-         'body' => 'Pick it up at the CICT office. A custodian logs its condition when you return it and closes the loan.',
+         'body' => 'Pick it up at the CICT office. A custodian logs its condition when you return it and closes the borrow record.',
          'note' => 'Email reminder on the day it is due'],
     ];
 
     $rules = [
         ['n' => '1', 'title' => 'A request is not a reservation',
          'body' => 'Nothing is set aside for you until an administrator approves it. Request early for anything running low.'],
-        ['n' => '2', 'title' => 'Loans run '.$loanWord.' '.str('day')->plural($loanDays).' by default',
+        ['n' => '2', 'title' => 'Items are borrowed for '.$loanWord.' '.str('day')->plural($loanDays).' by default',
          'body' => 'The return date is on your transaction. Need longer? Say so in the request and it is judged case by case.'],
         ['n' => '3', 'title' => 'Overdue items pause borrowing',
          'body' => 'While something is late, your account cannot send new requests until it is back on the shelf.'],

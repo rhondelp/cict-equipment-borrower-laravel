@@ -74,7 +74,7 @@ class LoanTypesLoansTest extends TestCase
 
         $this->record([$projector->id => 2])
             ->assertSessionHasNoErrors()
-            ->assertSessionHas('success', 'Loan recorded — 2 units out, due back Oct 12.');
+            ->assertSessionHas('success', 'Borrow recorded — 2 units out, due back Oct 12.');
 
         $loan = $this->loanFor($projector);
         $this->assertSame('Borrowed', $loan->status);
@@ -90,7 +90,7 @@ class LoanTypesLoansTest extends TestCase
 
         $this->record([$clicker->id => 1], ['borrow_date' => '2026-10-05T10:00', 'return_date' => '2026-10-05T11:30'])
             ->assertSessionHasNoErrors()
-            ->assertSessionHas('success', 'Loan recorded — 1 unit out, due back 11:30 AM.');
+            ->assertSessionHas('success', 'Borrow recorded — 1 unit out, due back 11:30 AM.');
 
         $loan = $this->loanFor($clicker);
         $this->assertSame('Borrowed', $loan->status);
@@ -231,7 +231,7 @@ class LoanTypesLoansTest extends TestCase
 
         $this->record([$projector->id => 1, $cable->id => 3])
             ->assertSessionHasNoErrors()
-            ->assertSessionHas('success', 'Loan recorded — 1 unit out, due back Oct 12; 3 units issued, not expected back.');
+            ->assertSessionHas('success', 'Borrow recorded — 1 unit out, due back Oct 12; 3 units issued, not expected back.');
 
         $this->assertSame('Borrowed', $this->loanFor($projector)->status);
         $this->assertSame('2026-10-12', $this->loanFor($projector)->return_date->toDateString());

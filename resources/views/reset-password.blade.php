@@ -23,7 +23,7 @@
     $steps = [
         ['Your old password stops working', 'Straight away, on every device.'],
         ['Other sessions are signed out', 'Including shared lab computers you forgot to log out of.'],
-        ['Your loans and requests are untouched', 'Nothing about your borrowing changes.'],
+        ['Your borrowed items and requests are untouched', 'Nothing about your borrowing changes.'],
     ];
 @endphp
 

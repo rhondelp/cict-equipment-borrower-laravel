@@ -9,9 +9,9 @@
     $report = $report ?? 'activity';
     $subtitles = [
         'activity' => 'Everything recorded in the activity log, newest first.',
-        'borrowers' => 'Every loan and issue in the date range, oldest first, with when each came back.',
+        'borrowers' => 'Every borrow and issue in the date range, oldest first, with when each came back.',
         'inventory' => 'Every item in use, how many the department owns, and whether it is serviceable.',
-        'not-returned' => 'Everyone holding equipment right now, soonest due first. Overdue loans are marked.',
+        'not-returned' => 'Everyone holding equipment right now, soonest due first. Overdue borrows are marked.',
         'most-borrowed' => 'The equipment lent most often in the date range.',
         'defective' => 'Items that came back damaged or lost and have no resolution recorded yet, newest report first.',
     ];
@@ -88,8 +88,8 @@
                             <select id="report-type" name="type" class="mt-1.5 {{ $field }}">
                                 <option value="">All activity</option>
                                 @foreach($typeGroups as $group => $types)
-                                    <optgroup label="{{ $group }}">
-                                        <option value="{{ $group }}" @selected(($filters['type'] ?? null) === $group)>Everything in {{ $group }}</option>
+                                    <optgroup label="{{ \App\Models\ActivityLog::groupName($group) }}">
+                                        <option value="{{ $group }}" @selected(($filters['type'] ?? null) === $group)>Everything in {{ \App\Models\ActivityLog::groupName($group) }}</option>
                                         @foreach($types as $key => $typeLabel)
                                             <option value="{{ $key }}" @selected(($filters['type'] ?? null) === $key)>{{ $typeLabel }}</option>
                                         @endforeach
@@ -307,7 +307,7 @@
                                         </td>
                                         <td class="px-3 py-3">
                                             <span class="block font-semibold">{{ $activity->typeLabel() }}</span>
-                                            <x-ui.badge :status="$activity->groupLabel()" :variant="$groupTones[$activity->groupLabel()] ?? 'neutral'"
+                                            <x-ui.badge :status="$activity->groupLabel()" :variant="$groupTones[$activity->group()] ?? 'neutral'"
                                                         class="mt-1 !px-2 !py-0.5 !text-xs whitespace-nowrap" />
                                         </td>
                                         <td class="px-3 py-3">

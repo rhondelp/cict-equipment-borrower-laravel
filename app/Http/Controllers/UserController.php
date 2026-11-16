@@ -323,7 +323,7 @@ class UserController extends Controller
         ]);
 
         $note = $out > 0
-            ? ' '.$out.' '.str('unit')->plural($out).' still with them — those loans stay tracked.'
+            ? ' '.$out.' '.str('unit')->plural($out).' still with them — those borrowed units stay tracked.'
             : '';
 
         return redirect()->back()->with('success', $user->name.' deactivated and can no longer sign in.'.$note);
@@ -369,7 +369,7 @@ class UserController extends Controller
         ]);
 
         return redirect()->back()->with('success',
-            $user->name.' suspended — they can still sign in and see their loans, but cannot borrow.');
+            $user->name.' suspended — they can still sign in and see their borrowed items, but cannot borrow.');
     }
 
     public function liftSuspension(string $id)

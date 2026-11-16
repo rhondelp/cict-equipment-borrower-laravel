@@ -95,7 +95,7 @@ class ClassScheduleController extends Controller
         if ($schedule->borrow_transactions_count > 0) {
             return redirect()->back()->with('error',
                 'Cannot delete '.$schedule->subject_code.' — '.$schedule->borrow_transactions_count.' '
-                .str('loan')->plural($schedule->borrow_transactions_count).' '
+                .str('borrow')->plural($schedule->borrow_transactions_count).' '
                 .($schedule->borrow_transactions_count === 1 ? 'is' : 'are').' recorded against it.');
         }
 
@@ -108,6 +108,6 @@ class ClassScheduleController extends Controller
             'meta' => ['schedule_id' => $schedule->id] + $this->snapshot($schedule),
         ]);
 
-        return redirect()->back()->with('success', $label.' removed. No loans referenced it.');
+        return redirect()->back()->with('success', $label.' removed. No borrows referenced it.');
     }
 }

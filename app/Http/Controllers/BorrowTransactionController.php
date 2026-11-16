@@ -130,10 +130,10 @@ class BorrowTransactionController extends Controller
                 $transaction = BorrowTransaction::where('id', $validated['id'])->lockForUpdate()->firstOrFail();
 
                 if ($transaction->isVoided()) {
-                    throw ValidationException::withMessages(['id' => 'This loan was voided and cannot be checked in.']);
+                    throw ValidationException::withMessages(['id' => 'This borrow was voided and cannot be checked in.']);
                 }
                 if ($transaction->isReturned()) {
-                    throw ValidationException::withMessages(['id' => 'This loan is already checked in.']);
+                    throw ValidationException::withMessages(['id' => 'This borrow is already checked in.']);
                 }
                 if ($transaction->isIssued()) {
                     throw ValidationException::withMessages([
@@ -284,7 +284,7 @@ class BorrowTransactionController extends Controller
                     // simply never released by a check-in.
                     $equipment->reserveStock(
                         $quantity,
-                        "Only {$equipment->available_quantity} of {$equipment->equipment_name} available — this loan needs {$quantity}.",
+                        "Only {$equipment->available_quantity} of {$equipment->equipment_name} available — this borrow needs {$quantity}.",
                         $loan
                     );
 
@@ -311,7 +311,7 @@ class BorrowTransactionController extends Controller
             $parts[] = $result['issued'].' '.str('unit')->plural($result['issued']).' issued, not expected back';
         }
 
-        return redirect()->back()->with('success', ($result['out'] > 0 ? 'Loan' : 'Issue').' recorded — '.implode('; ', $parts).'.');
+        return redirect()->back()->with('success', ($result['out'] > 0 ? 'Borrow' : 'Issue').' recorded — '.implode('; ', $parts).'.');
     }
 
     /**
@@ -588,7 +588,7 @@ class BorrowTransactionController extends Controller
 
                 if ($transaction->isVoided() || $transaction->isReturned()) {
                     throw ValidationException::withMessages([
-                        'id' => 'This loan is closed. Closed loans are the return history and cannot be edited.',
+                        'id' => 'This borrow is closed. Closed borrows are the return history and cannot be edited.',
                     ]);
                 }
 
@@ -626,16 +626,16 @@ class BorrowTransactionController extends Controller
                     $wanted = $transaction->timed ? Equipment::LOAN_TIME_LIMITED : Equipment::LOAN_RETURNABLE;
                     if ($equipment->loan_type !== $wanted) {
                         throw ValidationException::withMessages([
-                            'equipment_id' => $equipment->equipment_name.' is '.$equipment->loanTypeLabel().', and this loan is '
+                            'equipment_id' => $equipment->equipment_name.' is '.$equipment->loanTypeLabel().', and this borrow is '
                                 .Equipment::LOAN_TYPES[$wanted].'. Pick another '.Equipment::LOAN_TYPES[$wanted]
-                                .' item, or void this loan and record a new one.',
+                                .' item, or void this borrow and record a new one.',
                         ]);
                     }
 
                     $oldEquipment->releaseStock($oldQty, $transaction);
                     $equipment->reserveStock(
                         $newQty,
-                        "Only {$equipment->available_quantity} of {$equipment->equipment_name} available — this loan needs {$newQty}.",
+                        "Only {$equipment->available_quantity} of {$equipment->equipment_name} available — this borrow needs {$newQty}.",
                         $transaction
                     );
                 } else {
@@ -665,7 +665,7 @@ class BorrowTransactionController extends Controller
                         'quantity' => $transaction->quantity,
                         'status_from' => $statusBefore,
                         'status_to' => ActivityLog::loanStatus($transaction),
-                        'details' => 'Edited loan #'.$transaction->id.': '.ActivityLog::changeWords($changes, [
+                        'details' => 'Edited borrow #'.$transaction->id.': '.ActivityLog::changeWords($changes, [
                             'borrower' => 'borrower', 'equipment' => 'item', 'borrow_date' => 'borrow date',
                             'return_date' => 'due date', 'class_schedule' => 'class',
                         ]).'.',
@@ -677,7 +677,7 @@ class BorrowTransactionController extends Controller
             return redirect()->back()->withErrors($e->errors())->withInput();
         }
 
-        return redirect()->back()->with('success', 'Loan updated.');
+        return redirect()->back()->with('success', 'Borrow updated.');
     }
 
     /** A loan's editable fields as the log shows them: names and dates, not ids. */
@@ -715,7 +715,7 @@ class BorrowTransactionController extends Controller
 
         if (! $this->hasTime($borrowInput) || ! $this->hasTime($returnInput)) {
             throw ValidationException::withMessages([
-                'return_date' => 'This is a time-limited loan. Give the time it went out and the time it is due back.',
+                'return_date' => 'This is a time-limited borrow. Give the time it went out and the time it is due back.',
             ]);
         }
 
@@ -774,7 +774,7 @@ class BorrowTransactionController extends Controller
             return $transaction;
         });
 
-        return redirect()->back()->with('success', ($transaction->status === 'Issued' ? 'Issue' : 'Loan').' #'.$transaction->id
+        return redirect()->back()->with('success', ($transaction->status === 'Issued' ? 'Issue' : 'Borrow').' #'.$transaction->id
             .' voided. It stays in the log, and its units are back in stock.');
     }
 
@@ -791,7 +791,7 @@ class BorrowTransactionController extends Controller
 
         if ($transaction->isOut()) {
             return redirect()->back()->with('error',
-                'Cannot delete loan #'.$transaction->id.' — it is still open and '.$transaction->quantity.' '
+                'Cannot delete borrow #'.$transaction->id.' — it is still open and '.$transaction->quantity.' '
                 .str('unit')->plural($transaction->quantity).' are out. Check it in or void it instead.');
         }
 
@@ -803,7 +803,7 @@ class BorrowTransactionController extends Controller
 
         if ($transaction->returnLog) {
             return redirect()->back()->with('error',
-                'Cannot delete loan #'.$transaction->id.' — it is part of the return history. Void it instead.');
+                'Cannot delete borrow #'.$transaction->id.' — it is part of the return history. Void it instead.');
         }
 
         $reference = $transaction->id;
@@ -821,13 +821,13 @@ class BorrowTransactionController extends Controller
                 'borrow_transaction_id' => null,
                 'quantity' => $transaction->quantity,
                 'status_from' => $statusBefore,
-                'details' => 'Deleted loan #'.$transaction->id.' ('.ActivityLog::units($transaction).' to '
+                'details' => 'Deleted borrow #'.$transaction->id.' ('.ActivityLog::units($transaction).' to '
                     .($transaction->user->name ?? 'a deleted account').').',
                 'meta' => ['loan_id' => $transaction->id, 'void_reason' => $transaction->void_reason],
             ]);
         });
 
-        return redirect()->back()->with('success', 'Loan #'.$reference.' deleted. Nothing referenced it.');
+        return redirect()->back()->with('success', 'Borrow #'.$reference.' deleted. Nothing referenced it.');
     }
 
     /** One wording for the reminder mail, used by both the job and the manual send. */

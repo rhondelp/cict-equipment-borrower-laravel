@@ -31,11 +31,11 @@
     $narrowed = isset($filters['category']) || isset($filters['status']) || ($optionalRange && isset($filters['from']));
 
     $empty = [
-        'borrowers' => ['fa-handshake', 'Nothing borrowed in this date range', 'No loans or issues were recorded between '.$meta['range'].'. Voided transactions are never listed.'],
+        'borrowers' => ['fa-handshake', 'Nothing borrowed in this date range', 'No borrows or issues were recorded between '.$meta['range'].'. Voided transactions are never listed.'],
         'inventory' => $narrowed
             ? ['fa-filter-circle-xmark', 'No equipment matches these filters', 'Retired equipment is not part of the inventory report.']
             : ['fa-boxes-stacked', 'No equipment in use', 'Equipment added on the inventory screen appears here. Retired items are left out.'],
-        'not-returned' => ['fa-circle-check', 'Everything has been returned', 'No loan is out right now. Issued items are given for good, so they never appear here.'],
+        'not-returned' => ['fa-circle-check', 'Everything has been returned', 'No borrowed item is out right now. Issued items are given for good, so they never appear here.'],
         'most-borrowed' => ['fa-chart-simple', 'Nothing borrowed in this date range', 'Nothing was lent or issued between '.$meta['range'].'. Try a wider range.'],
         'defective' => $narrowed
             ? ['fa-filter-circle-xmark', 'No defects reported in this date range', 'No open defect was reported between '.$meta['range'].'. Clear the dates to list every open defect.']

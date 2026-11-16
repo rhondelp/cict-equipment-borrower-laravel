@@ -107,8 +107,9 @@ class ActivityLogTest extends TestCase
         $this->assertSame('live', $log->source);
         $this->assertNull($log->backfill_key);
         $this->assertSame(['timed' => false], $log->meta);
-        $this->assertSame('Loan recorded', $log->typeLabel());
-        $this->assertSame('Loans', $log->groupLabel());
+        $this->assertSame('Borrow recorded', $log->typeLabel());
+        $this->assertSame('Loans', $log->group(), 'The group key is a filter value and must not change');
+        $this->assertSame('Borrows', $log->groupLabel());
         $this->assertSame('Quincy Jane Oliver', $log->actorLabel());
 
         // A snapshot is a snapshot: renaming the person or the item later does

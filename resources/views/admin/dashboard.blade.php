@@ -121,8 +121,8 @@
         </section>
 
         <x-ui.stat-strip class="anim-rise [animation-delay:70ms]" :stats="[
-            ['label' => 'Units out on loan', 'value' => $unitsOut, 'unit' => 'of '.$totalUnits, 'sub' => 'Across '.$typesOut.' item '.str('type')->plural($typesOut), 'url' => route('admin.transaction', ['filter' => 'active'])],
-            ['label' => 'Overdue', 'value' => $overdueLoans->count(), 'unit' => str('loan')->plural($overdueLoans->count()), 'sub' => $overdueLoans->isEmpty() ? 'Nothing past its due date' : 'Longest: '.$overdueLoans->sortBy(fn ($loan) => $loan->dueAt()?->timestamp)->first()->timingLabel(), 'tone' => $overdueLoans->isEmpty() ? 'neutral' : 'danger', 'url' => route('admin.transaction', ['filter' => 'overdue'])],
+            ['label' => 'Equipment currently released', 'value' => $unitsOut, 'unit' => 'of '.$totalUnits, 'sub' => 'Across '.$typesOut.' item '.str('type')->plural($typesOut), 'url' => route('admin.transaction', ['filter' => 'active'])],
+            ['label' => 'Overdue', 'value' => $overdueLoans->count(), 'unit' => str('borrow')->plural($overdueLoans->count()), 'sub' => $overdueLoans->isEmpty() ? 'Nothing past its due date' : 'Longest: '.$overdueLoans->sortBy(fn ($loan) => $loan->dueAt()?->timestamp)->first()->timingLabel(), 'tone' => $overdueLoans->isEmpty() ? 'neutral' : 'danger', 'url' => route('admin.transaction', ['filter' => 'overdue'])],
             ['label' => 'Pending requests', 'value' => $pendingRequests->count(), 'unit' => '', 'sub' => $pendingRequests->isEmpty() ? 'Queue is clear' : 'Waiting on a decision', 'url' => route('admin.request')],
             ['label' => 'Items fully out', 'value' => $fullyOut, 'unit' => str('item')->plural($fullyOut), 'sub' => $fullyOut === 0 ? 'Everything has something on the shelf' : 'Nothing left to lend — blocks approvals', 'tone' => $fullyOut === 0 ? 'neutral' : 'danger', 'url' => route('admin.equipment', ['filter' => 'out'])],
         ]" />
@@ -134,9 +134,9 @@
             <section aria-labelledby="out-heading">
                 <x-ui.panel>
                     <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-neutral-200">
-                        <h2 id="out-heading" class="text-lg font-semibold text-neutral-900">Currently out</h2>
+                        <h2 id="out-heading" class="text-lg font-semibold text-neutral-900">Currently released</h2>
                         <a href="{{ route('admin.transaction') }}" class="text-sm font-semibold text-primary-700 hover:text-primary-800">
-                            All loans
+                            All transactions
                         </a>
                     </div>
 
@@ -200,7 +200,7 @@
                 <x-ui.panel>
                     <div class="px-5 py-4 border-b border-neutral-200">
                         <h2 id="activity-heading" class="text-lg font-semibold text-neutral-900">Activity</h2>
-                        <p class="mt-0.5 text-sm text-neutral-600">Loans, returns and requests across the department</p>
+                        <p class="mt-0.5 text-sm text-neutral-600">Equipment releases, returns and requests</p>
                     </div>
 
                     @forelse($activity as $event)
@@ -218,7 +218,7 @@
                         </a>
                     @empty
                         <x-ui.empty-state icon="fa-clock-rotate-left" title="Nothing has happened yet"
-                                          message="Loans, returns and requests will appear here as they are recorded." />
+                                          message="Borrows, returns and requests will appear here as they are recorded." />
                     @endforelse
                 </x-ui.panel>
             </section>

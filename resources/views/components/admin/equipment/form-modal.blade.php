@@ -48,7 +48,7 @@
                      the page script disables the other two and says why, and
                      EquipmentController::update refuses the change anyway. --}}
                 <fieldset>
-                    <legend class="block text-base font-medium text-neutral-800">Loan type</legend>
+                    <legend class="block text-base font-medium text-neutral-800">Borrow type</legend>
                     <div class="grid gap-2 mt-2">
                         @foreach([
                             \App\Models\Equipment::LOAN_RETURNABLE => ['fa-rotate-left', 'Comes back by a date'],

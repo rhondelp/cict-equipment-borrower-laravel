@@ -251,7 +251,11 @@ writes which type. Write an entry with `ActivityLog::record($type, $attrs)`:
 
 `TYPES` maps each stable key (`loan_created`, `request_approved`, `user_suspended`, …) to a `label`
 and a `group`, and `GROUPS` gives the report order: Loans, Requests, Equipment, Users, Returns,
-Account & system. Never rename a key, since keys are stored; labels can change. Read with
+Account & system. Never rename a key, since keys are stored; labels can change. A group key is
+also the `?type=` filter value, so the screen shows `groupLabel()` / `ActivityLog::groupName()`
+(`GROUP_LABELS`: `Loans` reads "Borrows"), and `group()` returns the raw key. **User-facing copy
+says "borrow", never "loan"** (since 16 Nov 2026); "loan" survives only in code, keys and
+comments. Read with
 `filter([...])`, whose keys are `from`, `to` (inclusive of the whole end day), `type` (a key or a
 group name), `equipment_id`, `user_id` (actor **or** subject), `status` (matches `status_to`) and
 `q`, and with `newestFirst()`.

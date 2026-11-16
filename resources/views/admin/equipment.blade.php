@@ -228,8 +228,8 @@
                                         data-body="{{ $item->isRetired()
                                             ? 'This item is retired: it keeps its history but cannot be lent out. Restoring puts it back on the shelf.'
                                             : ($out > 0
-                                                ? 'Units of this item are still with borrowers. Retire it and it stops being lendable, but the outstanding loans stay tracked until they come back.'
-                                                : 'Retiring keeps every past loan and return in the logs — the item simply stops appearing as lendable. Deleting erases it from those records too.') }}"
+                                                ? 'Units of this item are still with borrowers. Retire it and it stops being lendable, but the outstanding borrowed units stay tracked until they come back.'
+                                                : 'Retiring keeps every past borrow and return in the logs — the item simply stops appearing as lendable. Deleting erases it from those records too.') }}"
                                         data-fact-a="{{ $item->quantity }}"
                                         data-fact-b="{{ $out }}" data-fact-b-alert="{{ $out > 0 ? '1' : '0' }}"
                                         data-fact-c="{{ $references }}"
@@ -265,7 +265,7 @@
     safe-label="Retire item"
     safe-icon="fa-box-archive"
     cancel-label="Keep item"
-    :facts="['Units owned', 'Out with borrowers', 'Loans and requests referencing it']" />
+    :facts="['Units owned', 'Out with borrowers', 'Borrows and requests referencing it']" />
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -314,13 +314,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (tooFew) {
             previewText.textContent = unitsOut + ' ' + (unitsOut === 1 ? 'unit is' : 'units are')
-                + ' out on loan — the total cannot go below that.';
+                + ' currently borrowed — the total cannot go below that.';
             previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-danger-600';
         } else if (!qtyOk) {
             previewText.textContent = 'Enter how many units the department owns.';
             previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-neutral-400';
         } else if (editing) {
-            previewText.textContent = unitsOut + ' out on loan · will read '
+            previewText.textContent = unitsOut + ' borrowed · will read '
                 + (qty - unitsOut) + ' of ' + qty + ' available';
             previewDot.className = 'w-2 h-2 rounded-full shrink-0 bg-success-600';
         } else {
@@ -364,12 +364,12 @@ document.addEventListener('DOMContentLoaded', function () {
         loanTypeLocked.hidden = !typeLocked;
         loanTypeLocked.textContent = typeLocked
             ? unitsOut + ' ' + (unitsOut === 1 ? 'unit is' : 'units are')
-                + ' out on loan, so the loan type is locked until ' + (unitsOut === 1 ? 'it is' : 'they are') + ' checked in.'
+                + ' currently borrowed, so the borrow type is locked until ' + (unitsOut === 1 ? 'it is' : 'they are') + ' checked in.'
             : '';
 
         modal.querySelector('[data-equipment-title]').textContent = editing ? 'Edit equipment' : 'Add equipment';
         modal.querySelector('[data-equipment-subtitle]').textContent = editing
-            ? 'Availability is tracked from loans — adjust the total only when units are added, retired or lost.'
+            ? 'Availability is tracked from borrowed units — adjust the total only when units are added, retired or lost.'
             : 'New items start fully available. Availability updates itself as things are lent out.';
         modal.querySelector('[data-quantity-label]').textContent = editing ? 'Total units owned' : 'Units to add';
         modal.querySelector('[data-equipment-submit-label]').textContent = editing ? 'Save changes' : 'Add to inventory';

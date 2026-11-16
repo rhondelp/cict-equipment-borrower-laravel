@@ -139,7 +139,7 @@
                                     @if($user->isSuspended())
                                         {{ $user->suspensionLine() }}@if($user->suspender) · by {{ $user->suspender->name }}@endif
                                     @else
-                                        Cannot sign in. History and loans are untouched.
+                                        Cannot sign in. History and borrowed items are untouched.
                                     @endif
                                 </p>
 
@@ -398,7 +398,7 @@
                                             data-body="{{ $user->isDeactivated()
                                                 ? 'This account is deactivated and cannot sign in. Reactivating lets them back in; their history was never touched.'
                                                 : ($out > 0
-                                                    ? 'This person still has equipment checked out. Deactivating keeps their loans tracked; the account just stops being usable.'
+                                                    ? 'This person still has equipment checked out. Deactivating keeps their borrowed items tracked; the account just stops being usable.'
                                                     : 'Deactivating keeps their borrowing history intact. Deleting erases the person from those records too.') }}"
                                             data-fact-a="{{ $out }}" data-fact-a-alert="{{ $out > 0 ? '1' : '0' }}"
                                             data-fact-b="{{ $references }}"
@@ -438,7 +438,7 @@
     safe-label="Deactivate account"
     safe-icon="fa-user-slash"
     cancel-label="Keep account"
-    :facts="['Equipment held now', 'Loans and requests on record', 'Class schedules']" />
+    :facts="['Equipment held now', 'Borrows and requests on record', 'Class schedules']" />
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -609,7 +609,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (loans > 0) {
                 window.showAlert('error',
-                    d.label + ' cannot be deleted: ' + loans + (loans === 1 ? ' loan is' : ' loans are')
+                    d.label + ' cannot be deleted: ' + loans + (loans === 1 ? ' borrow is' : ' borrows are')
                     + ' recorded against it, and deleting it would erase which class they were for.',
                     { title: 'Still referenced' });
                 return;
@@ -617,7 +617,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             window.showConfirm({
                 title: 'Delete ' + d.label + '?',
-                text: 'No loans reference this schedule, so nothing else changes.',
+                text: 'No borrows reference this schedule, so nothing else changes.',
                 icon: 'warning',
                 confirmText: 'Yes, delete',
             }).then(function (result) {

@@ -40,7 +40,7 @@
                                     <p class="text-sm text-neutral-600">
                                         <i class="fas fa-clock" aria-hidden="true"></i> {{ $schedule->schedule_time }}
                                         @if($loanCount > 0)
-                                            · {{ $loanCount }} {{ str('loan')->plural($loanCount) }} recorded
+                                            · {{ $loanCount }} {{ str('borrow')->plural($loanCount) }} recorded
                                         @endif
                                     </p>
                                 </div>
