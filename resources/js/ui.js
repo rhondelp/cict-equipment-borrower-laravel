@@ -300,10 +300,25 @@ function fillRemoveDialog(dialog, data) {
 
   // Reason fields start clean on every open, and the submit follows the rule
   // the server enforces rather than letting an empty box reach it.
-  safeForm?.querySelectorAll('textarea, input[type="text"]').forEach((field) => {
-    field.value = '';
-  });
+  if (safeForm) {
+    formFields(safeForm)
+      .filter((field) => field.matches('textarea, input[type="text"]'))
+      .forEach((field) => { field.value = ''; });
+  }
   syncSafeForm(dialog);
+}
+
+/**
+ * Every field the form submits, including ones outside it that point at it
+ * with form="…". The reason box sits in the dialog body, not in the footer
+ * form, so querySelector() on the form would never find it.
+ */
+function formFields(form) {
+  return Array.from(form.elements);
+}
+
+function requiredReason(form) {
+  return formFields(form).find((field) => field.matches('[data-requires-reason]')) || null;
 }
 
 /**
@@ -313,10 +328,10 @@ function fillRemoveDialog(dialog, data) {
 function syncSafeForm(dialog) {
   const form = dialog.querySelector('[data-remove-safe-form]');
   if (!form) return;
-  const required = form.querySelector('[data-requires-reason]');
+  const required = requiredReason(form);
   const submit = form.querySelector('[type="submit"]');
   const hint = dialog.querySelector('[data-remove-safe-hint]');
-  if (!required || !submit) return;
+  if (!required || !submit) return false;
 
   const min = parseInt(required.getAttribute('minlength') || '5', 10);
   const value = required.value.trim();
@@ -332,6 +347,7 @@ function syncSafeForm(dialog) {
     hint.classList.toggle('text-danger-700', !ok);
     hint.classList.toggle('text-neutral-600', ok);
   }
+  return ok;
 }
 
 export function initRemoveDialogs() {
@@ -352,6 +368,18 @@ export function initRemoveDialogs() {
     if (!field) return;
     const dialog = field.closest('[data-modal]');
     if (dialog) syncSafeForm(dialog);
+  });
+
+  // The disabled submit is the usual guard; this one also covers Enter in an
+  // input and a button re-enabled by hand, so an empty reason never leaves.
+  document.addEventListener('submit', (event) => {
+    const form = event.target.closest('[data-remove-safe-form]');
+    if (!form) return;
+    const dialog = form.closest('[data-modal]');
+    const required = requiredReason(form);
+    if (!dialog || !required || syncSafeForm(dialog)) return;
+    event.preventDefault();
+    required.focus();
   });
 }
 

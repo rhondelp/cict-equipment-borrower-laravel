@@ -265,6 +265,7 @@
                                                 data-fact-b="{{ $tx->quantity }}" data-fact-b-alert="{{ $isOpen || $isIssued ? '1' : '0' }}"
                                                 data-fact-c="{{ $status }}"
                                                 data-blocked="{{ $blocked }}"
+                                                data-void-for="{{ $tx->id }}"
                                                 data-delete-url="{{ route('admin.transaction.destroy', $tx->id) }}"
                                                 data-safe-url="{{ route('admin.transaction.void', $tx->id) }}">
                                             <i class="text-base fas fa-trash" aria-hidden="true"></i>
@@ -344,11 +345,20 @@
     :facts="['Borrower', 'Units involved', 'Status']"
     ready-hint="The record stays in the log, marked as voided."
     blocked-hint="Say why this record is being voided — it stays in the log.">
+    {{-- The slot sits outside the dialog's footer form, so each field names
+         that form with form="remove-dialog-safe-form"; without it the reason
+         was never sent and every void failed validation. void_for only lets a
+         failed void reopen the same row; the controller does not read it. --}}
     <x-slot:safeFields>
-        <label for="void-reason" class="block text-base font-medium text-neutral-800">Reason for voiding</label>
-        <textarea id="void-reason" name="void_reason" rows="2" minlength="5" maxlength="500" required
+        <label for="void-reason" class="block text-base font-semibold text-neutral-800">Reason for voiding</label>
+        <textarea id="void-reason" name="void_reason" form="remove-dialog-safe-form" rows="3" minlength="5" maxlength="500" required
                   data-requires-reason data-autofocus placeholder="e.g. Recorded against the wrong borrower"
-                  class="w-full px-4 py-3 text-base border rounded-md border-neutral-300 text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"></textarea>
+                  aria-describedby="void-reason-error"
+                  class="w-full px-4 py-3 text-base border rounded-md border-neutral-300 text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">{{ old('void_reason') }}</textarea>
+        <input type="hidden" name="void_for" form="remove-dialog-safe-form" value="{{ old('void_for') }}" data-void-for-field>
+        @error('void_reason')
+            <p id="void-reason-error" data-void-error class="text-sm font-medium text-danger-700">{{ $message }}</p>
+        @enderror
     </x-slot:safeFields>
 </x-ui.remove-dialog>
 
@@ -366,6 +376,32 @@ document.addEventListener('DOMContentLoaded', function () {
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
         toggle.querySelector('i').className = open ? 'fas fa-chevron-down text-xs' : 'fas fa-chevron-right text-xs';
     });
+
+    /* ---- void: remember the row, reopen it after a refused void ------- */
+    const voidFor = document.querySelector('[data-void-for-field]');
+    document.addEventListener('click', function (event) {
+        const trigger = event.target.closest('[data-remove-trigger][data-void-for]');
+        if (!trigger || !voidFor) return;
+        voidFor.value = trigger.dataset.voidFor;
+        // A server message belongs to the row it came back for, not the next one opened.
+        if (event.isTrusted) document.querySelector('[data-void-error]')?.remove();
+    });
+    document.getElementById('void-reason')?.addEventListener('input', function (event) {
+        // Once they start fixing it, the live hint takes over from the server's message.
+        if (event.isTrusted) document.querySelector('[data-void-error]')?.remove();
+    });
+
+    @if($errors->has('void_reason') && old('void_for'))
+        // ui.js boots after this script, so wait for load before driving the dialog.
+        window.addEventListener('load', function () {
+            const trigger = document.querySelector('[data-remove-trigger][data-void-for="{{ (int) old('void_for') }}"]');
+            const field = document.getElementById('void-reason');
+            if (!trigger || !field) return;
+            trigger.click();
+            field.value = @json((string) old('void_reason', ''));
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+    @endif
 
     /* ---- date helpers (both loan forms) ------------------------------- */
     // Fields hold local wall-clock values: "2026-10-05" or "2026-10-05T14:30".

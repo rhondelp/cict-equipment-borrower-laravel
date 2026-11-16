@@ -21,7 +21,9 @@
 
      A safe action that needs a reason passes one through the `safeFields` slot
      with `data-requires-reason`; the submit stays disabled, and the hint says
-     why, until the field is filled. --}}
+     why, until the field is filled. The slot renders above the footer, outside
+     the safe <form>, so every field in it must carry form="{id}-safe-form" —
+     without it the browser never sends the value. --}}
 @props([
     'id' => 'remove-dialog',
     'safeLabel' => 'Archive',
@@ -89,7 +91,7 @@
                         class="inline-flex items-center justify-center min-h-[44px] rounded-md border border-neutral-300 bg-white px-5 py-3 text-base font-semibold text-neutral-700 hover:bg-neutral-50">
                     {{ $cancelLabel }}
                 </button>
-                <form data-remove-safe-form method="POST" action="">
+                <form id="{{ $id }}-safe-form" data-remove-safe-form method="POST" action="">
                     @csrf
                     {{-- Label and icon are overridable per row: the same dialog
                          reads "Retire item" for a live item and "Restore item"

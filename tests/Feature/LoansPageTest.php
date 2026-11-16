@@ -284,6 +284,98 @@ class LoansPageTest extends TestCase
     }
 
     /* ---------------------------------------------------------------------
+     | Bug: Void always failed with "Say why this record is being voided"
+     --------------------------------------------------------------------- */
+
+    /**
+     * The reason box renders in the dialog body, outside the footer form that
+     * posts the void, so the browser never sent it. Every server test passed
+     * because they post void_reason directly. This pins what the browser
+     * sends: each field of the safe form either sits inside it or names it.
+     */
+    public function test_the_void_reason_is_submitted_by_the_void_form(): void
+    {
+        $this->loan($this->borrower(), $this->equipment());
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($this->html());
+        $xpath = new \DOMXPath($dom);
+
+        $form = $xpath->query('//form[@data-remove-safe-form]')->item(0);
+        $this->assertNotNull($form);
+        $formId = $form->getAttribute('id');
+        $this->assertSame('remove-dialog-safe-form', $formId);
+
+        foreach (['void_reason', 'void_for'] as $name) {
+            $field = $xpath->query("//*[@name='{$name}']")->item(0);
+            $this->assertNotNull($field, "No {$name} field on the page");
+            $inside = $xpath->query("//form[@id='{$formId}']//*[@name='{$name}']")->length === 1;
+            $this->assertTrue($inside || $field->getAttribute('form') === $formId,
+                "{$name} is neither inside the void form nor tied to it with form=\"{$formId}\"");
+            $this->assertFalse($field->hasAttribute('disabled'), "{$name} is disabled, so it would not be sent");
+        }
+
+        $reason = $xpath->query("//textarea[@name='void_reason']")->item(0);
+        $this->assertTrue($reason->hasAttribute('required'));
+        $this->assertTrue($reason->hasAttribute('data-requires-reason'));
+        $this->assertTrue($reason->hasAttribute('data-autofocus'));
+        $this->assertSame('Reason for voiding', trim($xpath->query("//label[@for='void-reason']")->item(0)->textContent));
+    }
+
+    /** What the browser now posts: the reason and the row it was typed for. */
+    public function test_voiding_with_a_reason_restores_stock_and_logs_it(): void
+    {
+        $equipment = $this->equipment('Projector (Epson)', 10);
+        $loan = $this->loan($this->borrower(), $equipment, ['quantity' => 3]);
+        $equipment->update(['available_quantity' => 7]);
+
+        $this->actingAs($this->admin())
+            ->post('/admin/transaction/'.$loan->id.'/void', ['void_reason' => 'Entered against the wrong borrower', 'void_for' => $loan->id])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertNotNull($loan->fresh()->voided_at);
+        $this->assertSame('Entered against the wrong borrower', $loan->fresh()->void_reason);
+        $this->assertSame(10, $equipment->fresh()->available_quantity);
+        $this->assertDatabaseHas('activity_logs', ['type' => 'loan_voided', 'borrow_transaction_id' => $loan->id]);
+    }
+
+    /**
+     * A refused void changes nothing, and the page comes back with the same
+     * row's dialog reopened, the typed reason still in it and the server's
+     * message beside it.
+     */
+    public function test_a_refused_void_changes_nothing_and_keeps_the_typed_reason(): void
+    {
+        $equipment = $this->equipment('Projector (Epson)', 10);
+        $loan = $this->loan($this->borrower(), $equipment, ['quantity' => 3]);
+        $equipment->update(['available_quantity' => 7]);
+        $admin = $this->admin();
+
+        $this->actingAs($admin)
+            ->from('/admin/transaction')
+            ->post('/admin/transaction/'.$loan->id.'/void', ['void_reason' => '', 'void_for' => $loan->id])
+            ->assertRedirect('/admin/transaction')
+            ->assertSessionHasErrors(['void_reason' => 'Say why this record is being voided — it stays in the log.']);
+
+        $this->assertNull($loan->fresh()->voided_at);
+        $this->assertSame(7, $equipment->fresh()->available_quantity);
+        $this->assertDatabaseMissing('activity_logs', ['type' => 'loan_voided']);
+
+        $html = $this->actingAs($admin)
+            ->from('/admin/transaction')
+            ->followingRedirects()
+            ->post('/admin/transaction/'.$loan->id.'/void', ['void_reason' => 'abc', 'void_for' => $loan->id])
+            ->assertOk()
+            ->getContent();
+
+        $this->assertMatchesRegularExpression('/<textarea id="void-reason"[^>]*>abc<\/textarea>/', $html);
+        $this->assertStringContainsString('data-void-error', $html);
+        $this->assertStringContainsString('[data-void-for="'.$loan->id.'"]', $html);
+        $this->assertNull($loan->fresh()->voided_at);
+    }
+
+    /* ---------------------------------------------------------------------
      | Bug: "Can't edit loan on admin" (BUGS_FOUND.md #1)
      --------------------------------------------------------------------- */
 
