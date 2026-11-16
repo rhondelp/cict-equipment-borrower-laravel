@@ -272,6 +272,7 @@
     </div>
 </div>
 
+@php($loanDays = (int) config('office.loan_days', 1))
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('decline-form');
@@ -320,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         window.showConfirm({
             title: 'Approve this request?',
-            text: 'Stock is deducted straight away and a borrow record is created, due back in 7 days.',
+            text: @json('Stock is deducted straight away and a borrow record is created, due back '.($loanDays === 1 ? 'tomorrow' : 'in '.$loanDays.' '.str('day')->plural($loanDays)).'.'),
             icon: 'question',
             confirmText: 'Yes, approve',
         }).then(function (result) {

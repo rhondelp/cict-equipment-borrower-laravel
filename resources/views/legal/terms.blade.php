@@ -7,6 +7,14 @@
      added, removed or reworded. --}}
 @extends('layouts.legal')
 
+{{-- The borrow period is read from config('office.loan_days'), as the landing
+     page does, so the Terms never quote a number the approve step does not use. --}}
+@php
+    $loanDays = (int) config('office.loan_days', 1);
+    $numberWords = [1 => 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen'];
+    $loanPeriod = ($numberWords[$loanDays] ?? (string) $loanDays).' '.str('day')->plural($loanDays);
+@endphp
+
 @php($doc = [
     'key' => 'terms',
     'title' => 'Terms of service',
@@ -15,7 +23,7 @@
 
     'summary' => [
         'A request is not a reservation — stock is only held once an administrator approves it.',
-        'The default borrow period is seven days, and the return is not closed until a custodian logs it.',
+        'The default borrow period is '.$loanPeriod.', and the return is not closed until a custodian logs it.',
         'Overdue items pause your ability to borrow more until they come back.',
     ],
 
@@ -44,7 +52,7 @@
             ],
             'items' => [
                 'A request reserves nothing until an administrator approves it. Stock is deducted at approval, not at request.',
-                'Items are due on the return date shown on your transaction. The default borrow period is seven days.',
+                'Items are due on the return date shown on your transaction. The default borrow period is '.$loanPeriod.'.',
                 'An item that passes its return date is marked overdue, and a reminder goes to the email address on your account.',
                 'Return the item to a custodian, who records its condition. A transaction is not closed until that return is logged.',
             ],

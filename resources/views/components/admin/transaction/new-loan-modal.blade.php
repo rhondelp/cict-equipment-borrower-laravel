@@ -122,8 +122,8 @@
                     <div data-loan-return-wrap>
                         <label for="loan-return-date" class="block text-base font-medium text-neutral-800">Due back</label>
                         <input type="date" id="loan-return-date" name="return_date" required
-                               value="{{ now()->addDays((int) config('office.loan_days', 7))->toDateString() }}"
-                               data-default-due="{{ now()->addDays((int) config('office.loan_days', 7))->toDateString() }}"
+                               value="{{ now()->addDays((int) config('office.loan_days', 1))->toDateString() }}"
+                               data-default-due="{{ now()->addDays((int) config('office.loan_days', 1))->toDateString() }}"
                                class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
                     </div>
                 </div>

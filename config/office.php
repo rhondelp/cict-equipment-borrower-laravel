@@ -52,12 +52,14 @@ return [
     |--------------------------------------------------------------------------
     |
     | Days between approval and the due date on the loan an approved request
-    | creates (ItemRequestController::requestActions). The landing page quotes
-    | the same value, so the two cannot drift apart.
+    | creates (ItemRequestController::requestActions); 1 means due tomorrow.
+    | The Add Transaction modal's default due date, the approve dialog, the
+    | landing page and the Terms all read the same value, so they cannot
+    | drift apart.
     |
     */
 
-    'loan_days' => 7,
+    'loan_days' => 1,
 
     /*
     |--------------------------------------------------------------------------

@@ -131,6 +131,28 @@ class BorrowingRulesTest extends TestCase
         Carbon::setTestNow();
     }
 
+    /** The approve dialog and the Add Transaction default quote the same period. */
+    public function test_the_approve_dialog_and_new_borrow_default_follow_the_loan_period(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-28 09:00', 'Asia/Manila'));
+        $admin = User::factory()->create(['user_type' => 'Admin']);
+
+        $this->assertSame(1, config('office.loan_days'));
+        $this->actingAs($admin)->get('/admin/request')->assertOk()
+            ->assertSee('a borrow record is created, due back tomorrow.', false)
+            ->assertDontSee('due back in 7 days', false);
+        $this->actingAs($admin)->get('/admin/transaction')->assertOk()
+            ->assertSee('data-default-due="2026-09-29"', false);
+
+        config(['office.loan_days' => 3]);
+        $this->actingAs($admin)->get('/admin/request')->assertOk()
+            ->assertSee('a borrow record is created, due back in 3 days.', false);
+        $this->actingAs($admin)->get('/admin/transaction')->assertOk()
+            ->assertSee('data-default-due="2026-10-01"', false);
+
+        Carbon::setTestNow();
+    }
+
     /* ---- Loan types: approval ------------------------------------------- */
 
     private function typed(string $name, string $type, int $quantity = 10): Equipment
@@ -169,9 +191,9 @@ class BorrowingRulesTest extends TestCase
         $this->assertSame('Borrowed', $loan->status);
         $this->assertFalse($loan->timed);
         $this->assertSame('2026-10-05 00:00:00', $loan->borrow_date->format('Y-m-d H:i:s'));
-        $this->assertSame('2026-10-12 00:00:00', $loan->return_date->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-10-06 00:00:00', $loan->return_date->format('Y-m-d H:i:s'));
         $this->assertSame(8, (int) $projector->fresh()->available_quantity);
-        $this->assertSame('Approved — 2 × Projector is now out with '.$loan->user->name.', due Oct 12.', session('success'));
+        $this->assertSame('Approved — 2 × Projector is now out with '.$loan->user->name.', due Oct 6.', session('success'));
 
         Carbon::setTestNow();
     }

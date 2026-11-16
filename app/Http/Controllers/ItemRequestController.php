@@ -207,7 +207,7 @@ class ItemRequestController extends Controller
                         ],
                         default => [
                             'borrow_date' => Carbon::today(),
-                            'return_date' => Carbon::today()->addDays((int) config('office.loan_days', 7)),
+                            'return_date' => Carbon::today()->addDays((int) config('office.loan_days', 1)),
                             'timed' => false,
                             'status' => 'Borrowed',
                         ],

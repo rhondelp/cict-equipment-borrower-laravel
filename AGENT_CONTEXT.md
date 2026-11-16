@@ -481,7 +481,7 @@ Where it happens:
 - **Loans screen** (`admin/transaction.blade.php`) — the queue sorts on `dueAt()` (controller and `data-sort-urgency` / `data-sort-due`). Issued rows rank with the settled records. They have an `issued` chip key and their own chip when any exist, and they read "Issued Oct 5 · Not expected back". They have **no** Check-in, Edit or Email button, because the only email template is a return reminder. The overdue figure says "Longest: …" via the worst loan's `timingLabel()`, so a timed loan reads in minutes. The new-loan modal reads `data-loan-type` on each checkbox and switches between `date` and `datetime-local`, or hides **and disables** the due field. In time mode it shows +30 min / +1 hour / +2 hours presets counted from the borrow moment. The edit modal sets its input type from the trigger's `data-timed` **before** setting the value, since a `date` input drops a value with a time. It also disables equipment options of another loan type. `LoansPageTest` checks every `xForm.querySelector('[data-…]')`, every literal `getElementById`, and every `#modal [data-…]` lookup in the script.
 - `ItemRequestController::store` — refuses a new request from a **suspended** account, and (since 26 Sept 2026) from a borrower with **any loan that is `overdue()`**. The due moment decides, not the stored status, which lags until the nightly sweep: a one-hour loan ten minutes late blocks, a date-only loan due today does not, and an Issued row never does. This is the "overdue items pause borrowing" rule the terms summary and the landing page state. Editing an existing pending request is not blocked. Pinned by `tests/Feature/BorrowingRulesTest`.
 - `ItemRequestController::requestActions`, approve branch — locks the equipment, rejects if short, deducts with `reserveStock()` (the same arithmetic for every type, since `available_quantity` is quantity − out − issued), flips the request to `Approved`, **and auto-creates a `BorrowTransaction`** shaped by the locked item's `loan_type`:
-  - returnable: `borrow_date` today, `return_date` today + `config('office.loan_days')` (7), `timed` false, `Borrowed`;
+  - returnable: `borrow_date` today, `return_date` today + `config('office.loan_days')` (1), `timed` false, `Borrowed`;
   - time-limited: `borrow_date` now, `return_date` now + `config('office.time_limited_minutes')` (60, env `OFFICE_TIME_LIMITED_MINUTES`), `timed` true, `Borrowed`. **The clock starts at approval**;
   - non-returnable: `Issued`, `borrow_date` today, no `return_date`, `timed` false.
 
@@ -499,7 +499,7 @@ Where it happens:
 form every page used before), `closingTime()`, and `isOpenToday()` (a working day, before closing
 time). Never write the hours into a template: the landing page, sign-in panel, register and
 forgot-password copy, and the borrower dashboard all go through the helper. There is no holiday
-calendar — `isOpenToday()` knows weekdays only. `config('office.loan_days')` (7) is the default
+calendar — `isOpenToday()` knows weekdays only. `config('office.loan_days')` (1) is the default
 loan period, used by the approve branch and quoted on the landing page.
 `config('office.time_limited_minutes')` (60, env `OFFICE_TIME_LIMITED_MINUTES`) is the period of a
 time-limited loan created by approval; `Equipment::timeLimitLabel()` words it ("1 hour", "90 minutes")

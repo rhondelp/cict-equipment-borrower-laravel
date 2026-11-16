@@ -70,7 +70,7 @@ class UserController extends Controller
             ->values();
 
         $hours = OfficeHours::fromConfig();
-        $loanDays = (int) config('office.loan_days', 7);
+        $loanDays = (int) config('office.loan_days', 1);
 
         return view('welcome', compact('inventory', 'shelf', 'hours', 'loanDays'));
     }
