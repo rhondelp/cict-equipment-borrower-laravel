@@ -1,11 +1,3 @@
-{{-- Derived status, shown as a dot and a word.
-
-     Deliberately not a form control and deliberately not a badge that could be
-     mistaken for one: status in this app is worked out from the loans and the
-     due date every time a row renders, so there is nothing here to click.
-
-     Usage: <x-ui.status label="Overdue" tone="danger" />
-            <x-ui.status :label="$tx->derivedStatus()" :tone="$tx->statusTone()" /> --}}
 @props(['label' => '', 'tone' => 'neutral'])
 
 @php

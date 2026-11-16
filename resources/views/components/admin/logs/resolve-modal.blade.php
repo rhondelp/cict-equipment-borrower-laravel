@@ -1,6 +1,3 @@
-{{-- Record what was done about an incident. This is the one field written to a
-     return log after the fact, and it is an outcome attached to the record
-     rather than a change to what the record says. --}}
 <div id="resolve-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="resolve-modal-title">
@@ -10,9 +7,6 @@
             <div class="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
                 <div class="min-w-0">
                     <h2 id="resolve-modal-title" class="text-lg font-semibold text-neutral-900">Record the outcome</h2>
-                    {{-- Read from the row that opened this, with a fallback
-                         sentence: a dialog opened out of a filtered list has no
-                         "current row" to derive from. --}}
                     <p class="mt-1 text-sm text-neutral-600 text-pretty" data-resolve-summary>
                         What was done about this return.
                     </p>

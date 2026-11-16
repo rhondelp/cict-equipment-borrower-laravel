@@ -5,12 +5,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * A time-limited loan is due at a time of day ("back by 3:30 PM"), so the two
- * loan dates become datetimes. A date-only loan keeps its date at 00:00:00 and
- * `timed` stays false, which tells BorrowTransaction::dueAt() to read the due
- * date as the end of that day, exactly as it did before.
- */
 return new class extends Migration
 {
     public function up(): void
@@ -22,11 +16,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Going back to `date` would silently drop the time of every timed loan,
-     * and with it the only record of when each one was due. Refuse instead;
-     * the timed loans have to be dealt with by hand first.
-     */
     public function down(): void
     {
         $timed = DB::table('borrow_transactions')->where('timed', true)->count();

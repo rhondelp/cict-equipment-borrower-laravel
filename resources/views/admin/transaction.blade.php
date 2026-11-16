@@ -12,15 +12,11 @@
     $voided = $transactions->filter(fn ($tx) => $tx->isVoided());
     $unitsOut = $open->sum('quantity');
     $dueToday = $open->filter(fn ($tx) => $tx->daysUntilDue() === 0)->count();
-    // The worst overdue loan is the one whose due moment passed first. Its own
-    // timing label says how late, in days or, for a timed loan, minutes.
     $worstOverdue = $overdue->sortBy(fn ($tx) => $tx->dueAt()?->timestamp)->first();
 @endphp
 
 <div class="min-h-[100dvh] page-bg md:ml-64">
 
-    {{-- Essential for keyboard users: the sidebar is six links deep, so without
-         this every page begins with six tab stops before the content. --}}
     <a href="#main-content"
        class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-toast focus:rounded-md focus:border focus:border-primary-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700">
         Skip to content
@@ -48,9 +44,6 @@
         @endif
 
         @php
-            // Opening on "Active" is right while anything is out, and wrong the
-            // moment nothing is: a first screen that reads "no loans match that
-            // filter" over a full archive is a filter fighting its own page.
             $defaultChip = $open->isNotEmpty() ? 'active' : 'all';
         @endphp
         <x-ui.panel data-list data-active-chip="{{ $defaultChip }}">
@@ -108,10 +101,6 @@
                     </label>
                 </div>
 
-                {{-- Four columns where there were ten. Purpose, remarks and the
-                     class schedule were the same 14rem of truncated text on
-                     every row; they now live in the row's detail panel, which is
-                     where anyone who actually wants them goes looking. --}}
                 <div class="hidden gap-4 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-50 border-b border-neutral-200 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_8rem_10rem]">
                     <div>Borrow</div>
                     <div>Dates</div>
@@ -142,9 +131,6 @@
                                 ? "Can't delete — the borrow is still open"
                                 : ($isIssued ? "Can't delete — its units are counted as given out"
                                 : ($log ? "Can't delete — it is part of the return history" : ''));
-                            // Sorted on the moment it falls due, not the stored
-                            // date: a timed loan due at 2 PM is more urgent than
-                            // a date-only loan due "today".
                             $dueStamp = $tx->dueAt()?->timestamp;
                             $dueLabel = $tx->return_date?->format($tx->timed ? 'M j, g:i A' : 'M j');
                         @endphp
@@ -172,18 +158,11 @@
                                     </div>
                                 </div>
 
-                                {{-- "Sep 10 → Sep 17 · 3 days late". Never a raw
-                                     ISO date, and never a bare due date with no
-                                     sense of whether it has passed. --}}
                                 <div class="min-w-0">
                                     <p class="text-sm truncate text-neutral-700 tabular-nums">{{ $tx->dateRangeLabel() }}</p>
                                     <p class="text-sm truncate {{ $tx->isOverdue() ? 'font-semibold text-danger-700' : 'text-neutral-600' }}">
-                                        {{-- "issued" under "Issued Oct 5" beside an Issued status says one thing three times. --}}
                                         {{ $isIssued ? 'Not expected back' : $tx->timingLabel() }}
                                     </p>
-                                    {{-- Whether this one has been chased, and when.
-                                         Without it an admin cannot tell a first
-                                         nudge from a fourth. --}}
                                     @if($lastReminder)
                                         <p class="text-xs truncate text-neutral-500" data-last-reminder>
                                             <i class="fa-regular fa-paper-plane mr-1 text-[10px]" aria-hidden="true"></i>
@@ -215,8 +194,6 @@
                                         </button>
                                     @endif
 
-                                    {{-- No email for an issue: the only template is a
-                                         return reminder, and nothing is due back. --}}
                                     @if($tx->user && ! $isIssued)
                                         <button type="button"
                                                 class="grid w-10 h-10 bg-white border rounded-md place-items-center border-neutral-300 text-neutral-700 hover:border-primary-300 hover:text-primary-700"
@@ -345,10 +322,6 @@
     :facts="['Borrower', 'Units involved', 'Status']"
     ready-hint="The record stays in the log, marked as voided."
     blocked-hint="Say why this record is being voided — it stays in the log.">
-    {{-- The slot sits outside the dialog's footer form, so each field names
-         that form with form="remove-dialog-safe-form"; without it the reason
-         was never sent and every void failed validation. void_for only lets a
-         failed void reopen the same row; the controller does not read it. --}}
     <x-slot:safeFields>
         <label for="void-reason" class="block text-base font-semibold text-neutral-800">Reason for voiding</label>
         <textarea id="void-reason" name="void_reason" form="remove-dialog-safe-form" rows="3" minlength="5" maxlength="500" required
@@ -365,7 +338,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    /* ---- row detail panels ------------------------------------------- */
     document.addEventListener('click', function (event) {
         const toggle = event.target.closest('[data-loan-toggle]');
         if (!toggle) return;
@@ -377,22 +349,18 @@ document.addEventListener('DOMContentLoaded', function () {
         toggle.querySelector('i').className = open ? 'fas fa-chevron-down text-xs' : 'fas fa-chevron-right text-xs';
     });
 
-    /* ---- void: remember the row, reopen it after a refused void ------- */
     const voidFor = document.querySelector('[data-void-for-field]');
     document.addEventListener('click', function (event) {
         const trigger = event.target.closest('[data-remove-trigger][data-void-for]');
         if (!trigger || !voidFor) return;
         voidFor.value = trigger.dataset.voidFor;
-        // A server message belongs to the row it came back for, not the next one opened.
         if (event.isTrusted) document.querySelector('[data-void-error]')?.remove();
     });
     document.getElementById('void-reason')?.addEventListener('input', function (event) {
-        // Once they start fixing it, the live hint takes over from the server's message.
         if (event.isTrusted) document.querySelector('[data-void-error]')?.remove();
     });
 
     @if($errors->has('void_reason') && old('void_for'))
-        // ui.js boots after this script, so wait for load before driving the dialog.
         window.addEventListener('load', function () {
             const trigger = document.querySelector('[data-remove-trigger][data-void-for="{{ (int) old('void_for') }}"]');
             const field = document.getElementById('void-reason');
@@ -403,8 +371,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     @endif
 
-    /* ---- date helpers (both loan forms) ------------------------------- */
-    // Fields hold local wall-clock values: "2026-10-05" or "2026-10-05T14:30".
     const pad = function (n) { return String(n).padStart(2, '0'); };
     const localDay = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
     const localMoment = function (d) { return localDay(d) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
@@ -420,7 +386,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return hours + ' hr' + (rest ? ' ' + rest + ' min' : '');
     };
 
-    /* ---- new loan ---------------------------------------------------- */
     const loanForm = document.getElementById('new-loan-form');
     if (loanForm) {
         const list = document.getElementById('loan-equipment-list');
@@ -437,11 +402,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const purpose = document.getElementById('loan-purpose');
         const defaultDue = until.dataset.defaultDue || '';
 
-        // 'date' — only returnable items: two dates, as before.
-        // 'time' — any time-limited item: date and time on both.
-        // 'none' — only non-returnable items: no due field at all.
-        // The server re-decides per item from the equipment row; this only
-        // decides which control to show.
         let mode = 'date';
 
         function setMode(next) {
@@ -449,8 +409,6 @@ document.addEventListener('DOMContentLoaded', function () {
             mode = next;
 
             if (next === 'time') {
-                // The borrow moment starts at now. A date already moved off
-                // today keeps its day and takes the current time.
                 const picked = readField(from.value);
                 const now = new Date();
                 const start = (!picked || localDay(picked) === localDay(now))
@@ -469,17 +427,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 until.value = due && localDay(due) !== from.value ? localDay(due) : defaultDue;
             }
 
-            // A hidden required field would block the submit, so it is
-            // disabled as well as hidden — and a disabled field is not sent.
             returnWrap.classList.toggle('hidden', next === 'none');
             until.disabled = next === 'none';
             presets.classList.toggle('hidden', next !== 'time');
             presets.classList.toggle('flex', next === 'time');
         }
 
-        // Advisory only — store() re-checks stock under a row lock and stays
-        // the source of truth. What this buys is being told before the round
-        // trip, next to the field that is wrong.
         function syncRow(checkbox) {
             const row = checkbox.closest('.equipment-option');
             const wrap = row?.querySelector('.equipment-qty-wrap');
@@ -538,7 +491,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const ok = !!who.value && picked.length > 0 && quantitiesOk && datesOk && purpose.value.trim().length > 2;
 
-            // Say what the mixed cases mean before anyone has to ask.
             const notes = [];
             if (mode === 'time' && datedCount > 0) {
                 notes.push('Time-limited items are due at this exact time; returnable items in the same borrow are due by the end of that day.');
@@ -586,7 +538,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (box) syncRow(box);
             const qty = event.target.closest('.equipment-qty');
             if (qty) {
-                // Clamp once the value is committed, so typing is never fought.
                 const max = parseInt(qty.getAttribute('max'), 10);
                 const value = parseInt(qty.value, 10);
                 if (!isNaN(max) && !isNaN(value) && value > max) qty.value = max;
@@ -599,8 +550,6 @@ document.addEventListener('DOMContentLoaded', function () {
             field?.addEventListener('change', sync);
         });
 
-        // "+30 min" and friends count from the borrow moment, or from now if
-        // that field is empty. They only fill the field; it stays editable.
         presets.addEventListener('click', function (event) {
             const preset = event.target.closest('[data-loan-preset]');
             if (!preset) return;
@@ -617,7 +566,6 @@ document.addEventListener('DOMContentLoaded', function () {
             list.querySelectorAll('.equipment-option').forEach(function (row) {
                 const matches = !term || (row.dataset.name || '').indexOf(term) !== -1;
                 const ticked = !!row.querySelector('.equipment-checkbox:checked');
-                // Ticked rows stay visible so nothing is submitted while hidden.
                 row.classList.toggle('hidden', !(matches || ticked));
                 if (matches) matched++;
             });
@@ -627,7 +575,6 @@ document.addEventListener('DOMContentLoaded', function () {
         sync();
     }
 
-    /* ---- edit loan --------------------------------------------------- */
     const editForm = document.getElementById('edit-loan-form');
     if (editForm) {
         const equipmentSelect = document.getElementById('edit-loan-equipment');
@@ -646,9 +593,6 @@ document.addEventListener('DOMContentLoaded', function () {
         let originalQty = 0;
         let timed = false;
 
-        // The ceiling is what the shelf can actually cover: whatever is free of
-        // the chosen item, plus the units this loan is already holding when the
-        // item has not changed.
         function ceiling() {
             const option = equipmentSelect.selectedOptions[0];
             const available = parseInt(option?.dataset.available || '0', 10) || 0;
@@ -711,8 +655,6 @@ document.addEventListener('DOMContentLoaded', function () {
             originalEquipment = d.equipment;
             originalQty = parseInt(d.quantity, 10) || 0;
 
-            // The loan keeps its own kind. The input type is set before the
-            // value, because a date input drops a value with a time in it.
             timed = d.timed === '1';
             borrow.type = timed ? 'datetime-local' : 'date';
             due.type = timed ? 'datetime-local' : 'date';
@@ -723,8 +665,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 ? 'Time-limited borrow · due back at an exact time'
                 : 'Returnable borrow · due back by the end of the day';
 
-            // Only items of the same loan type can take this loan over;
-            // update() refuses the rest anyway.
             const wanted = timed ? 'time_limited' : 'returnable';
             Array.from(equipmentSelect.options).forEach(function (option) {
                 option.disabled = option.value !== String(d.equipment) && (option.dataset.loanType || 'returnable') !== wanted;
@@ -739,8 +679,6 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('edit-loan-purpose').value = d.purpose || '';
             document.getElementById('edit-loan-remarks').value = d.remarks || '';
             document.getElementById('edit-loan-class').value = d.class || '';
-            // The summary sits in the modal header, outside the <form> — scope
-            // to the modal, or this lookup is null and the modal never opens.
             document.querySelector('#edit-loan-modal [data-edit-summary]').textContent = d.summary || '';
 
             sync();
@@ -748,7 +686,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /* ---- check in ---------------------------------------------------- */
     const checkinForm = document.getElementById('checkin-form');
     if (checkinForm) {
         const conditionField = document.getElementById('checkin-condition');
@@ -794,7 +731,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const trigger = event.target.closest('[data-checkin-trigger]');
             if (!trigger) return;
             document.getElementById('checkin-id').value = trigger.dataset.id;
-            // Summary and timing live in the modal header, outside the <form>.
             const modal = document.getElementById('checkin-modal');
             modal.querySelector('[data-checkin-summary]').textContent = trigger.dataset.summary || '';
             const timing = modal.querySelector('[data-checkin-timing]');
@@ -809,7 +745,6 @@ document.addEventListener('DOMContentLoaded', function () {
         sync();
     }
 
-    /* ---- email ------------------------------------------------------- */
     let emailTransactionId = null;
     document.addEventListener('click', function (event) {
         const trigger = event.target.closest('[data-email-trigger]');
@@ -823,9 +758,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (to) to.value = trigger.dataset.email || '';
         if (message) message.value = '';
 
-        // Every one of these falls back to a sentence rather than to the
-        // dataset value: an absent attribute reads `undefined`, and a dialog
-        // that says "undefined · undefined" is worse than one that says nothing.
         if (summary) {
             const loan = trigger.dataset.summary;
             const timing = trigger.dataset.timing;

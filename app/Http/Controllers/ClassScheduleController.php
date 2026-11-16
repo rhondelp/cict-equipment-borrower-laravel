@@ -49,7 +49,6 @@ class ClassScheduleController extends Controller
         $schedule->update(collect($validated)->except('id')->all());
         $schedule->load('instructor');
 
-        // A save that changed nothing is not an event.
         $changes = ActivityLog::changes($before, $this->snapshot($schedule));
         if ($changes !== []) {
             ActivityLog::record('schedule_updated', [
@@ -62,13 +61,11 @@ class ClassScheduleController extends Controller
         return redirect()->back()->with('success', 'Class schedule updated successfully.');
     }
 
-    /** "IT 101 — Intro to Computing (BSIT 1A)" */
     private function label(ClassSchedule $schedule): string
     {
         return $schedule->subject_code.' — '.$schedule->subject_name.' ('.$schedule->year_level.' '.$schedule->block_name.')';
     }
 
-    /** The schedule's fields as the log records them; the instructor by name, not id. */
     private function snapshot(ClassSchedule $schedule): array
     {
         return [
@@ -82,12 +79,6 @@ class ClassScheduleController extends Controller
         ];
     }
 
-    /**
-     * borrow_transactions.class_schedule_id is onDelete('set null'), so a
-     * delete here does not destroy a loan — but it does silently erase which
-     * class each of those loans was for. That is history, so the delete is
-     * refused while any loan still points here.
-     */
     public function destroy($id)
     {
         $schedule = ClassSchedule::withCount('borrowTransactions')->findOrFail($id);

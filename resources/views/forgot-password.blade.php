@@ -2,18 +2,10 @@
 
 @section("title", "Reset your password - CICT Equipment Borrower System")
 
-{{-- This page renders validation errors next to the form.
-     components/alerts.blade.php checks for this section and skips its
-     SweetAlert modal when it is present, so a failed submit no longer
-     reports the same message twice. --}}
 @section("inline-errors", true)
 
 @section("content")
 @php
-    // Both figures come from the configured broker, never from this template:
-    // the link really does last `expire` minutes and the broker really does
-    // refuse a resend inside `throttle` seconds, so a page quoting anything
-    // else is describing a system the server will contradict.
     $expiryLabel = $expireMinutes >= 120
         ? round($expireMinutes / 60).' hours'
         : ($expireMinutes == 60 ? '1 hour' : $expireMinutes.' minutes');
@@ -27,20 +19,12 @@
 
     $formError = $errors->first('email');
 
-    // A non-school address is worth warning about, not refusing: the admin
-    // users form can create an account on any address, and refusing here would
-    // lock out the very people who cannot get in.
     $typedEmail = old('email', $sentTo ?? '');
     $offDomain = $typedEmail !== '' && ! \App\Models\User::isSchoolEmail($typedEmail);
 @endphp
 
-{{-- The same frame as sign-in and registration, so all three read as one
-     product: two columns from lg up, stacked below it. --}}
 <div class="grid min-h-[100dvh] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
 
-    {{-- Left — the actual emergency. Someone locked out of this system is quite
-         often holding equipment that is due back today, and the thing they most
-         need to know is that the lockout does not block the return. --}}
     <aside class="flex flex-col justify-between gap-8 px-6 py-8 text-white bg-[#183060] sm:px-10 lg:gap-10 lg:px-11 lg:py-11">
         <a href="{{ url('/') }}" class="flex items-center gap-3 rounded-lg w-fit" aria-label="CICT Equipment Borrower System home">
             <span class="grid w-10 h-10 overflow-hidden bg-white rounded-[10px] shrink-0 place-items-center">
@@ -75,13 +59,9 @@
         <p class="text-[12px] text-white/50">College of Information &amp; Communications Technology</p>
     </aside>
 
-    {{-- Right — the form, or the confirmation that it worked. --}}
     <main class="flex items-center justify-center px-6 py-10 sm:px-8 lg:px-8 lg:py-12">
 
     @if ($sentTo)
-        {{-- Confirmation. The flow used to stop at the click: press Send, watch
-             nothing happen, press again. Everything below is what the send
-             actually did. --}}
         <div class="flex w-full max-w-[396px] flex-col gap-5" data-reset-sent>
             <span class="grid rounded-full w-11 h-11 shrink-0 place-items-center bg-success-100 text-success-700" aria-hidden="true">
                 <i class="fa-regular fa-envelope text-[17px]"></i>
@@ -108,8 +88,6 @@
                 @endif
             </div>
 
-            {{-- The broker refused a second send. Said here rather than as a
-                 red field error on a form that is no longer on screen. --}}
             @if($formError)
                 <div role="alert" data-reset-error
                      class="flex items-start gap-2.5 rounded-[10px] bg-warning-50 px-[13px] py-[11px] text-[13px] text-warning-700 text-pretty">
@@ -118,9 +96,6 @@
                 </div>
             @endif
 
-            {{-- The two things that actually go wrong, in the order they go
-                 wrong. Neither is guesswork: school mail filters really do eat
-                 these, and a deactivated account really cannot be reset. --}}
             <div class="flex flex-col gap-[9px] rounded-[11px] border border-neutral-200 px-4 py-3.5">
                 <p class="text-[12px] font-semibold uppercase tracking-[0.06em] text-neutral-500">Not seeing it?</p>
                 <p class="flex items-start gap-2.5 text-[13.5px] leading-[1.55] text-neutral-600 text-pretty">
@@ -141,10 +116,6 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-2.5">
-                {{-- A real re-send, not a client-side redraw. The countdown
-                     below is only a courtesy: the broker itself refuses a
-                     second token inside its throttle window, and the button
-                     re-enables exactly when the broker will accept one. --}}
                 <form action="{{ route('password.email') }}" method="POST" id="resend-form" class="contents">
                     @csrf
                     <input type="hidden" name="email" value="{{ $sentTo }}">
@@ -203,10 +174,6 @@
                            class="h-11 rounded-[10px] border px-[13px] text-[14px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500
                                   {{ $errors->has('email') ? 'border-danger-300' : 'border-neutral-200' }}">
 
-                    {{-- The expiry is stated here, before the link is sent —
-                         finding out how long you had only once it has run out
-                         is the failure this line exists to prevent. The same
-                         slot carries the off-domain warning. --}}
                     <p id="email-note" data-email-note aria-live="polite"
                        class="text-[12px] leading-[1.5] text-pretty {{ $offDomain ? 'text-warning-700' : 'text-neutral-500' }}">
                         @if($offDomain)
@@ -226,9 +193,6 @@
 
             <span class="h-px bg-neutral-200" aria-hidden="true"></span>
 
-            {{-- The failure a reset form cannot solve. Without this, someone who
-                 cannot remember which address they registered with has nowhere
-                 to go but the field they already cannot fill in. --}}
             <p class="text-[13px] leading-[1.6] text-neutral-600 text-pretty">
                 Forgot which address you registered with? The CICT office can look it up
                 @if($officeEmail)
@@ -255,10 +219,6 @@
 document.addEventListener('DOMContentLoaded', function () {
     const SCHOOL_DOMAIN = @json(\App\Models\User::SCHOOL_DOMAIN);
 
-    /* ---- Off-domain warning ------------------------------------------
-       A warning, never a block. The admin users form can create an account
-       on any address, so refusing here would shut out exactly the people
-       who cannot get in. The server does not check the domain either. */
     const form = document.getElementById('forgot-form');
     if (form) {
         const email = document.getElementById('email');
@@ -289,11 +249,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /* ---- Resend cooldown ---------------------------------------------
-       Cosmetic by design. The authority is the broker's own throttle, and
-       the seconds counted here came from the token row it wrote, so the
-       button re-enables exactly when a second send would be accepted
-       rather than at some number picked to look reassuring. */
     const resend = document.getElementById('resend-button');
     if (resend) {
         let left = parseInt(resend.getAttribute('data-cooldown'), 10) || 0;

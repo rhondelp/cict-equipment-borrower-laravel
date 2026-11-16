@@ -2,31 +2,18 @@
 
 @section("title", "Request an account - CICT Equipment Borrower System")
 
-{{-- This page renders validation errors next to the field they belong to.
-     components/alerts.blade.php checks for this section and skips its
-     SweetAlert modal when it is present, so a failed submit no longer
-     reports the same message twice. --}}
 @section("inline-errors", true)
 
 @section("content")
 @php
-    // Set by AuthenticateUser::registerPublic after the row is written. Its
-    // presence is what switches this page from the form to the success state.
     $registered = session('registered');
 
-    // Students and instructors share one domain, so the address says nothing
-    // about role. The form asks; an Instructor answer is a request an admin
-    // confirms, and the account is a Student until then.
     $schoolDomain = \App\Models\User::SCHOOL_DOMAIN;
     $oldRole = old('requested_role');
 @endphp
 
-{{-- Two columns from lg up, stacked below it — the same frame as the sign-in
-     page, so the two read as one product. --}}
 <div class="grid min-h-[100dvh] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
 
-    {{-- Left — what happens after this form. Someone filling in a sign-up has
-         exactly one question the form itself cannot answer: then what? --}}
     <aside class="flex flex-col justify-between gap-8 px-6 py-8 text-white bg-[#183060] sm:px-10 lg:gap-10 lg:px-11 lg:py-11">
         <a href="{{ url('/') }}" class="flex items-center gap-3 rounded-lg w-fit" aria-label="CICT Equipment Borrower System home">
             <span class="grid w-10 h-10 overflow-hidden bg-white rounded-[10px] shrink-0 place-items-center">
@@ -77,12 +64,9 @@
         <p class="text-[12px] text-white/50">College of Information &amp; Communications Technology</p>
     </aside>
 
-    {{-- Right — the form, or what happened to it. --}}
     <main class="flex items-center justify-center px-6 py-10 sm:px-8 lg:px-8 lg:py-12">
 
     @if ($registered)
-        {{-- Success state. Reached only by the redirect that follows a written
-             row, so everything it reports is a fact about that row. --}}
         <div class="flex w-full max-w-[400px] flex-col gap-[18px]" data-register-success>
             <span class="grid rounded-full w-11 h-11 shrink-0 place-items-center bg-success-100 text-success-700" aria-hidden="true">
                 <i class="fa-solid fa-check text-[17px]"></i>
@@ -112,9 +96,6 @@
                 @endif
             </dl>
 
-            {{-- What happens next, as this system actually behaves. It does not
-                 hold a new account behind an approval queue and it sets no
-                 turnaround time, so neither is claimed here. --}}
             <div class="flex flex-col gap-2.5">
                 <h3 class="text-[13px] font-semibold text-neutral-900">What happens next</h3>
                 <ul class="flex flex-col gap-2">
@@ -164,7 +145,6 @@
                   class="flex flex-col gap-[15px]">
                 @csrf
 
-                {{-- Full name --}}
                 <div class="flex flex-col gap-1.5">
                     <label for="name" class="text-[12.5px] font-medium text-neutral-900">
                         Full name <span class="text-danger-600" aria-hidden="true">*</span>
@@ -179,8 +159,6 @@
                     <p id="name-error" data-error-for="name" class="text-[12px] text-danger-700" @unless($errors->has('name')) hidden @endunless>{{ $errors->first('name') }}</p>
                 </div>
 
-                {{-- School email. One domain for everyone, so the note under it
-                     only says which addresses are accepted. --}}
                 <div class="flex flex-col gap-1.5">
                     <label for="email" class="text-[12.5px] font-medium text-neutral-900">
                         School email <span class="text-danger-600" aria-hidden="true">*</span>
@@ -199,9 +177,6 @@
                     </p>
                 </div>
 
-                {{-- Role. Asked because the address cannot answer it — but it
-                     is a request, not a grant: the account is created as a
-                     Student either way, and Instructor waits for the office. --}}
                 <fieldset class="flex flex-col gap-1.5" aria-describedby="role-error role-note">
                     <legend class="mb-1.5 text-[12.5px] font-medium text-neutral-900">
                         I am a <span class="text-danger-600" aria-hidden="true">*</span>
@@ -228,13 +203,6 @@
                     </p>
                 </fieldset>
 
-                {{-- Course and year — students only. They fill the "Course &
-                     Year" column of the office's official reports. Hidden and
-                     disabled for anyone else, so an instructor applicant posts
-                     neither, and AuthenticateUser::registerPublic drops them
-                     for an Instructor answer anyway. `hidden` sits on a
-                     wrapper with no display class: on the grid itself,
-                     Tailwind's `.grid` would outrank it and keep it shown. --}}
                 <div data-student-fields @unless($oldRole === 'Student') hidden @endunless>
                 <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
                     <div class="flex flex-col gap-1.5">
@@ -269,9 +237,6 @@
                 </div>
                 </div>
 
-                {{-- Contact number. Optional in the database and optional here;
-                     the note says what it is actually for, which is the admin
-                     users screen and nothing automated. --}}
                 <div class="flex flex-col gap-1.5">
                     <label for="contact_number" class="flex items-baseline gap-1.5 text-[12.5px] font-medium text-neutral-900">
                         Contact number <span class="font-normal text-neutral-500">optional</span>
@@ -290,17 +255,11 @@
                     </p>
                 </div>
 
-                {{-- Password. One field: the confirm box caught a typo that the
-                     Show control prevents outright, and the requirements are
-                     stated here rather than reported back after a rejection. --}}
                 <div class="flex flex-col gap-1.5">
                     <label for="password" class="text-[12.5px] font-medium text-neutral-900">
                         Password <span class="text-danger-600" aria-hidden="true">*</span>
                     </label>
 
-                    {{-- A word, not a glyph, matching the sign-in page: "Show"
-                         says what the control does, where an eye leaves you
-                         guessing which state it reports. --}}
                     <div class="flex h-11 items-center gap-2 rounded-[10px] border pl-[13px] pr-1.5 transition-colors focus-within:border-primary-500
                                 {{ $errors->has('password') ? 'border-danger-300' : 'border-neutral-200' }}"
                          data-password-wrap>
@@ -315,7 +274,6 @@
                     </div>
                     <p id="password-error" data-error-for="password" class="text-[12px] text-danger-700" @unless($errors->has('password')) hidden @endunless>{{ $errors->first('password') }}</p>
 
-                    {{-- Strength, live. --}}
                     <div id="password-strength" class="flex items-center gap-[7px]" aria-live="polite">
                         <span class="h-1 flex-1 overflow-hidden rounded-[3px] bg-neutral-200">
                             <span data-strength-bar class="block h-full w-0 rounded-[3px] bg-neutral-300 transition-all duration-200"></span>
@@ -323,8 +281,6 @@
                         <span data-strength-label class="text-[12px] font-medium text-neutral-500 whitespace-nowrap">—</span>
                     </div>
 
-                    {{-- The three rules the server applies, said before submit
-                         and ticked off while typing. --}}
                     <ul id="password-rules" class="flex flex-col gap-1 pt-0.5">
                         <li data-rule="length" class="flex items-center gap-2 text-[12px] text-neutral-500">
                             <span data-rule-mark class="grid w-[13px] h-[13px] shrink-0 place-items-center rounded-full border border-neutral-300 text-[8px] text-transparent" aria-hidden="true">&#10003;</span>
@@ -341,7 +297,6 @@
                     </ul>
                 </div>
 
-                {{-- One consent, with the whole framed block as its target. --}}
                 <div class="flex flex-col gap-1.5">
                     <label data-agree-box
                            class="flex cursor-pointer items-start gap-2.5 rounded-[10px] border px-3 py-[11px] transition-colors hover:bg-neutral-50
@@ -364,8 +319,6 @@
                     Create account
                 </button>
 
-                {{-- Why the button above is not available yet. Never blank: when
-                     everything is satisfied it says what pressing it does. --}}
                 <p id="register-hint" data-submit-hint aria-live="polite"
                    class="text-center text-[12.5px] text-neutral-500 text-pretty">
                     Fill in the required fields to continue.
@@ -393,9 +346,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('register-form');
     if (!form) return;
 
-    /* The school domain, rendered from the model constant rather than written
-       here a second time — this half only mirrors the server, and a mirror
-       that disagrees with what it reflects is worse than no mirror. */
     const SCHOOL_DOMAIN = @json($schoolDomain);
 
     const name = document.getElementById('name');
@@ -413,9 +363,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const bar = form.querySelector('[data-strength-bar]');
     const strengthLabel = form.querySelector('[data-strength-label]');
 
-    /* ---- Show / Hide -------------------------------------------------
-       Not the shared `.eye-btn` handler in the layout: that one swaps a
-       glyph, and this control is a word. */
     toggle.addEventListener('click', function () {
         const revealed = password.type === 'text';
         password.type = revealed ? 'password' : 'text';
@@ -424,9 +371,6 @@ document.addEventListener('DOMContentLoaded', function () {
         password.focus();
     });
 
-    /* ---- The address ---------------------------------------------------
-       Mirrors User::isSchoolEmail exactly, including matching the whole
-       domain rather than a suffix. */
     function domainOf(value) {
         const parts = String(value).trim().toLowerCase().split('@');
         if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
@@ -437,9 +381,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return domainOf(value) === SCHOOL_DOMAIN;
     }
 
-    /* ---- Role -----------------------------------------------------------
-       What was asked for. The server writes a Student account either way;
-       Instructor becomes a request the office confirms. */
     function pickedRole() {
         const picked = roleInputs.find(function (input) { return input.checked; });
         return picked ? picked.value : '';
@@ -449,10 +390,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim());
     };
 
-    /* ---- Password ----------------------------------------------------
-       The same three conditions the server validates, plus a fourth that
-       only moves the bar: length is the one thing a passing password can
-       still have more of. */
     function passwordChecks(value) {
         return {
             length: value.length >= 8,
@@ -467,7 +404,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return checks.length && checks.letters && checks.numbers;
     }
 
-    /* ---- Field rules, mirroring AuthenticateUser::registerPublic ------ */
     const rules = {
         name: function (value) {
             return value.trim() === '' ? 'Enter your full name.' : '';
@@ -488,8 +424,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let attempted = false;
 
     function borderTarget(field) {
-        // The password input sits inside the bordered row that holds the
-        // Show button, so the ring goes on the wrapper, not the input.
         return field === password ? password.closest('[data-password-wrap]') : field;
     }
 
@@ -511,7 +445,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return message === '';
     }
 
-    /* ---- Live surfaces ------------------------------------------------ */
     function paintEmailNote() {
         const value = email.value;
 
@@ -535,7 +468,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function paintRole() {
         roleNote.hidden = pickedRole() !== 'Instructor';
 
-        // Disabled as well as hidden, so they are not posted for anyone else.
         const student = pickedRole() === 'Student';
         studentFields.hidden = !student;
         studentFields.querySelectorAll('input, select').forEach(function (field) {
@@ -577,10 +509,6 @@ document.addEventListener('DOMContentLoaded', function () {
         strengthLabel.className = 'text-[12px] font-medium whitespace-nowrap ' + step.text;
     }
 
-    /* ---- Submit gate --------------------------------------------------
-       Disabled until the form would pass, with the first unmet condition
-       named underneath — a disabled button that does not say why is just
-       a dead control. The server validates all of this again regardless. */
     function firstProblem() {
         if (rules.name(name.value)) return 'Enter your full name to continue.';
         if (email.value.trim() === '') return 'Enter your school email address to continue.';
@@ -623,8 +551,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     Object.keys(fields).forEach(function (key) {
-        // Nothing is flagged red while someone is still typing their first
-        // attempt; after a rejected submit it corrects as they fix it.
         fields[key].addEventListener('input', function () {
             if (attempted) check(key);
             refresh();
@@ -663,14 +589,10 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Submission is already under way; this only stops a second one.
         submit.disabled = true;
         submit.textContent = 'Creating account…';
     });
 
-    // The server may have rejected a field already; those messages are
-    // rendered server-side, so a first pass here only has to bring the live
-    // surfaces and the submit gate in line with what is in the inputs.
     attempted = {{ $errors->any() ? 'true' : 'false' }};
     refresh();
 });

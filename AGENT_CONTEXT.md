@@ -188,7 +188,7 @@ page would pay for it.
 **Careful with Blade comments here:** Blade lifts `@php … @endphp` blocks out of a template
 *before* it strips comments, so writing `@php(` inside a `{{-- --}}` comment swallows the file
 down to the next `@endphp` and fails with an unrelated "Cannot end a push stack" error. The
-layout's own doc-comment spells directive names without their `@` for this reason.
+code comments were removed on 16 Nov 2026, so this is the only place the rule is written down.
 
 Pinned by `tests/Feature/LegalPagesTest`.
 
@@ -254,8 +254,8 @@ and a `group`, and `GROUPS` gives the report order: Loans, Requests, Equipment, 
 Account & system. Never rename a key, since keys are stored; labels can change. A group key is
 also the `?type=` filter value, so the screen shows `groupLabel()` / `ActivityLog::groupName()`
 (`GROUP_LABELS`: `Loans` reads "Borrows"), and `group()` returns the raw key. **User-facing copy
-says "borrow", never "loan"** (since 16 Nov 2026); "loan" survives only in code, keys and
-comments. Read with
+says "borrow", never "loan"** (since 16 Nov 2026); "loan" survives only in code and keys.
+Read with
 `filter([...])`, whose keys are `from`, `to` (inclusive of the whole end day), `type` (a key or a
 group name), `equipment_id`, `user_id` (actor **or** subject), `status` (matches `status_to`) and
 `q`, and with `newestFirst()`.

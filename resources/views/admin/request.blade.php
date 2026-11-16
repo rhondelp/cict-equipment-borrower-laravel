@@ -11,8 +11,6 @@
 
 <div class="min-h-[100dvh] page-bg md:ml-64">
 
-    {{-- Essential for keyboard users: the sidebar is six links deep, so without
-         this every page begins with six tab stops before the content. --}}
     <a href="#main-content"
        class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-toast focus:rounded-md focus:border focus:border-primary-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700">
         Skip to content
@@ -24,8 +22,6 @@
 
     <main id="main-content" class="p-4 mx-auto space-y-6 sm:p-6 max-w-content">
 
-        {{-- The queue leads, because it is the only part of this page anyone
-             has to do something about. The archive sits underneath it. --}}
         <section aria-labelledby="pending-heading" class="space-y-3">
             <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <h2 id="pending-heading" class="text-lg font-semibold text-neutral-900">Waiting on you</h2>
@@ -90,9 +86,6 @@
                                 <i class="text-sm fas fa-times" aria-hidden="true"></i> Decline
                             </button>
 
-                            {{-- Disabled, and says why, when the shelf cannot
-                                 cover it: approving deducts stock, and stock
-                                 that is not there cannot be deducted. --}}
                             <form method="POST" action="{{ route('admin.request.approve') }}" class="js-approve-form">
                                 @csrf
                                 <input type="hidden" name="id" value="{{ $request->id }}">
@@ -107,8 +100,6 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3 px-5 pt-3 text-sm">
-                        {{-- The question is "what happens if I say yes", so the
-                             chip answers that rather than restating stock. --}}
                         <span data-approval-effect
                               class="inline-flex items-center gap-2 rounded-lg px-2.5 py-1 font-semibold tabular-nums
                                      {{ $fillable ? 'bg-success-50 text-success-700' : 'bg-danger-50 text-danger-700' }}">
@@ -151,8 +142,6 @@
             @endforelse
         </section>
 
-        {{-- The archive. Every declined row carries its reason, because that is
-             the only place the borrower's explanation is ever written down. --}}
         <section aria-labelledby="decided-heading">
             <x-ui.panel data-list data-active-chip="all">
                 <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b sm:px-5 border-neutral-200">
@@ -223,9 +212,6 @@
     </main>
 </div>
 
-{{-- Decline needs a reason. The field is required here and required again in
-     ItemRequestController::requestActions, so there is no path that writes
-     Declined without one — and the borrower's dashboard shows it back to them. --}}
 <div id="decline-modal" data-modal
      class="fixed inset-0 items-center justify-center hidden p-4 overflow-y-auto z-modal bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="decline-title">
@@ -297,9 +283,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const trigger = event.target.closest('[data-decline-trigger]');
             if (!trigger) return;
             document.getElementById('decline-id').value = trigger.dataset.id;
-            // The summary sits in the dialog header, outside the form —
-            // looking it up on `form` returned null and the throw stopped
-            // the dialog from ever opening.
             const summary = document.querySelector('#decline-modal [data-decline-summary]');
             if (summary) summary.textContent = trigger.dataset.summary || '';
             reason.value = '';
@@ -310,8 +293,6 @@ document.addEventListener('DOMContentLoaded', function () {
         sync();
     }
 
-    // Approving moves stock and creates a loan, so it confirms — with the
-    // consequence stated rather than "are you sure?".
     document.addEventListener('submit', function (event) {
         const approveForm = event.target.closest('.js-approve-form');
         if (!approveForm || approveForm.dataset.confirmed === '1') return;

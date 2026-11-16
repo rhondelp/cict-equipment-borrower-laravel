@@ -1,11 +1,3 @@
-{{-- One of the five official reports on screen: its filters, the export
-     toolbar, then the table. The rows are the same arrays the CSV, PDF and
-     print read (ReportsController::officialReport()); this is only the
-     screen's rendering of them, at the screen's type size.
-
-     Unlike the activity log, the toolbar shows even when the report is
-     empty: "nothing is out" and "no defective items" are answers the office
-     may need to print and sign. --}}
 @php
     $filterErrors = $resolved['errors'];
     $total = count($rows);
@@ -23,8 +15,6 @@
     $rangeUrl = fn ($from, $to) => request()->fullUrlWithQuery(['from' => $from->toDateString(), 'to' => $to->toDateString(), 'page' => null]);
     $isRange = fn ($from, $to) => ($filters['from'] ?? null) === $from->toDateString() && ($filters['to'] ?? null) === $to->toDateString();
 
-    // An optional range (Defective Items) shows the same From/To, empty by
-    // default, and an empty pair means the whole list.
     $optionalRange = ! empty($definition['optional_range']);
     $takesRange = $definition['dated'] || $optionalRange;
     $hasForm = $takesRange || in_array($report, ['inventory', 'most-borrowed'], true);
@@ -48,7 +38,6 @@
 @endphp
 
 @if($hasForm)
-    {{-- A GET form like the activity log's: the report is its URL. --}}
     <x-ui.panel>
         <form method="GET" action="{{ route('admin.reports') }}" data-report-filters class="p-4 space-y-4 sm:p-5">
             <input type="hidden" name="report" value="{{ $report }}">
@@ -150,8 +139,6 @@
     </x-ui.panel>
 @endif
 
-{{-- Export toolbar: the same three outputs and the same row cap as the
-     activity log, carrying this page's query string (report included). --}}
 <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-white border sm:px-5 rounded-xl border-neutral-200" data-report-exports>
     <p class="text-base text-neutral-800">
         Export or print the {{ $meta['title'] }}

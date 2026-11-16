@@ -3,15 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    {{-- The two fetch-based actions (the loan email, and anything added later)
-         read the token from here; without it they fell back to scraping a
-         hidden input out of whichever form happened to be on the page. --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield("title", "CICT Equipment Borrower System")</title>
 
-    {{-- Search and link-preview metadata. `description` defaults to the same
-         sentence the landing page leads with; a page can override it with
-         @section("description", "..."). --}}
     @php
         $metaDescription = trim(View::yieldContent(
             'description',
@@ -19,7 +13,6 @@
         ));
     @endphp
     <meta name="description" content="{{ $metaDescription }}">
-    {{-- An internal departmental tool; keep it out of search results. --}}
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#f8fafc">
     <meta property="og:type" content="website">
@@ -30,19 +23,12 @@
     <meta property="og:image" content="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png">
     <meta name="twitter:card" content="summary">
 
-    {{-- Typography: Poppins (primary) --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="shortcut icon" href="https://www.nmsc.edu.ph/application/files/9117/2319/6158/CICT_LOGO.png" type="image/x-icon">
 
-    {{-- No DataTables, and so no jQuery either: both were loaded on every page
-         to give eight-row tables a search box, a "Show 10 entries" select, a
-         pager for a single page of data and a sort arrow on every column. The
-         search survives in resources/js/ui.js; the rest is gone. --}}
-
-    {{-- SweetAlert2 (modals + toasts) --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -56,7 +42,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Sidebar toggle (mobile)
             try {
                 const menuToggle = document.getElementById('menu-toggle');
                 const sidebar = document.querySelector('.sidebar');
@@ -82,7 +67,6 @@
                 }
             } catch (e) { console.error('Sidebar init error', e); }
 
-            // Password visibility toggle
             try {
                 document.querySelectorAll('.eye-btn').forEach(function (btn) {
                     btn.addEventListener('click', function () {
@@ -101,7 +85,6 @@
                 });
             } catch (e) { console.error('eye toggle error', e); }
 
-            // Global error guard so one failing listener doesn't kill others
             window.addEventListener('error', function (ev) {
                 console.error('Global JS error (non-blocking):', ev.message, ev.filename, ev.lineno);
             });

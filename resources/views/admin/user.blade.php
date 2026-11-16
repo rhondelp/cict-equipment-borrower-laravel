@@ -17,8 +17,6 @@
 
 <div class="min-h-[100dvh] page-bg md:ml-64">
 
-    {{-- Essential for keyboard users: the sidebar is six links deep, so without
-         this every page begins with six tab stops before the content. --}}
     <a href="#main-content"
        class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-toast focus:rounded-md focus:border focus:border-primary-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700">
         Skip to content
@@ -50,10 +48,6 @@
             ]" />
         @endif
 
-        {{-- People who signed up saying they teach. Everyone shares one email
-             domain, so the address cannot settle it: the account was created
-             as a Student and works as one, and Instructor waits for this
-             decision. Either button clears the request. --}}
         @if($instructorRequests->isNotEmpty())
             <section aria-labelledby="instructor-requests-heading" class="space-y-3" data-instructor-requests>
                 <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -99,10 +93,6 @@
             </section>
         @endif
 
-        {{-- The accounts a human has already acted on, above the member list.
-             There is no approval queue for new accounts: registration creates
-             a working one, so the actionable rows here are the ones that have
-             been closed or restricted. --}}
         @if($needsAttention->isNotEmpty())
             <section aria-labelledby="attention-heading" class="space-y-3">
                 <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -131,9 +121,6 @@
                                 </div>
                                 <p class="mt-1 text-sm text-neutral-600">{{ $user->email }} · {{ $user->user_type }}</p>
 
-                                {{-- Why, and since when. A restriction with no
-                                     reason on it cannot be reviewed by anyone
-                                     who was not in the room. --}}
                                 <p class="mt-1 text-sm text-pretty {{ $user->isDeactivated() ? 'text-danger-700' : 'text-warning-800' }}"
                                    data-restriction-reason>
                                     @if($user->isSuspended())
@@ -236,9 +223,6 @@
                     </label>
                 </div>
 
-                {{-- "User type" is no longer a column of its own: it is one word
-                     that belongs next to the name, which frees the width for
-                     what this page was missing — what each person is holding. --}}
                 <div class="hidden gap-4 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-50 border-b border-neutral-200 lg:grid lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,1fr)_6rem]">
                     <div>Person</div>
                     <div>Contact</div>
@@ -284,10 +268,6 @@
                                       aria-hidden="true">{{ $initials }}</span>
                                 <div class="min-w-0">
                                     <p class="text-base font-semibold truncate text-neutral-900">{{ $user->name }}</p>
-                                    {{-- Role is shown, not edited inline — it
-                                         changes only through the edit dialog or
-                                         an instructor confirmation, and where it
-                                         has been changed the row says by whom. --}}
                                     <p class="text-sm text-neutral-600" data-user-role>
                                         {{ $user->user_type }}
                                         @if($user->roleIsOverridden())
@@ -317,10 +297,6 @@
                                 @endif
                             </div>
 
-                            {{-- Standing, not account fields. Whoever has to
-                                 decide on this person's next request needs all
-                                 three of these, and none of them are on the
-                                 account itself. --}}
                             <div class="min-w-0" data-user-standing>
                                 @if($overdue > 0)
                                     <p class="text-sm font-semibold text-danger-700 tabular-nums">
@@ -364,10 +340,6 @@
                                 </button>
 
                                 @if(! $isSelf && $user->user_type !== 'Admin')
-                                    {{-- Suspension stops them borrowing and
-                                         leaves the account usable, which is the
-                                         sanction the terms actually describe.
-                                         Neutral at rest like its neighbours. --}}
                                     @if($user->isSuspended())
                                         <form method="POST" action="{{ route('admin.users.lift', $user->id) }}">
                                             @csrf
@@ -443,7 +415,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    /* ---- add / edit account ------------------------------------------ */
     const userForm = document.getElementById('user-form');
     if (userForm) {
         const modal = document.getElementById('user-modal');
@@ -468,7 +439,6 @@ document.addEventListener('DOMContentLoaded', function () {
         let editing = false;
 
         function sync() {
-            // Mirrors AuthenticateUser::register's stricter rules for a new admin.
             const addingAdmin = !editing && type.value === 'Admin';
             const minLength = addingAdmin ? 8 : 4;
             const nameOk = name.value.trim().length > 1;
@@ -513,7 +483,6 @@ document.addEventListener('DOMContentLoaded', function () {
             confirmation.value = '';
 
             type.value = editing ? data.userType : '';
-            // What a role change is measured against — see form-modal.
             type.dataset.current = editing ? data.userType : '';
             type.dispatchEvent(new Event('role:reset'));
 
@@ -544,7 +513,6 @@ document.addEventListener('DOMContentLoaded', function () {
         sync();
     }
 
-    /* ---- class schedules --------------------------------------------- */
     document.addEventListener('click', function (event) {
         const manage = event.target.closest('[data-schedule-manage]');
         if (manage) {
@@ -581,9 +549,6 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('schedule-room').value = d.room || '';
             document.querySelector('[data-schedule-title]').textContent = 'Edit class schedule';
 
-            // The select lists current Instructors only. If this schedule
-            // belongs to someone no longer typed as one, put them back so that
-            // saving cannot silently reassign it to the first instructor.
             const owner = document.getElementById('schedule-user');
             owner.value = d.userId;
             if (owner.value !== String(d.userId)) {
@@ -598,8 +563,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Deleting a schedule states what points at it, and the controller
-        // refuses outright when any loan does.
         const remove = event.target.closest('[data-schedule-delete]');
         if (remove) {
             const d = remove.dataset;

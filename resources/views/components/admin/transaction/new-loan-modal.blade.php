@@ -1,13 +1,3 @@
-{{-- Record a new loan.
-
-     The status dropdown that used to sit at the bottom of this form is gone.
-     This form does one thing — hand equipment over — so the loan is created
-     out; whether it later reads Out or Overdue is a question the due date
-     answers, every time the row renders.
-
-     Quantities are capped at what is actually on the shelf: the stepper will
-     not go past it, the field's max is the same number, and
-     BorrowTransactionController::store re-checks under a row lock. --}}
 <div id="new-loan-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="new-loan-title">
@@ -64,8 +54,6 @@
                                     <span class="flex-1 min-w-0">
                                         <span class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                                             <span class="text-base font-medium {{ $none ? 'text-neutral-500' : 'text-neutral-900' }}">{{ $item->equipment_name }}</span>
-                                            {{-- Only the two types that change the form are labelled;
-                                                 Returnable is how every loan used to work. --}}
                                             @if($item->isTimeLimited())
                                                 <span class="inline-flex items-center gap-1 text-sm font-medium text-neutral-700">
                                                     <i class="text-xs fas fa-clock" aria-hidden="true"></i> Time-Limited · due back at a set time
@@ -105,13 +93,6 @@
                     <p id="loan-equipment-no-match" class="hidden mt-2 text-sm text-neutral-600">No equipment matches your search.</p>
                 </div>
 
-                {{-- These two fields follow what is ticked. Only returnable
-                     items: dates, as before. Any time-limited item: a date
-                     and time on both, the borrow moment starting at now,
-                     with presets beside the due field. Only non-returnable
-                     items: no due field at all. The page script switches the
-                     input type; BorrowTransactionController::store decides
-                     per item from the equipment row, whatever was sent. --}}
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <label for="loan-borrow-date" class="block text-base font-medium text-neutral-800">Taken out</label>
@@ -154,8 +135,6 @@
                     <select id="loan-class-schedule" name="class_schedule_id"
                             class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
                         <option value="" selected>Not tied to a class</option>
-                        {{-- Display-only grouping of the same records: one optgroup per
-                             instructor, so the name is not repeated on every line. --}}
                         @foreach ($classSchedules->groupBy(fn ($s) => $s->instructor?->name ?? 'No Instructor')->sortKeys() as $instructorName => $instructorSchedules)
                             <optgroup label="{{ $instructorName }}">
                                 @foreach ($instructorSchedules as $schedule)

@@ -12,8 +12,6 @@
 
 <div class="min-h-[100dvh] page-bg md:ml-64">
 
-    {{-- Essential for keyboard users: the sidebar is six links deep, so without
-         this every page begins with six tab stops before the content. --}}
     <a href="#main-content"
        class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-toast focus:rounded-md focus:border focus:border-primary-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700">
         Skip to content
@@ -34,9 +32,6 @@
             ]" />
         @endif
 
-        {{-- What still needs doing, above the archive. An audit log read
-             newest-first makes a damaged return from March look exactly like
-             one from this morning. --}}
         @if($followUp->isNotEmpty())
             <section aria-labelledby="followup-heading" class="space-y-3">
                 <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -154,8 +149,6 @@
                     </label>
                 </div>
 
-                {{-- Condition leads. This log is read when something is damaged
-                     or disputed, so the thing being looked for comes first. --}}
                 <div class="hidden gap-4 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-50 border-b border-neutral-200 md:grid md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.8fr)_minmax(0,1.4fr)_minmax(0,1.2fr)]">
                     <div>Condition</div>
                     <div>Returned item</div>
@@ -180,10 +173,6 @@
                              class="grid gap-2 px-4 py-4 sm:px-5 md:gap-4 md:items-start hover:bg-neutral-50
                                     md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.8fr)_minmax(0,1.4fr)_minmax(0,1.2fr)]">
 
-                            {{-- Colour carries the severity, and the note is
-                                 shown in full: a truncated damage note is the
-                                 one piece of text on this page nobody can
-                                 afford to lose the end of. --}}
                             <div class="min-w-0">
                                 <x-ui.status :label="$log->condition" :tone="$log->conditionTone()" />
                                 @if($log->isIncident())
@@ -233,10 +222,6 @@
                                 {{ $log->timingLine() }}
                             </p>
 
-                            {{-- Both names, every row. A return with no receiving
-                                 staff member is an incomplete record, and the
-                                 old collapsed "all received by X" line could
-                                 not say which rows were missing one. --}}
                             <div class="min-w-0 text-sm">
                                 <p class="text-neutral-700 truncate">
                                     <span class="text-neutral-500">Returned by</span> {{ $log->borrower->name ?? 'Deleted user' }}

@@ -1,7 +1,3 @@
-{{-- Styles shared by the PDF (dompdf) and the print view (a browser), so the
-     two look the same. Written for dompdf's CSS 2.1 subset: no flexbox, no
-     grid, no custom properties — tables do the layout. DejaVu Sans is
-     dompdf's built-in Unicode font, so "Ñ", "×" and "→" all render. --}}
 <style>
     body {
         margin: 0;
@@ -37,7 +33,6 @@
     .report-empty { padding: 14pt; text-align: center; color: #475569; border: 0.75pt solid #cbd5e1; }
     .report-table .mark { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.04em; color: #b91c1c; }
 
-    /* Official reports: the signature block. Kept on one page. */
     .signatures { margin-top: 28pt; page-break-inside: avoid; break-inside: avoid; }
     .signature-table { width: 100%; border-collapse: collapse; page-break-inside: avoid; break-inside: avoid; }
     .signature-table td { width: 42%; padding: 0; vertical-align: top; }

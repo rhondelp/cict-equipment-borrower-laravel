@@ -1,18 +1,3 @@
-{{-- Shared empty state — flat light theme.
-
-     Usage: <x-ui.empty-state icon="fa-inbox" title="No return logs yet"
-                              message="When borrowers return equipment, the logs appear here." />
-
-            <x-ui.empty-state icon="fa-clipboard-list" title="No requests yet" message="…">
-                <x-slot:action><button class="btn-primary">Request item</button></x-slot:action>
-            </x-ui.empty-state>
-
-     The seven empty states across the app had drifted onto three different type
-     scales — admin/logs and admin/notification still used text-sm/text-xs from
-     before the scale was bumped, while the dashboards used text-lg/text-base —
-     and two different icon treatments. This is the one both now share: the
-     framed icon tile the borrower dashboard introduced, which reads as a
-     deliberate state rather than a missing glyph. --}}
 @props([
     'icon'    => 'fa-inbox',
     'title'   => '',
@@ -29,8 +14,6 @@
     @endif
 
     @if($message)
-        {{-- max-w-sm keeps the sentence near a readable measure instead of
-             running the full width of a table card. --}}
         <p class="max-w-sm mx-auto mt-1 text-base text-pretty text-neutral-600">{{ $message }}</p>
     @endif
 

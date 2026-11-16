@@ -4,8 +4,6 @@
 @include('components.admin.navbar')
 
 @php
-    // 'activity' for the activity log; otherwise one of the five official
-    // reports (ReportsController::REPORTS), drawn by _official_screen.
     $report = $report ?? 'activity';
     $subtitles = [
         'activity' => 'Everything recorded in the activity log, newest first.',
@@ -22,9 +20,6 @@
     $filterErrors = $resolved['errors'];
     $total = $activities->total();
 
-    // Group → badge tone. Informational colours, not good/bad news: blue for
-    // loan activity, amber for requests (they wait on a decision), green for
-    // returns; everything else stays neutral.
     $groupTones = ['Loans' => 'primary', 'Requests' => 'warning', 'Returns' => 'success'];
 
     $field = 'w-full min-h-[44px] rounded-md border border-neutral-300 bg-white px-3 py-2 text-base text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30';
@@ -68,8 +63,6 @@
             </x-ui.panel>
         @else
 
-            {{-- Filters. A plain GET form: the report is its URL, so it can be
-                 bookmarked, shared, and handed to the exports unchanged. --}}
             <x-ui.panel>
                 <form method="GET" action="{{ route('admin.reports') }}" data-report-filters class="p-4 space-y-4 sm:p-5">
                     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -178,12 +171,6 @@
                 </form>
             </x-ui.panel>
 
-            {{-- Export toolbar. Each link carries the page's own query string
-                 (minus the page number), and the exports read it through the
-                 same resolveFilters() + ActivityLog::filter() as this screen,
-                 so the file is exactly the report on screen — every page of it.
-                 PDF and Print stop at MAX_PAGED_ROWS; the server refuses past
-                 it too, and the CSV has no limit. --}}
             @if($total > 0)
                 @php
                     $exportQuery = request()->except('page');
@@ -263,17 +250,6 @@
                         </p>
                     </div>
 
-                    {{-- The one <table> in the app. Every other list is a grid
-                         that restacks on a phone; this is wide, dense data read
-                         across a row, and the same markup has to print and turn
-                         into a PDF. The wrapper scrolls both ways on its own, so
-                         the header can stick inside it and a narrow screen
-                         scrolls the table sideways instead of squeezing it.
-
-                         Eight columns of 16px text do not fit a laptop's content
-                         width, so each column has a floor that keeps a name to
-                         two lines, the date and the status stack, and a hint
-                         appears only while columns are actually off-screen. --}}
                     <p data-report-scroll-hint hidden
                        class="flex items-center gap-2 px-4 py-2 text-sm border-b sm:px-5 text-neutral-700 bg-neutral-50 border-neutral-200">
                         <i class="fas fa-arrows-left-right" aria-hidden="true"></i>
@@ -370,8 +346,6 @@
     </main>
 </div>
 <script>
-// The sideways-scroll hint: shown only while the table is wider than its box,
-// and gone once the reader has reached the last column.
 document.addEventListener('DOMContentLoaded', function () {
     const box = document.querySelector('[data-report-scroll]');
     const hint = document.querySelector('[data-report-scroll-hint]');
@@ -386,8 +360,6 @@ document.addEventListener('DOMContentLoaded', function () {
     sync();
 });
 
-// The report-type switcher: Tab reaches each report, and the arrow keys,
-// Home and End move between them the way a tab strip does. Enter opens one.
 document.addEventListener('DOMContentLoaded', function () {
     const tabs = Array.from(document.querySelectorAll('[data-report-tab]'));
     tabs.forEach(function (tab, index) {

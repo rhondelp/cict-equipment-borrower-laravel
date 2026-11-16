@@ -17,11 +17,6 @@ use Illuminate\Validation\Rules\Password;
 
 class AuthenticateUser extends Controller
 {
-    /**
-     * The admin dashboard leads with the work queue, so the queue is assembled
-     * here rather than inferred from four collections in the template. Counters
-     * that read zero are not a dashboard; "3 things need you today" is.
-     */
     public function adminView()
     {
         $equipments = Equipment::query()
@@ -40,9 +35,6 @@ class AuthenticateUser extends Controller
         $requests = ItemRequest::with(['user', 'equipment'])->get();
         $returnLogs = ReturnLog::with(['borrower', 'receiver', 'equipment'])->latest()->take(6)->get();
 
-        // Two queues the dashboard leads with that are not loans or requests.
-        // Each is one query, counted in the database rather than by pulling the
-        // whole table in and filtering it in PHP.
         $unresolvedIncidents = ReturnLog::with(['borrower', 'equipment'])
             ->where('condition', '!=', 'Good')
             ->whereNull('resolved_at')
@@ -59,12 +51,8 @@ class AuthenticateUser extends Controller
             ->orderBy('name')
             ->get();
 
-        // Counted here rather than from $returnLogs, which is capped at six for
-        // the activity feed and so could never report more than six.
         $returnedThisWeek = ReturnLog::where('return_date', '>=', now()->subWeek())->count();
 
-        // Out now means isOut(): an Issued row is not with anyone to chase.
-        // Ordered by dueAt(), so a loan due at 2 PM today leads one due "today".
         $openLoans = $transactions->filter(fn ($transaction) => $transaction->isOut())
             ->sortBy(fn ($transaction) => $transaction->dueAt()?->timestamp ?? PHP_INT_MAX)
             ->values();
@@ -73,8 +61,6 @@ class AuthenticateUser extends Controller
             $requests, $openLoans, $equipments, $unresolvedIncidents, $restrictedAccounts, $instructorRequests
         );
 
-        // What blocks approvals: an item with nothing on the shelf cannot be
-        // lent however many requests are waiting for it.
         $stockWatch = $equipments
             ->reject(fn ($item) => $item->isRetired())
             ->filter(fn ($item) => in_array($item->availabilityState()['key'], ['out', 'low'], true))
@@ -87,13 +73,6 @@ class AuthenticateUser extends Controller
         ));
     }
 
-    /**
-     * The ordered list of things an admin has to do something about, worst
-     * first. Every entry names a number and where to act on it; an empty list
-     * is itself the answer, and the view says so in words.
-     *
-     * @return list<array{tone: string, title: string, detail: string, action: string, url: string}>
-     */
     private function adminAttention(
         $requests, $openLoans, $equipments, $unresolvedIncidents = null, $restrictedAccounts = null,
         $instructorRequests = null
@@ -105,8 +84,6 @@ class AuthenticateUser extends Controller
 
         $overdue = $openLoans->filter(fn ($loan) => $loan->isOverdue())->values();
         if ($overdue->isNotEmpty()) {
-            // The one whose due moment passed first. daysLate() would call a
-            // timed loan three hours late "0 days" and rank it last.
             $worst = $overdue->sortBy(fn ($loan) => $loan->dueAt()?->timestamp)->first();
             $attention[] = [
                 'tone' => 'danger',
@@ -160,10 +137,6 @@ class AuthenticateUser extends Controller
             ];
         }
 
-        // Something came back damaged or lost and nobody has recorded what was
-        // done about it. This is the only queue on the dashboard that does not
-        // age out on its own — a loan gets returned, a request gets decided,
-        // an unresolved incident simply sits there.
         if ($unresolvedIncidents->isNotEmpty()) {
             $oldest = $unresolvedIncidents->first();
             $attention[] = [
@@ -178,8 +151,6 @@ class AuthenticateUser extends Controller
             ];
         }
 
-        // People who signed up as instructors. Their accounts already work as
-        // Student accounts, so this is not urgent, but nothing else moves it.
         if ($instructorRequests->isNotEmpty()) {
             $oldest = $instructorRequests->first();
             $attention[] = [
@@ -194,8 +165,6 @@ class AuthenticateUser extends Controller
             ];
         }
 
-        // Accounts a human has already restricted. There is no approval queue
-        // for new accounts — registration creates a working one.
         if ($restrictedAccounts->isNotEmpty()) {
             $suspended = $restrictedAccounts->filter(fn ($user) => $user->isSuspended())->count();
             $deactivated = $restrictedAccounts->count() - $suspended;
@@ -216,10 +185,6 @@ class AuthenticateUser extends Controller
         return $attention;
     }
 
-    /**
-     * The borrower dashboard is a to-do list, not a set of counters: one row
-     * per thing this person has to do, soonest first.
-     */
     public function borrowerView()
     {
         $userId = Auth::id();
@@ -229,8 +194,6 @@ class AuthenticateUser extends Controller
             ->with(['equipment', 'returnLog'])
             ->get();
         $equipments = Equipment::lendable()->orderBy('equipment_name')->get();
-        // Read-only feed for the dashboard bell. Rows are written elsewhere by
-        // BorrowTransactionController::sendReturnAlertNotification.
         $notifications = Notification::where('user_id', $userId)->latest()->take(10)->get();
 
         $agenda = $this->borrowerAgenda($requests, $transactions);
@@ -241,16 +204,10 @@ class AuthenticateUser extends Controller
         ));
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
     private function borrowerAgenda($requests, $transactions): array
     {
         $agenda = [];
 
-        // Loans that went out together — same dates, same purpose — are one
-        // booking: approving a multi-item request writes one loan per item, but
-        // the borrower collects and returns them as one trip.
         foreach ($this->openBookings($transactions) as $booking) {
             $loan = $booking->first();
             $days = $loan->daysUntilDue();
@@ -303,8 +260,6 @@ class AuthenticateUser extends Controller
             ];
         }
 
-        // A decline the borrower has not seen yet is work too: it is the only
-        // place the reason for it ever reaches them.
         foreach ($requests->where('status', 'Declined') as $request) {
             if (! $this->isRecentDecision($request)) {
                 continue;
@@ -336,11 +291,6 @@ class AuthenticateUser extends Controller
         return $agenda;
     }
 
-    /**
-     * Everything already settled, folded away under the agenda.
-     *
-     * @return list<array<string, mixed>>
-     */
     private function borrowerHistory($requests, $transactions): array
     {
         $history = [];
@@ -357,8 +307,6 @@ class AuthenticateUser extends Controller
             ];
         }
 
-        // Something handed over for good is settled the moment it is issued:
-        // nothing is due back, so it belongs here and never on the agenda.
         foreach ($transactions->filter(fn ($transaction) => $transaction->isIssued()) as $issue) {
             $history[] = [
                 'tone' => 'neutral',
@@ -371,10 +319,7 @@ class AuthenticateUser extends Controller
             ];
         }
 
-        // Approved requests are left out: approval writes a loan, and that loan
-        // is already in this list once it comes back.
         foreach ($requests->where('status', 'Declined') as $request) {
-            // A decline inside the two-week window is already on the agenda.
             if ($this->isRecentDecision($request)) {
                 continue;
             }
@@ -395,10 +340,6 @@ class AuthenticateUser extends Controller
         return $history;
     }
 
-    /**
-     * Open loans grouped into bookings: one group per borrow date, return
-     * date and purpose. The receipt uses the same key to print a booking's slip.
-     */
     private function openBookings($transactions)
     {
         return $transactions
@@ -408,12 +349,6 @@ class AuthenticateUser extends Controller
             ->values();
     }
 
-    /**
-     * When a request was decided. Rows written before the decision trail
-     * existed have no decided_at, so `updated_at` stands in — and because both
-     * the agenda and the history ask the same question here, a decline lands in
-     * exactly one of the two lists.
-     */
     private function decidedAt(ItemRequest $request): ?\Carbon\Carbon
     {
         return $request->decided_at ?? $request->updated_at;
@@ -434,16 +369,9 @@ class AuthenticateUser extends Controller
         ]);
 
         try {
-            // The "keep me signed in" checkbox is passed through rather than
-            // ignored. It was on the form before this and did nothing, which
-            // made it a control that reported a state the session did not have.
-            // The validation rules above are untouched; `remember` is a flag,
-            // not a credential.
             if (Auth::attempt($credentials, $request->boolean('remember'))) {
                 $user = Auth::user();
 
-                // Deactivating an account has to mean something, or the Remove
-                // dialog is offering a button that does nothing.
                 if ($user->isDeactivated()) {
                     ActivityLog::record('login_failed', [
                         'actor' => null,
@@ -471,7 +399,6 @@ class AuthenticateUser extends Controller
                 ]);
 
                 $msg = 'Welcome back, '.$user->name.'!';
-                // FIX: flash both 'welcome' (legacy) and 'success' so shared alerts + existing checks show it
                 $request->session()->flash('welcome', $msg);
                 $request->session()->flash('success', $msg);
 
@@ -523,20 +450,6 @@ class AuthenticateUser extends Controller
         return view('register');
     }
 
-    /**
-     * Public sign-up.
-     *
-     * Deliberately separate from register() below, which serves the admin
-     * users form: that one is behind `userType:Admin` and an admin picking a
-     * borrower's role is a decision they are entitled to make.
-     *
-     * Students and instructors share one email domain, so the form asks which
-     * one you are — but out here nobody is authenticated, so the answer is a
-     * request, not a grant. The account is always written as a Student.
-     * Answering Instructor stamps `instructor_requested_at`, and an admin
-     * confirms or declines it on the users screen. `user_type` is never read
-     * from the request, so there is no field to tamper with.
-     */
     public function registerPublic(Request $request)
     {
         $validated = $request->validate([
@@ -550,14 +463,8 @@ class AuthenticateUser extends Controller
                 },
             ],
             'requested_role' => 'required|in:Student,Instructor',
-            // The three rules the form states before submit, in the same order
-            // it states them. Confirm-password is gone: it catches a typo the
-            // reveal toggle already prevents, at the cost of a whole field.
             'password' => ['required', 'string', 'min:8', 'regex:/[A-Za-z]/', 'regex:/[0-9]/'],
             'contact_number' => 'nullable|string|max:15',
-            // Asked of students only, and only kept for one: an instructor
-            // applicant's account starts as a Student, but these describe
-            // an enrolment they do not have.
             'course' => 'nullable|string|max:50',
             'year_level' => ['nullable', Rule::in(User::YEAR_LEVELS)],
             'agree' => 'accepted',
@@ -573,7 +480,6 @@ class AuthenticateUser extends Controller
         $wantsInstructor = $validated['requested_role'] === 'Instructor';
 
         $user = User::create([
-            // Never taken from the request: Instructor is granted by an admin.
             'user_type' => 'Student',
             'name' => $validated['name'],
             'email' => strtolower(trim($validated['email'])),
@@ -592,9 +498,6 @@ class AuthenticateUser extends Controller
             'meta' => ['source' => 'sign-up', 'instructor_requested' => $wantsInstructor],
         ]);
 
-        // Not `success`: that key throws the shared SweetAlert modal, which
-        // would land on top of the page's own success state saying the same
-        // thing twice. The page reads `registered` and renders it inline.
         return redirect()->route('register')->with('registered', [
             'email' => $user->email,
             'role' => $user->user_type,
@@ -602,17 +505,6 @@ class AuthenticateUser extends Controller
         ]);
     }
 
-    /**
-     * The admin users form (`POST /admin/users`). Takes an explicit user_type:
-     * Student, Instructor, or Admin for another member of staff.
-     *
-     * A new Admin is the one account here that can make further admins, so it
-     * is held to more than a borrower account: a school address, the reset
-     * page's password rule, a reason that is recorded with the creator's name
-     * (the same role_overridden_* record any role change writes), and the
-     * creating admin's own password — so an unattended signed-in session
-     * cannot quietly mint a second, permanent admin.
-     */
     public function register(Request $request)
     {
         $makingAdmin = $request->input('user_type') === 'Admin';
@@ -623,7 +515,6 @@ class AuthenticateUser extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:4|confirmed',
             'contact_number' => 'nullable|string|max:15',
-            // Kept for a Student only; see UserController::update.
             'course' => 'nullable|string|max:50',
             'year_level' => ['nullable', Rule::in(User::YEAR_LEVELS)],
         ];

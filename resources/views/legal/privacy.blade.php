@@ -1,11 +1,3 @@
-{{-- Content only. layouts/legal.blade.php renders it, and also builds the
-     contents rail from these headings — see the note at the top of that file.
-
-     The prose is unchanged from the previous revision except where a long
-     paragraph has been split in two at a sentence boundary, where the deletion
-     fallback has been lifted out into `note`, and in one place where the
-     document was inaccurate: see the comment on the sessions bullet under
-     "What we store". --}}
 @extends('layouts.legal')
 
 @php($doc = [
@@ -40,10 +32,6 @@
                 'Borrow transactions created from an approved request, with borrow and return dates.',
                 'Return logs recording the condition of an item when it came back, and which staff member received it.',
                 'Return reminders sent to your email address, and when they were sent.',
-                // Added, because it was true and undisclosed: sessions are
-                // stored in the database (SESSION_DRIVER=database) and the
-                // sessions table carries ip_address and user_agent. The list
-                // above previously claimed to be everything the system kept.
                 'Sign-in sessions, which record the IP address and browser your account signed in from, until the session ends or you log out.',
             ],
         ],
@@ -84,8 +72,6 @@
             'paras' => [
                 'To correct your name, email or contact number, or to ask for your account to be removed, contact the CICT department office.',
             ],
-            // Lifted out of the paragraph above. Someone asking for deletion
-            // needs to know this before they ask, not in the reply.
             'note' => 'Borrowing records tied to equipment that is still out cannot be removed until the item is returned.',
         ],
     ],

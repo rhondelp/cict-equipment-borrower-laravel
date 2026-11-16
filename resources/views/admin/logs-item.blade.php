@@ -33,9 +33,6 @@
                                   message="Once a borrowed unit of this item is checked in, every return shows up here." />
             </x-ui.panel>
         @else
-            {{-- The point of this page in one line: a single damaged return is
-                 an accident, the fourth is a fact about the equipment, and that
-                 is invisible on a date-ordered list. --}}
             <x-ui.stat-strip :stats="[
                 ['label' => 'Returned damaged or lost', 'value' => $incidents->count(), 'unit' => 'of '.$logs->count(), 'sub' => $damageRate.'% of every return of this item', 'tone' => $incidents->isEmpty() ? 'neutral' : 'warning'],
                 ['label' => 'Still unresolved', 'value' => $unresolved, 'unit' => '', 'sub' => $unresolved === 0 ? 'Every incident has an outcome' : 'No outcome recorded yet', 'tone' => $unresolved === 0 ? 'neutral' : 'danger'],

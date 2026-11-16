@@ -3,21 +3,13 @@
 namespace App\Models;
 
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
 
     protected $fillable = [
         'user_type',
@@ -37,21 +29,11 @@ class User extends Authenticatable
         'instructor_requested_at',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -64,25 +46,10 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * The one domain this system issues accounts on. Students and instructors
-     * share it, so the address says nothing about role: that is asked on the
-     * sign-up form, and an Instructor answer waits for an admin to confirm it.
-     */
     public const SCHOOL_DOMAIN = 'nmsc.edu.ph';
 
-    /**
-     * The year levels a student can give, in order. A fixed list rather than
-     * free text, so "Course & Year" on the official reports reads "BSIT 3rd
-     * Year" for everyone instead of "3", "III" and "third". The column is a
-     * plain string, so the list can grow without a migration.
-     */
     public const YEAR_LEVELS = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
 
-    /**
-     * "BSIT · 3rd Year", either half alone, or null when neither is on file —
-     * the Course & Year cell of the official reports.
-     */
     public function courseAndYear(): ?string
     {
         $parts = array_filter([$this->course, $this->year_level]);
@@ -90,10 +57,6 @@ class User extends Authenticatable
         return $parts === [] ? null : implode(' · ', $parts);
     }
 
-    /**
-     * The domain half of an address, lowercased. Null when there is not exactly
-     * one `@` with something either side of it.
-     */
     public static function emailDomain(?string $email): ?string
     {
         $parts = explode('@', trim((string) $email));
@@ -105,44 +68,21 @@ class User extends Authenticatable
         return strtolower($parts[1]);
     }
 
-    /**
-     * Whether an address is on the school domain. Matched on the whole domain,
-     * never on a suffix: `endsWith('nmsc.edu.ph')` would let anyone register
-     * `not-nmsc.edu.ph`.
-     */
     public static function isSchoolEmail(?string $email): bool
     {
         return self::emailDomain($email) === self::SCHOOL_DOMAIN;
     }
 
-    /**
-     * Asked for Instructor at sign-up and not yet decided. The account is a
-     * Student until an admin confirms — see UserController::confirmInstructor.
-     */
     public function hasPendingInstructorRequest(): bool
     {
         return $this->instructor_requested_at !== null;
     }
 
-    /**
-     * Deactivating is the non-destructive half of the Remove dialog: the
-     * account stops working, every loan and log that names this person stays
-     * exactly where it is. AuthenticateUser::login refuses a deactivated
-     * account, so the flag is not cosmetic.
-     */
     public function isDeactivated(): bool
     {
         return $this->deactivated_at !== null;
     }
 
-    /**
-     * Suspension is not deactivation.
-     *
-     * A deactivated account cannot sign in at all. A suspended one signs in,
-     * sees its history and its open loans, and cannot borrow — which is the
-     * sanction the terms of service already describe. Enforced in
-     * ItemRequestController::store, not only by hiding a button.
-     */
     public function isSuspended(): bool
     {
         return $this->suspended_at !== null;
@@ -153,7 +93,6 @@ class User extends Authenticatable
         return ! $this->isDeactivated() && ! $this->isSuspended();
     }
 
-    /** "Suspended since Sep 14 · two items never came back" */
     public function suspensionLine(): string
     {
         if (! $this->isSuspended()) {
@@ -171,11 +110,6 @@ class User extends Authenticatable
         return $this->role_overridden_at !== null;
     }
 
-    /**
-     * "Set to Instructor by Quincy Jane O. on Sep 20 — teaches lab sections".
-     * Written whenever an admin changes a role, including confirming an
-     * instructor request, so no role change is unexplained.
-     */
     public function roleOverrideLine(): string
     {
         if (! $this->roleIsOverridden()) {
@@ -191,7 +125,6 @@ class User extends Authenticatable
             .($this->role_override_reason ? ' — '.$this->role_override_reason : '');
     }
 
-    /** Requests this person is waiting on a decision for. */
     public function pendingRequests(): int
     {
         return isset($this->attributes['pending_requests_count'])
@@ -209,7 +142,6 @@ class User extends Authenticatable
         return $this->belongsTo(User::class, 'role_overridden_by');
     }
 
-    /** Units this person is holding right now. */
     public function unitsOut(): int
     {
         return (int) $this->borrowTransactions()
@@ -218,13 +150,11 @@ class User extends Authenticatable
             ->sum('quantity');
     }
 
-    /** Loans and requests that a hard delete would cascade away. */
     public function historyCount(): int
     {
         return $this->borrowTransactions()->count() + $this->itemRequests()->count();
     }
 
-    /** Same two figures, preferring the aggregates the users index loads. */
     public function outNow(): int
     {
         return isset($this->attributes['units_out']) ? (int) $this->attributes['units_out'] : $this->unitsOut();

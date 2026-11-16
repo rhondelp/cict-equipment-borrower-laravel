@@ -1,9 +1,3 @@
-{{-- Ask for equipment.
-
-     The quantity is capped at what is actually on the shelf for the item
-     selected: the stepper stops there, the field's max is that number, and
-     ItemRequestController::store refuses anything larger. Picking an item with
-     nothing left is not possible — those rows are disabled and say why. --}}
 <div id="request-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="request-modal-title">
@@ -27,10 +21,6 @@
             <div class="px-6 pb-5 space-y-4">
                 <div>
                     <span class="block text-base font-medium text-neutral-800">What do you need?</span>
-                    {{-- Grouped by category, named groups A–Z and anything without one
-                         last under "Other". When nothing has a category yet there
-                         is only one group, so no heading is drawn and the list
-                         reads exactly as it did before categories existed. --}}
                     @php
                         $groups = $equipments
                             ->groupBy(fn ($item) => $item->category ?? '')
@@ -57,9 +47,6 @@
                                                class="w-4 h-4 shrink-0 accent-primary-600 request-equipment">
                                         <span class="flex-1 min-w-0">
                                             <span class="block text-base {{ $none ? 'text-neutral-500' : 'text-neutral-900' }}">{{ $item->equipment_name }}</span>
-                                            {{-- Said on the row as well as under the list, so the
-                                                 terms are read before choosing, not after. Plain
-                                                 returnable items are how borrowing always worked. --}}
                                             @unless($item->isReturnable())
                                                 <span class="flex items-center gap-1.5 text-sm text-neutral-700" data-request-row-note>
                                                     <i class="text-xs fas {{ $item->isTimeLimited() ? 'fa-clock' : 'fa-box-open' }}" aria-hidden="true"></i>
@@ -78,9 +65,6 @@
                         @endforelse
                     </div>
 
-                    {{-- What happens after approval, for the item chosen: "Return by
-                         a date", "Return within 1 hour", or "Given to you — no
-                         return needed". Filled from the radio's data-loan-note. --}}
                     <p data-request-loan-note class="items-center hidden gap-2 px-3 py-2 mt-2 text-base font-medium rounded-lg bg-neutral-50 text-neutral-800">
                         <i data-request-loan-note-icon class="text-sm fas fa-rotate-left text-neutral-600" aria-hidden="true"></i>
                         <span data-request-loan-note-text></span>

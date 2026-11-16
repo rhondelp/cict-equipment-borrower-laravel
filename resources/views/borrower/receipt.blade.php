@@ -4,16 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     @php
-        // An issue is a hand-over for good: the slip is titled for it and
-        // carries no return date, and a timed loan's dates carry their times.
         $issued = $transaction->status === 'Issued';
         $slipTitle = $issued ? 'Issue Slip' : 'Borrow Slip';
         $dateFormat = $transaction->timed ? 'F j, Y \a\t g:i A' : 'F j, Y';
     @endphp
     <title>{{ $slipTitle }} #{{ $transaction->id }} - CICT Equipment Borrower System</title>
 
-    {{-- Self-contained on purpose: this page must print cleanly without pulling in
-         the app shell's navbar/sidebar styles. --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -123,7 +119,6 @@
             <dt>{{ $issued ? 'Issued on' : 'Borrow date' }}</dt>
             <dd>{{ $transaction->borrow_date?->format($issued ? 'F j, Y' : $dateFormat) ?? '—' }}</dd>
 
-            {{-- Nothing is due back on an issue, so there is no return line to fill in. --}}
             @if($issued)
                 <dt>Return</dt>
                 <dd>Not expected back — given out for good</dd>

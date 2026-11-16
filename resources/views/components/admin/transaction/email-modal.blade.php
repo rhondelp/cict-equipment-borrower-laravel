@@ -1,6 +1,3 @@
-{{-- Nudge a borrower about a loan. The template body is composed server-side
-     from the loan itself (see BorrowTransactionController::reminderBody), so an
-     overdue loan gets the overdue wording without anyone choosing it. --}}
 <div id="emailModal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="email-modal-title">
@@ -8,10 +5,6 @@
         <div class="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
             <div class="min-w-0">
                 <h2 id="email-modal-title" class="text-lg font-semibold text-neutral-900">Email the borrower</h2>
-                {{-- Filled from the row's own data attributes, never from
-                     whatever the list happens to be showing: a dialog opened
-                     out of a filtered list has no "current row" to derive from,
-                     and that is how these end up reading "undefined". --}}
                 <p class="mt-1 text-sm text-neutral-600" data-email-summary>Sent from the equipment office address.</p>
                 <p class="mt-1 text-sm text-neutral-500" data-email-history hidden></p>
             </div>

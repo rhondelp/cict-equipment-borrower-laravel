@@ -7,16 +7,11 @@
     $today = $notifications->filter(fn ($n) => $n->send_date && \Carbon\Carbon::parse($n->send_date)->isToday());
     $types = $notifications->pluck('notification_type')->unique()->filter()->values();
 
-    // Every row written by the nightly job carries the same type, so the "Type"
-    // column said "Return Notice" over and over. It is stated once above the
-    // list instead, and only comes back as a column if a second type appears.
     $oneType = $notifications->isNotEmpty() && $types->count() <= 1;
 @endphp
 
 <div class="min-h-[100dvh] page-bg md:ml-64">
 
-    {{-- Essential for keyboard users: the sidebar is six links deep, so without
-         this every page begins with six tab stops before the content. --}}
     <a href="#main-content"
        class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-toast focus:rounded-md focus:border focus:border-primary-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700">
         Skip to content

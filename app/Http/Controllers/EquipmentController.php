@@ -19,15 +19,6 @@ class EquipmentController extends Controller
         return view('admin.equipment', compact('equipment', 'categories'));
     }
 
-    /**
-     * `available_quantity` and `status` are no longer on the form. Both are
-     * derived from the loans, so a new item starts fully available and the
-     * status follows from the stock.
-     *
-     * `loan_type` is required, but a post without it (an older form, a
-     * script) means Returnable, which is what every item was before the
-     * field existed. A post without `unit` means "pc", the column default.
-     */
     public function store(Request $request)
     {
         $request->mergeIfMissing(['loan_type' => Equipment::LOAN_RETURNABLE, 'unit' => Equipment::DEFAULT_UNIT]);
@@ -59,18 +50,6 @@ class EquipmentController extends Controller
         return redirect()->back()->with('success', $equipment->equipment_name.' added — '.$validated['quantity'].' of '.$validated['quantity'].' available.');
     }
 
-    /**
-     * Only the total owned is editable, and it cannot be pushed below the units
-     * that are out with borrowers: "3 units are out on loan" is a fact about
-     * the loans, not a number an admin gets to overrule. Availability is then
-     * recomputed as total − out − issued, which also repairs any drift.
-     *
-     * The loan type can change only while nothing is out. A loan already out
-     * was made under the old type's terms, and switching underneath it would
-     * leave it due by a date it was never given, or turn it into a hand-over
-     * nobody recorded. A post without `loan_type` keeps the current one,
-     * rather than quietly resetting the item to Returnable; `unit` likewise.
-     */
     public function update(Request $request)
     {
         $validated = $request->validate([
@@ -100,7 +79,6 @@ class EquipmentController extends Controller
                     .' '.($out === 1 ? 'is' : 'are').' still borrowed, so the total cannot go below '.$out.'. Check them in first.'];
             }
 
-            // Issued units left for good but still count in the total owned.
             $issued = $equipment->unitsIssued();
             if ($validated['quantity'] < $out + $issued) {
                 return ['error' => $issued.' '.str('unit')->plural($issued).' of '.$equipment->equipment_name
@@ -121,8 +99,6 @@ class EquipmentController extends Controller
             $equipment->status = $equipment->lendableStatus();
             $equipment->save();
 
-            // A save that changed nothing is not an event. A recomputed
-            // availability (drift repaired) counts, and shows in meta.
             $changes = ActivityLog::changes($before, $this->snapshot($equipment));
             if ($changes !== [] || $statusBefore !== $equipment->status) {
                 ActivityLog::record('equipment_updated', [
@@ -151,11 +127,6 @@ class EquipmentController extends Controller
             .$equipment->available_quantity.' of '.$equipment->quantity.' available.');
     }
 
-    /**
-     * The non-destructive default offered by the remove dialog. The item stops
-     * being lendable; every loan, request and return log that names it stays
-     * readable, and units already out stay tracked until they come back.
-     */
     public function retire($id)
     {
         $equipment = Equipment::findOrFail($id);
@@ -194,7 +165,6 @@ class EquipmentController extends Controller
         $equipment->status = $equipment->lendableStatus();
         $equipment->save();
 
-        // Restoring an item that was never retired changes nothing.
         if ($wasRetired) {
             ActivityLog::record('equipment_restored', [
                 'equipment' => $equipment,
@@ -208,16 +178,6 @@ class EquipmentController extends Controller
         return redirect()->back()->with('success', $equipment->equipment_name.' is lendable again.');
     }
 
-    /**
-     * Record maintenance or a repair on an item. Record-only: there is no
-     * maintenance table, no "in repair" state, and stock and availability are
-     * untouched — an item being serviced while units are lent out is normal.
-     * The record is one activity log entry, so it shows in the reports beside
-     * the item's loans and returns.
-     *
-     * occurred_at is the day it was done at the current time of day, so an
-     * entry logged a few days late still sorts onto the right day.
-     */
     public function logMaintenance(Request $request, $id)
     {
         $equipment = Equipment::findOrFail($id);
@@ -260,11 +220,6 @@ class EquipmentController extends Controller
             .$equipment->equipment_name.' on '.$performedOn->format('M j').'. Stock is unchanged.');
     }
 
-    /**
-     * Hard delete, refused while anything points at the row. The cascade on
-     * borrow_transactions and item_requests would take the history with it,
-     * which is exactly what the confirm dialog promises will not happen.
-     */
     public function destroy($id)
     {
         $equipment = Equipment::findOrFail($id);
@@ -289,8 +244,6 @@ class EquipmentController extends Controller
             $statusBefore = $equipment->isRetired() ? 'Retired' : $equipment->status;
             $equipment->delete();
 
-            // The row is gone: the entry names it by snapshot and keeps its id
-            // in meta, since a key to it would not save.
             ActivityLog::record('equipment_deleted', [
                 'equipment' => $equipment,
                 'equipment_id' => null,
@@ -304,7 +257,6 @@ class EquipmentController extends Controller
         return redirect()->back()->with('success', $name.' deleted. It had no borrow history.');
     }
 
-    /** The fields an admin edits, as the log records them. */
     private function snapshot(Equipment $equipment): array
     {
         return [
@@ -318,11 +270,6 @@ class EquipmentController extends Controller
         ];
     }
 
-    /**
-     * One query for the whole list: units out per item, plus the reference
-     * counts the remove dialog quotes. Without these the equipment table fired
-     * three queries a row to draw a single confirm.
-     */
     private function withLoanAggregates()
     {
         return Equipment::query()

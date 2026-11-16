@@ -22,8 +22,6 @@
 
 <div class="min-h-[100dvh] page-bg md:ml-64">
 
-    {{-- Essential for keyboard users: the sidebar is six links deep, so without
-         this every page begins with six tab stops before the content. --}}
     <a href="#main-content"
        class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-toast focus:rounded-md focus:border focus:border-primary-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700">
         Skip to content
@@ -61,9 +59,6 @@
                     </x-slot:action>
                 </x-ui.empty-state>
             @else
-                {{-- Four chips and a search box, in place of the "Show 10 entries"
-                     select, the pager and the six sort arrows that used to sit
-                     above an eight-row table. --}}
                 <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b sm:px-5 border-neutral-200">
                     <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter equipment">
                         @php
@@ -86,11 +81,6 @@
                             </button>
                         @endforeach
 
-                        {{-- Loan type. Same chip row, because ui.js holds one
-                             active chip per list: a second group with its own
-                             "All" would light two buttons for one state. A type
-                             nothing uses yet is shown but disabled, since a
-                             chip that can only empty the list is a dead control. --}}
                         <span class="hidden w-px h-6 mx-1 sm:block bg-neutral-300" aria-hidden="true"></span>
                         @foreach(\App\Models\Equipment::LOAN_TYPES as $type => $typeLabel)
                             @php
@@ -122,9 +112,6 @@
                     </label>
                 </div>
 
-                {{-- Column head. "Quantity" and "Available" were two numeric
-                     columns that only made sense read together, so they are one
-                     column now: "3 of 10 available", with a bar behind it. --}}
                 <div class="hidden gap-4 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-50 border-b border-neutral-200 md:grid md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_9rem_9rem]">
                     <div>Equipment</div>
                     <div class="text-right">Availability</div>
@@ -164,7 +151,6 @@
                             <div class="min-w-0">
                                 <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                                     <p class="text-base font-semibold text-neutral-900">{{ $item->equipment_name }}</p>
-                                    {{-- Neutral on purpose: colour on this screen marks a stock problem, and a loan type is not one. --}}
                                     <x-ui.badge variant="neutral" data-loan-type="{{ $item->loan_type }}" class="!px-2 !py-0.5">
                                         <x-slot:status>
                                             <i class="text-xs fas {{ $loanTypeIcons[$item->loan_type] ?? 'fa-rotate-left' }}" aria-hidden="true"></i>
@@ -207,8 +193,6 @@
                                     <i class="text-base fas fa-pen" aria-hidden="true"></i>
                                 </button>
 
-                                {{-- Record-only; stock does not move. Disabled for a
-                                     retired item, which the server refuses too. --}}
                                 <button type="button"
                                         class="grid w-10 h-10 border rounded-md place-items-center border-neutral-300 bg-white text-neutral-700 hover:border-primary-300 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-neutral-300 disabled:hover:text-neutral-700"
                                         title="{{ $item->isRetired() ? 'Retired — restore it before logging maintenance or a repair' : 'Log maintenance / repair for '.$item->equipment_name }}"
@@ -295,9 +279,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let unitsOut = 0;
     let editing = false;
 
-    // Validation runs against the loans, not against a guess: the total cannot
-    // be pushed below the units that are physically with borrowers, and the
-    // submit states which rule is stopping it.
     function sync() {
         const name = nameField.value.trim();
         const qty = parseInt(qtyField.value, 10);
@@ -352,9 +333,6 @@ document.addEventListener('DOMContentLoaded', function () {
         unitField.value = editing ? (data.unit || DEFAULT_UNIT) : DEFAULT_UNIT;
         qtyField.min = editing ? Math.max(unitsOut, 0) : 1;
 
-        // The loan type cannot change under a loan already out. The current
-        // type stays enabled so it is still posted; the server refuses a
-        // change regardless.
         const currentType = (editing && data.loanType) || 'returnable';
         const typeLocked = editing && unitsOut > 0;
         loanTypeOptions.forEach(function (option) {
@@ -400,8 +378,6 @@ document.addEventListener('DOMContentLoaded', function () {
     sync();
 });
 
-// Maintenance / repair. The header is outside the form, so its item name is
-// looked up from the modal, never from the form.
 document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('maintenance-modal');
     const form = document.getElementById('maintenance-form');

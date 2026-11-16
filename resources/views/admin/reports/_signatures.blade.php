@@ -1,10 +1,3 @@
-{{-- The signature block that closes every official report. "Prepared By" is
-     the admin who generated it; "Noted By" is config('office.noted_by'). Each
-     name sits on its signature line, with the position under it. An empty
-     config leaves the line blank to be filled in by hand.
-
-     One table, kept whole: the block never splits from itself across a page
-     break (break-inside for browsers, page-break-inside for dompdf). --}}
 <div class="signatures" data-signatures>
     <table class="signature-table" role="presentation">
         <tr>

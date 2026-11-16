@@ -2,13 +2,9 @@
 
 @section("title", "Choose a new password - CICT Equipment Borrower System")
 
-{{-- This page renders validation errors next to the field.
-     components/alerts.blade.php checks for this section and skips its
-     SweetAlert modal when it is present. --}}
 @section("inline-errors", true)
 
 @push('styles')
-    {{-- The countdown is the only thing set in Plex Mono. --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
@@ -27,13 +23,8 @@
     ];
 @endphp
 
-{{-- The same frame as sign-in, registration and forgot-password: two columns
-     from lg up, stacked below it. --}}
 <div class="grid min-h-[100dvh] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
 
-    {{-- Left — what saving actually does. Each line is true of update():
-         the hash is replaced, the remember token is rotated and the user's
-         other session rows are deleted, and nothing else is touched. --}}
     <aside class="flex flex-col justify-between gap-8 px-6 py-8 text-white bg-[#183060] sm:px-10 lg:gap-10 lg:px-11 lg:py-11">
         <a href="{{ url('/') }}" class="flex items-center gap-3 rounded-lg w-fit" aria-label="CICT Equipment Borrower System home">
             <span class="grid w-10 h-10 overflow-hidden bg-white rounded-[10px] shrink-0 place-items-center">
@@ -67,9 +58,6 @@
 
     <main class="flex items-center justify-center px-6 py-10 sm:px-8 lg:px-8 lg:py-12">
 
-        {{-- Expired. Rendered hidden next to a live form too, so the countdown
-             can swap to it at 0:00 without a round trip. A class, not the
-             `hidden` attribute: preflight's [hidden] loses to `.flex`. --}}
         <div class="{{ $expired ? 'flex' : 'hidden' }} w-full max-w-[396px] flex-col gap-5" data-reset-expired>
             <span class="grid rounded-full w-11 h-11 shrink-0 place-items-center bg-warning-50 text-warning-700" aria-hidden="true">
                 <svg width="22" height="22" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.6V8l2.2 1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -99,7 +87,6 @@
                 </p>
             </div>
 
-            {{-- The address is the link's, not the visitor's to change. --}}
             <div class="flex items-center gap-[11px] rounded-[10px] border border-neutral-200 bg-neutral-50 px-[13px] py-[11px]">
                 <span class="grid w-[30px] h-[30px] rounded-full shrink-0 place-items-center bg-primary-100 text-[11px] font-semibold text-primary-700" aria-hidden="true">{{ $initials }}</span>
                 <span class="flex-1 min-w-0">
@@ -113,7 +100,6 @@
                 @csrf
                 <input type="hidden" name="email" value="{{ $email }}">
                 <input type="hidden" name="token" value="{{ $token }}">
-                {{-- For password managers: saves the new password against the right account. --}}
                 <input type="text" name="username" value="{{ $email }}" autocomplete="username" hidden readonly tabindex="-1" aria-hidden="true">
 
                 <div class="flex flex-col gap-1.5">
@@ -133,7 +119,6 @@
                     <p id="password-error" data-password-error class="text-[12px] text-danger-700" role="alert" @unless($passwordError) hidden @endunless>{{ $passwordError }}</p>
                 </div>
 
-                {{-- The same three rules update() enforces, in the same terms. --}}
                 <div class="flex flex-col gap-2">
                     <span class="flex gap-1" aria-hidden="true">
                         @for($i = 0; $i < 3; $i++)
@@ -187,7 +172,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const emailName = @json(mb_strtolower($emailName));
     let touched = false;
 
-    /* ---- Show / Hide: a word, like the sign-in page. */
     toggle.addEventListener('click', function () {
         const revealed = password.type === 'text';
         password.type = revealed ? 'password' : 'text';
@@ -196,10 +180,6 @@ document.addEventListener('DOMContentLoaded', function () {
         password.focus();
     });
 
-    /* ---- Requirements ------------------------------------------------
-       Mirrors PasswordResetController::update exactly: Password::min(8)
-       counts characters (mb_strlen), letters() is \pL, numbers() is \pN,
-       and the email-name rule is a case-insensitive "contains". */
     function rules(value) {
         return {
             length: Array.from(value).length >= 8,
@@ -243,7 +223,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     password.addEventListener('input', function () {
-        // The server's message described the last attempt, not this one.
         serverError.hidden = true;
         paint();
     });
@@ -260,11 +239,6 @@ document.addEventListener('DOMContentLoaded', function () {
         submit.textContent = 'Saving…';
     });
 
-    /* ---- Countdown ---------------------------------------------------
-       Started from the token row the broker wrote plus its `expire`, so
-       it reaches 0:00 when the broker would start refusing the link.
-       Measured against the clock rather than counted in ticks, so a
-       backgrounded tab does not drift. */
     const countdown = document.querySelector('[data-countdown]');
     const deadline = Date.now() + (parseInt(countdown.getAttribute('data-seconds-left'), 10) || 0) * 1000;
 

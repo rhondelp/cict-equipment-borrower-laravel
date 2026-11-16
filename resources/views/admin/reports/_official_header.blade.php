@@ -1,7 +1,3 @@
-{{-- An official report's header, shared by its PDF and print view: the logo,
-     the system name, the report title, then the date range (or, for a
-     snapshot report, the moment it describes), any filters, and when it was
-     generated. Same classes as the activity log's _header. --}}
 <table class="report-head" role="presentation">
     <tr>
         <td class="logo-cell"><img src="{{ $logoSrc }}" alt="CICT logo" width="48" height="48"></td>

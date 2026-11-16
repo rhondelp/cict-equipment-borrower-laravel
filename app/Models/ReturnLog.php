@@ -12,13 +12,6 @@ class ReturnLog extends Model
         'resolution', 'resolved_at', 'resolved_by',
     ];
 
-    /**
-     * The conditions a return can be logged in, worst last.
-     *
-     * `Missing parts` is not offered any more — it is kept accepted because
-     * rows written before this exist with that value, and rewriting history to
-     * tidy up a vocabulary is exactly what an audit log must not do.
-     */
     public const CONDITIONS = ['Good', 'Minor damage', 'Damaged', 'Lost'];
 
     public const LEGACY_CONDITIONS = ['Missing parts'];
@@ -28,7 +21,6 @@ class ReturnLog extends Model
         return ['return_date' => 'datetime', 'resolved_at' => 'datetime'];
     }
 
-    /** Whole days between the loan's due date and the day it actually came back. */
     public function daysLate(): int
     {
         $due = $this->borrowTransaction?->return_date;
@@ -40,7 +32,6 @@ class ReturnLog extends Model
         return (int) $due->startOfDay()->diffInDays($this->return_date->startOfDay());
     }
 
-    /** "Sep 18 · 4 days late" — the whole date cell in one string. */
     public function timingLine(): string
     {
         $late = $this->daysLate();
@@ -51,7 +42,6 @@ class ReturnLog extends Model
             : $day.' · on time';
     }
 
-    /** Colour carries the severity, so the scale has to run all the way down. */
     public function conditionTone(): string
     {
         return match ($this->condition) {
@@ -61,7 +51,6 @@ class ReturnLog extends Model
         };
     }
 
-    /** Anything other than a clean return is an incident. */
     public function isIncident(): bool
     {
         return $this->condition !== 'Good';
@@ -72,33 +61,16 @@ class ReturnLog extends Model
         return $this->resolved_at !== null;
     }
 
-    /**
-     * The rows the screen leads with: something came back damaged or lost and
-     * nobody has recorded what was done about it. Everything else is archive.
-     */
     public function needsFollowUp(): bool
     {
         return $this->isIncident() && ! $this->isResolved();
     }
 
-    /**
-     * needsFollowUp() as a query, so a list, a count or an existence check
-     * can ask the database instead of loading every log. The two must agree:
-     * an incident is any condition other than Good. It shares the method's
-     * name, so call it on a builder — ReturnLog::query()->needsFollowUp() or
-     * a relation — never ReturnLog::needsFollowUp() statically.
-     */
     public function scopeNeedsFollowUp(Builder $query): Builder
     {
         return $query->where('condition', '!=', 'Good')->whereNull('resolved_at');
     }
 
-    /**
-     * The defect list: every unresolved incident with what the report needs
-     * already loaded — the item (borrowTransaction.equipment), how many
-     * units came back that way (borrowTransaction.quantity), and the defect
-     * itself, which is the log's `remarks`. Oldest first.
-     */
     public static function defects(): Builder
     {
         return static::query()
@@ -108,7 +80,6 @@ class ReturnLog extends Model
             ->orderBy('id');
     }
 
-    /** "Resolved Sep 20 by Quincy Jane O." */
     public function resolutionLine(): string
     {
         if (! $this->isResolved()) {
@@ -121,11 +92,6 @@ class ReturnLog extends Model
         return trim('Resolved'.($when ? ' '.$when : '').($who ? ' by '.$who : ''));
     }
 
-    /**
-     * Corrections, appended. The log row itself never changes — there is no
-     * update and no delete path to one — so a correction is a new note with
-     * its own author and time, and the original reading survives beside it.
-     */
     public function notes()
     {
         return $this->hasMany(ReturnLogNote::class)->oldest();
@@ -136,32 +102,28 @@ class ReturnLog extends Model
         return $this->belongsTo(User::class, 'resolved_by');
     }
 
-    // Borrow transaction itself
     public function borrowTransaction()
     {
         return $this->belongsTo(BorrowTransaction::class);
     }
 
-    // The borrower (via BorrowTransaction → User)
     public function borrower()
     {
         return $this->hasOneThrough(
-            User::class,            // final model
-            BorrowTransaction::class, // intermediate model
-            'id',                   // FK on BorrowTransaction
-            'id',                   // FK on User
-            'borrow_transaction_id',// FK on ReturnLog
-            'user_id'               // FK on BorrowTransaction
+            User::class,
+            BorrowTransaction::class,
+            'id',
+            'id',
+            'borrow_transaction_id',
+            'user_id'
         );
     }
 
-    // The receiver (staff who processed return → stored in return_logs.user_id)
     public function receiver()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    // Equipment (via BorrowTransaction)
     public function equipment()
     {
         return $this->hasOneThrough(

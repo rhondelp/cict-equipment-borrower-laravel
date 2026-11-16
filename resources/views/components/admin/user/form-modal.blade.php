@@ -1,10 +1,3 @@
-{{-- Add / edit an account — one modal for both.
-
-     Adding an Admin (another member of staff) asks for more than a borrower
-     account: a reason, which is recorded, and the creating admin's own
-     password. AuthenticateUser::register enforces both, plus a school address
-     and an 8-character letters-and-numbers password; the fields below only
-     appear when Admin is picked on the add form. --}}
 <div id="user-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
@@ -55,11 +48,6 @@
                         <option value="Student">Student</option>
                         <option value="Admin">Admin (staff)</option>
                     </select>
-                    {{-- Everyone shares one email domain, so nothing derives a
-                         role: changing one on an existing account is a
-                         recorded decision. The server requires this reason
-                         whenever the role differs from the stored one, so it is
-                         not a field anyone can quietly skip. --}}
                     <p class="mt-2 text-sm text-neutral-600" data-role-derived></p>
                     <div class="mt-2 hidden" data-role-override-box>
                         <label for="role-override-reason" data-role-reason-label class="block text-base font-medium text-neutral-800">
@@ -75,9 +63,6 @@
                     @enderror
                 </div>
 
-                {{-- Students only — the "Course & Year" column of the official
-                     reports. Hidden and disabled for any other role; the
-                     server clears both whenever the role is not Student. --}}
                 <div class="hidden" data-student-box>
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
@@ -108,8 +93,6 @@
                     @enderror
                 </div>
 
-                {{-- Step-up check for a new admin: proves the person at the
-                     keyboard is the signed-in admin, not just their session. --}}
                 <div class="hidden" data-admin-confirm-box>
                     <label for="user-current-password" class="block text-base font-medium text-neutral-800">Your password</label>
                     <input type="password" id="user-current-password" name="current_password" autocomplete="current-password"
@@ -161,9 +144,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const box = document.querySelector('[data-role-override-box]');
     if (!role || !note || !box) return;
 
-    // `data-current` is the stored role, set by the users page when it opens
-    // the dialog for an existing account; empty on the add form. Mirrors
-    // UserController::update, which requires a reason when the two differ.
     const reasonLabel = box.querySelector('[data-role-reason-label]');
     const confirmBox = document.querySelector('[data-admin-confirm-box]');
     const confirmInput = document.getElementById('user-current-password');
@@ -171,7 +151,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function sync() {
         const current = role.dataset.current || '';
         const changing = current !== '' && role.value !== '' && role.value !== current;
-        // Adding a new admin: also reasoned and recorded, plus a step-up.
         const addingAdmin = current === '' && role.value === 'Admin';
         const needsReason = changing || addingAdmin;
 
@@ -189,8 +168,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!needsReason) input.value = '';
         }
 
-        // Course and year follow the role picked here, so switching a
-        // student to Instructor hides them; the server clears them on save.
         const studentBox = document.querySelector('[data-student-box]');
         if (studentBox) {
             const student = role.value === 'Student';
@@ -209,7 +186,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     role.addEventListener('change', sync);
-    // The users page fills the form programmatically and then fires this.
     role.addEventListener('role:reset', sync);
     sync();
 });

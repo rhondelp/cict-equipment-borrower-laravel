@@ -7,7 +7,6 @@
     <title>{{ $meta['title'] }} — {{ $meta['range'] }}</title>
     @include('admin.reports._styles')
     <style>
-        /* On screen: the sheet on a grey desk, at a size people can read. */
         @media screen {
             body { background: #e2e8f0; padding: 16px; font-size: 11pt; }
             .sheet { max-width: 1120px; margin: 0 auto; padding: 28px 32px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
@@ -62,7 +61,6 @@
     </div>
 
     <script>
-        // Opened from the Print button: go straight to the print dialog.
         window.addEventListener('load', function () { window.print(); });
     </script>
 </body>

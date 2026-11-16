@@ -15,13 +15,8 @@
 
     $typesOut = $openLoans->pluck('equipment_id')->unique()->count();
 
-    // What blocks approvals: an item with nothing on the shelf cannot be lent
-    // however many requests are waiting on it.
     $fullyOut = $stockWatch->filter(fn ($item) => $item->available_quantity <= 0)->count();
 
-    // The activity feed: loans out, returns in and requests raised, folded into
-    // one list so the dashboard can answer "what has been happening" without
-    // three separate tables.
     $activity = collect()
         ->concat($transactions->map(fn ($loan) => [
             'tag' => $loan->status === 'Issued' ? 'Issued' : 'Borrowed',
@@ -29,8 +24,6 @@
             'item' => ($loan->equipment->equipment_name ?? 'Equipment').($loan->quantity > 1 ? ' ×'.$loan->quantity : ''),
             'verb' => $loan->status === 'Issued' ? 'issued to' : 'checked out to', 'person' => $loan->user->name ?? 'a deleted user',
             'at' => $loan->created_at,
-            // Every entry goes to its own record. An activity feed you cannot
-            // click through is a list of things you now have to go and find.
             'url' => route('admin.transaction').'#loan-'.$loan->id,
         ]))
         ->concat($returnLogs->map(fn ($log) => [
@@ -63,8 +56,6 @@
 
 <div class="min-h-[100dvh] page-bg md:ml-64">
 
-    {{-- Essential for keyboard users: the sidebar is six links deep, so without
-         this every page begins with six tab stops before the content. --}}
     <a href="#main-content"
        class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-toast focus:rounded-md focus:border focus:border-primary-200 focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700">
         Skip to content
@@ -87,9 +78,6 @@
 
     <main id="main-content" class="p-4 mx-auto space-y-5 sm:p-6 max-w-content">
 
-        {{-- What needs doing leads. The counters below it are context for these
-             decisions, not the point of the page: a dashboard that opens with
-             four tiles reading zero has told its reader nothing. --}}
         <section aria-labelledby="attention-heading" class="anim-rise">
             <x-ui.panel>
                 <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-neutral-200">
@@ -129,8 +117,6 @@
 
         <div class="grid gap-5 lg:grid-cols-2 lg:items-start anim-rise [animation-delay:140ms]">
 
-            {{-- Currently out, soonest due first: the one list that answers
-                 "who has what" without a search. --}}
             <section aria-labelledby="out-heading">
                 <x-ui.panel>
                     <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-neutral-200">
@@ -162,9 +148,6 @@
                 </x-ui.panel>
             </section>
 
-            {{-- Equipment that is out or nearly out. This is the list that
-                 explains why a request cannot be approved, so it sits with the
-                 decisions rather than on the equipment screen only. --}}
             <section aria-labelledby="stock-heading">
                 <x-ui.panel>
                     <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-neutral-200">
@@ -188,7 +171,6 @@
                             <x-ui.status :label="$state['label']" :tone="$state['tone']" />
                         </a>
                     @empty
-                        {{-- A sentence, not an empty card. --}}
                         <p class="px-5 py-6 text-base text-neutral-600 text-pretty">
                             Every item has something on the shelf — nothing is blocking an approval right now.
                         </p>

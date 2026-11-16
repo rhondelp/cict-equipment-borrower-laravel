@@ -1,13 +1,3 @@
-{{-- Log maintenance or a repair against one item.
-
-     Record-only: it writes one activity log entry (maintenance_logged or
-     repair_logged) and changes nothing else, so there is no stock preview
-     here. The header sits outside the form, like every modal in the app; the
-     page script fills the item's name into it and points the form at the
-     item's route before opening.
-
-     Text runs a size larger than the other admin modals: this is filled in by
-     whoever did the work, often standing at the shelf. --}}
 <div id="maintenance-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="maintenance-modal-title">
@@ -65,7 +55,6 @@
                 <div class="grid gap-5 sm:grid-cols-2">
                     <div>
                         <label for="maintenance-date" class="block text-base font-medium text-neutral-800">Date done</label>
-                        {{-- No future dates: the server refuses them too. --}}
                         <input type="date" id="maintenance-date" name="performed_on" required
                                max="{{ today()->toDateString() }}" value="{{ today()->toDateString() }}"
                                class="mt-2 w-full min-h-[48px] rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">

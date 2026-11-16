@@ -1,11 +1,3 @@
-{{-- Change a request that has not been decided yet.
-
-     The equipment is fixed — changing what you asked for is a different
-     request, not an edit of this one — so only the quantity and the reason are
-     editable, and the quantity is capped at what is on the shelf right now.
-
-     Only pending requests reach this form; ItemRequestController::update
-     refuses to touch one that has already been approved or declined. --}}
 <div id="edit-request-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="edit-request-title">
@@ -31,7 +23,6 @@
                     <span class="block text-base font-medium text-neutral-800">Equipment</span>
                     <p id="edit-request-equipment"
                        class="px-4 py-3 mt-2 text-base font-medium border rounded-md bg-neutral-50 border-neutral-200 text-neutral-900"></p>
-                    {{-- The item's loan terms, as on the request form. --}}
                     <p id="edit-request-loan-note" class="mt-2 text-sm text-neutral-700"></p>
                 </div>
 

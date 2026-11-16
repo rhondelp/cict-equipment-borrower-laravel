@@ -1,7 +1,3 @@
-{{-- Suspend borrowing. Not the same thing as deactivating: the account keeps
-     working and stops being able to request equipment, which is the sanction
-     the terms of service actually describe. The reason is required because the
-     borrower is shown it, and because it is the only record of the decision. --}}
 <div id="suspend-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="suspend-modal-title">
@@ -11,8 +7,6 @@
             <div class="flex items-start justify-between gap-4 px-6 pt-5 pb-4">
                 <div class="min-w-0">
                     <h2 id="suspend-modal-title" class="text-lg font-semibold text-neutral-900">Suspend borrowing</h2>
-                    {{-- Read from the row that opened this, with a fallback
-                         sentence rather than `undefined`. --}}
                     <p class="mt-1 text-sm text-neutral-600 text-pretty" data-suspend-summary>
                         This account keeps working and stops being able to borrow.
                     </p>

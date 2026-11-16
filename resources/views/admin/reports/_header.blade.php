@@ -1,10 +1,3 @@
-{{-- The report's header block, shared by the PDF and the print view so they
-     cannot drift: the logo, the system name, the title, then what the report
-     covers and who made it.
-
-     $logoSrc is a file path for dompdf (read from disk; remote fetching is
-     off) and a URL for the browser. $meta comes from
-     ReportsController::pagedReport(). --}}
 <table class="report-head" role="presentation">
     <tr>
         <td class="logo-cell"><img src="{{ $logoSrc }}" alt="CICT logo" width="48" height="48"></td>

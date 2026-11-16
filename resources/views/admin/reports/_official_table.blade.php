@@ -1,12 +1,3 @@
-{{-- An official report's table, for its PDF and print view, drawn from
-     ReportsController::COLUMNS and the report's row arrays — so all five
-     reports share one table, and the headings are the CSV's headings.
-
-     The activity log's _table explains the rules this follows: $chunkSize
-     splits the PDF into tables of 100 rows (dompdf slows sharply on one long
-     table), widths sit on the header cells (dompdf ignores <col>), and zebra
-     rows go by class. A cell with a mark ("Overdue") prints the mark as a
-     word, so it survives black-and-white printing. --}}
 @php
     $chunks = collect($rows)->chunk($chunkSize ?? max(count($rows), 1));
     $row = 0;

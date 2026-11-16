@@ -1,12 +1,3 @@
-{{-- The report-type switcher. Each "tab" loads a report, so these are links
-     in a nav marked with aria-current, not an ARIA tablist (that pattern is
-     for panels swapped in place). They are reachable with Tab, and the arrow
-     keys, Home and End move between them like tabs (script in reports.blade).
-
-     A date range already chosen travels with the switch, so comparing the
-     Borrower Report with Most Borrowed for the same month is one click. It
-     does not travel into a report whose range is optional (Defective
-     Items): that opens on its whole list, not on a range picked elsewhere. --}}
 @php
     $definitions = \App\Http\Controllers\ReportsController::REPORTS;
     $tabs = ['activity' => 'Activity Log'] + array_map(fn ($definition) => $definition['tab'], $definitions);

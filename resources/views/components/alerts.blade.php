@@ -1,15 +1,7 @@
-{{-- SweetAlert2 flash alerts — single source for all server-rendered pages.
-     Reads session('success') / session('welcome'), session('error'), validation $errors
-     and triggers the reusable JS helper showAlert(type,message) on page load.
-     No plain HTML alert divs — every path goes through SweetAlert2. --}}
 @php
     $flashSuccess = session('success') ?: session('welcome');
     $flashError = session('error');
 
-    // The five public pages render each validation message inline beside the
-    // field it belongs to, and declare @section('inline-errors') to say so.
-    // Without this check a failed login drew the message twice: once in the
-    // form's own red bar, and again in a modal thrown on top of it.
     $validationErrors = (! View::hasSection('inline-errors') && $errors->any())
         ? $errors->all()
         : [];
@@ -23,11 +15,8 @@
 
     function runAlerts() {
         const hasShowAlert = typeof window.showAlert === 'function';
-        // If Vite bundle hasn't loaded yet, retry briefly; fallback to global Swal CDN if still missing
         if (!hasShowAlert) {
             if (typeof window.Swal !== 'undefined' && typeof window.Swal.fire === 'function') {
-                // Minimal fallback shimming showAlert if alert.js not yet loaded.
-                // Light-theme palette to match the new flat design.
                 window.showAlert = function(type, msg, opts = {}) {
                     const t = (type||'info').toLowerCase();
                     const isHtml = opts.html === true;
@@ -48,7 +37,6 @@
                     return window.Swal.fire({...base, icon:'info', title:'Notice', text:isHtml?undefined:msg, html:isHtml?msg:undefined});
                 };
             } else {
-                // Still not ready — retry once
                 setTimeout(runAlerts, 120);
                 return;
             }

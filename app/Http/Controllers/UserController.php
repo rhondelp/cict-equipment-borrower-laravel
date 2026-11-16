@@ -13,18 +13,6 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    /**
-     * The sign-in page.
-     *
-     * The two figures on the brand panel are read live rather than written
-     * into the template: a number that says "89 units" while the shelf holds
-     * 40 is decoration, and the point of that panel is to orient someone who
-     * has not signed in yet.
-     *
-     * Wrapped because this is the one page that has to render when the
-     * database does not answer — the sign-in form itself needs nothing from
-     * it, so a failure here drops the line instead of the page.
-     */
     public function index()
     {
         $inventory = $this->inventorySummary();
@@ -32,16 +20,8 @@ class UserController extends Controller
         return view('login', compact('inventory'));
     }
 
-    /**
-     * The landing page. Same live inventory line as the sign-in page, from the
-     * same query, so the two public pages can never quote different figures.
-     */
     public function welcome()
     {
-        // One read of the lendable stock feeds both the shelf card and the
-        // figures band, classified exactly as the inventory page classifies it:
-        // retired items excluded, state from Equipment::availabilityState().
-        // Dropped, not faked, when the database does not answer.
         try {
             $lendable = Equipment::lendable()
                 ->get(['id', 'equipment_name', 'quantity', 'available_quantity', 'retired_at']);
@@ -54,9 +34,6 @@ class UserController extends Controller
             'types' => $lendable->count(),
         ];
 
-        // At most five rows, and the ones someone should know about first:
-        // nothing left, then running low, then partly out, then fully stocked.
-        // Within a state the scarcest leads, then by name for a stable order.
         $priority = ['out' => 0, 'low' => 1, 'partial' => 2, 'all-in' => 3];
         $shelf = ($lendable ?? collect())
             ->map(fn ($item) => ['item' => $item, 'state' => $item->availabilityState()])
@@ -75,12 +52,6 @@ class UserController extends Controller
         return view('welcome', compact('inventory', 'shelf', 'hours', 'loanDays'));
     }
 
-    /**
-     * Units and item types currently lendable, or null when the database does
-     * not answer — the public pages drop the line rather than the page.
-     *
-     * @return array{units: int, types: int}|null
-     */
     private function inventorySummary(): ?array
     {
         try {
@@ -97,20 +68,13 @@ class UserController extends Controller
 
     public function adminUser()
     {
-        // The aggregates the rows and the remove dialog quote — loaded once for
-        // the whole list rather than three queries per row.
         $users = UserModel::with(['classSchedules' => fn ($query) => $query->withCount('borrowTransactions')])
             ->withCount(['borrowTransactions', 'itemRequests', 'classSchedules'])
             ->withSum([
                 'borrowTransactions as units_out' => fn ($query) => $query->out(),
             ], 'quantity')
             ->withCount([
-                // dueAt() as SQL: a timed loan is late by its time, a date-only
-                // one by its day, and an Issued row never.
                 'borrowTransactions as overdue_count' => fn ($query) => $query->overdue(),
-                // A person's standing is not just what they hold — it is also
-                // what they are waiting on. Counted here so the row can say it
-                // without firing a query of its own.
                 'itemRequests as pending_requests_count' => fn ($query) => $query->where('status', 'Pending'),
             ])
             ->with(['suspender', 'roleOverrider'])
@@ -119,16 +83,10 @@ class UserController extends Controller
 
         $instructors = UserModel::where('user_type', 'Instructor')->orderBy('name')->get();
 
-        // The actionable list. There is no account-approval gate in this
-        // system — registration creates a working account — so the accounts
-        // that need a decision are the ones a human has already acted on:
-        // closed, or allowed to sign in but stopped from borrowing.
         $needsAttention = $users->filter(
             fn ($user) => $user->isDeactivated() || $user->isSuspended()
         )->values();
 
-        // Signed up saying they teach. Their accounts already work as Student
-        // accounts; an admin confirms or declines each one here.
         $instructorRequests = $users->filter(
             fn ($user) => $user->hasPendingInstructorRequest() && ! $user->isDeactivated()
         )->sortBy(fn ($user) => $user->instructor_requested_at->timestamp)->values();
@@ -140,7 +98,6 @@ class UserController extends Controller
     {
         $userId = $request->id;
 
-        // Validate input, ignoring unique email check for the current user
         $validated = $request->validate([
             'user_type' => 'required|in:Admin,Instructor,Student',
             'name' => 'required|string|max:255',
@@ -149,7 +106,6 @@ class UserController extends Controller
             'contact_number' => 'nullable|string|max:15',
             'course' => 'nullable|string|max:50',
             'year_level' => ['nullable', Rule::in(UserModel::YEAR_LEVELS)],
-            // Required only when the submitted role differs from the stored one.
             'role_override_reason' => 'nullable|string|max:500',
         ], [
             'year_level.in' => 'Choose a year level from the list.',
@@ -157,11 +113,6 @@ class UserController extends Controller
 
         $user = UserModel::findOrFail($userId);
 
-        // Everyone is on the same school domain, so nothing derives a role
-        // any more — it is whatever an admin sets. That makes every change a
-        // privilege decision: it takes a reason and it is recorded, because an
-        // unexplained role change is the one edit on this screen nobody can
-        // reconstruct afterwards.
         $roleChanged = $validated['user_type'] !== $user->user_type;
 
         if ($roleChanged && blank($validated['role_override_reason'] ?? null)) {
@@ -178,9 +129,6 @@ class UserController extends Controller
         $user->email = $validated['email'];
         $user->contact_number = $validated['contact_number'] ?? null;
 
-        // Course and year describe a student's enrolment, so they are kept
-        // only while the account is a Student. Changing the role away clears
-        // them, rather than leaving an instructor printed as "BSIT 3rd Year".
         $isStudent = $validated['user_type'] === 'Student';
         $user->course = $isStudent ? ($validated['course'] ?? null) : null;
         $user->year_level = $isStudent ? ($validated['year_level'] ?? null) : null;
@@ -190,20 +138,15 @@ class UserController extends Controller
             $user->role_overridden_at = now();
             $user->role_overridden_by = auth()->id();
             $user->role_override_reason = $validated['role_override_reason'];
-            // Any role decision settles a pending instructor request.
             $user->instructor_requested_at = null;
         }
 
-        // If password is provided, hash and update it
         if (! empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
 
         $user->save();
 
-        // The account fields and the role are two events: an edit, and a
-        // privilege decision with its own reason. A password is never logged,
-        // only the fact that it was set.
         $changes = ActivityLog::changes($before, $this->accountSnapshot($user));
         $passwordSet = ! empty($validated['password']);
         if ($changes !== [] || $passwordSet) {
@@ -228,7 +171,6 @@ class UserController extends Controller
         return redirect()->back()->with('success', $user->name.' updated.');
     }
 
-    /** The account fields an admin edits, as the log records them. Never the password. */
     private function accountSnapshot(UserModel $user): array
     {
         return [
@@ -240,11 +182,6 @@ class UserController extends Controller
         ];
     }
 
-    /**
-     * Grant an instructor request made at sign-up. Recorded through the same
-     * role_overridden_* columns as any other role change, so the row says who
-     * switched it on and when.
-     */
     public function confirmInstructor(string $id)
     {
         $user = UserModel::findOrFail($id);
@@ -270,7 +207,6 @@ class UserController extends Controller
         return redirect()->back()->with('success', $user->name.' is now an instructor.');
     }
 
-    /** Leave the account as a Student and clear the request. */
     public function declineInstructor(string $id)
     {
         $user = UserModel::findOrFail($id);
@@ -292,11 +228,6 @@ class UserController extends Controller
         return redirect()->back()->with('success', $user->name.' stays a student — instructor request declined.');
     }
 
-    /**
-     * The non-destructive default offered by the remove dialog. The account
-     * stops working at the login screen; every loan, request and return log
-     * that names this person is untouched.
-     */
     public function deactivate(string $id)
     {
         if ((int) $id === (int) auth()->id()) {
@@ -329,13 +260,6 @@ class UserController extends Controller
         return redirect()->back()->with('success', $user->name.' deactivated and can no longer sign in.'.$note);
     }
 
-    /**
-     * Suspension: the account keeps working, and stops being able to borrow.
-     *
-     * Distinct from deactivation on purpose. Deactivating someone who owes two
-     * items also locks them out of the screen that tells them what they owe,
-     * which is the wrong sanction for the thing it is usually used for.
-     */
     public function suspend(Request $request, string $id)
     {
         $validated = $request->validate([
@@ -404,7 +328,6 @@ class UserController extends Controller
         $user->deactivated_at = null;
         $user->save();
 
-        // Reactivating an account that was never deactivated changes nothing.
         if ($wasDeactivated) {
             ActivityLog::record('user_reactivated', [
                 'subject' => $user,
@@ -417,14 +340,8 @@ class UserController extends Controller
         return redirect()->back()->with('success', $user->name.' can sign in again.');
     }
 
-    /**
-     * Hard delete, refused while anything points at the row. The FKs cascade,
-     * so deleting a person with history would silently take their loans and
-     * requests — and the stock those loans account for — with them.
-     */
     public function destroy(string $id)
     {
-        // Prevent an admin from deleting their own account while logged in.
         if ((int) $id === (int) auth()->id()) {
             return redirect()->back()->withErrors(['error' => 'You cannot delete your own account.']);
         }
@@ -450,8 +367,6 @@ class UserController extends Controller
         DB::transaction(function () use ($user) {
             $user->delete();
 
-            // The row is gone: the entry names the person by snapshot and
-            // keeps the id in meta, since a key to it would not save.
             ActivityLog::record('user_deleted', [
                 'subject' => $user,
                 'subject_user_id' => null,

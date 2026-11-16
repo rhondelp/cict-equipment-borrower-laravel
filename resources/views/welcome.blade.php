@@ -2,23 +2,12 @@
 
 @section("title", "CICT Equipment Borrower System — College of Information & Communications Technology, UNM")
 
-{{-- IBM Plex Mono is used on this page only, for figures and step labels. --}}
 @push('styles')
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 @endpush
 
 @section("content")
 @php
-    /*
-     | Built to design-reference/Landing.dc.html. Layout, type scale and
-     | colour come from the mockup; every number, rule and claim comes from the
-     | code or config. Where the mockup's copy contradicted the application it
-     | has been corrected rather than copied — see CHANGELOG, 2026-09-26.
-     */
-
-    // Signed-in visitors land here too (the logo on every public page links
-    // back to /). "Sign in" would be a dead end for them, so the same buttons
-    // take them to their own dashboard instead.
     $user = auth()->user();
     $dashboard = $user
         ? route($user->user_type === 'Admin' ? 'admin.dashboard' : 'borrower.dashboard')
@@ -28,8 +17,6 @@
 
     $openToday = $hours->isOpenToday();
 
-    // Shelf colours by Equipment::availabilityState() key — the same states
-    // and the same 30% threshold as the inventory page.
     $shelfTone = [
         'out' => ['bar' => 'bg-[oklch(0.6_0.18_25)]', 'text' => 'text-[oklch(0.52_0.18_25)]'],
         'low' => ['bar' => 'bg-[oklch(0.72_0.15_70)]', 'text' => 'text-[oklch(0.52_0.13_62)]'],
@@ -81,7 +68,6 @@
         Skip to content
     </a>
 
-    {{-- 1 · Hero -------------------------------------------------------- --}}
     <section class="relative overflow-hidden bg-[oklch(0.22_0.06_264)] text-white">
         <div class="absolute inset-0 pointer-events-none grid-hairlines" aria-hidden="true"></div>
 
@@ -94,8 +80,6 @@
                 </span>
             </a>
             <div class="flex items-center gap-7 text-[13.5px]">
-                {{-- In-page shortcuts. Hidden on narrow screens, where the
-                     sections are one short scroll away anyway. --}}
                 <div class="hidden items-center gap-[26px] md:flex">
                     <a href="#how" class="rounded text-white/[0.72] transition-colors hover:text-white {{ $focusDark }}">How it works</a>
                     <a href="#rules" class="rounded text-white/[0.72] transition-colors hover:text-white {{ $focusDark }}">The rules</a>
@@ -111,8 +95,6 @@
         <div id="landing-main" class="relative mx-auto grid max-w-[1200px] grid-cols-[repeat(auto-fit,minmax(min(100%,460px),1fr))] items-center gap-16 px-5 pb-20 pt-12 sm:px-8 sm:pb-24 sm:pt-[72px]">
 
             <div class="flex flex-col min-w-0 gap-7">
-                {{-- Grows rather than clips when a phone wraps it, and the
-                     hours never split mid-range: the break falls at the "·". --}}
                 <span class="inline-flex min-h-[30px] items-center gap-[9px] self-start rounded-[15px] border border-white/[0.12] bg-white/[0.07] py-[5px] pl-2.5 pr-[13px] text-[12.5px] leading-[1.35] text-white/[0.78]"
                       data-open-status="{{ $openToday ? 'open' : 'closed' }}">
                     <span class="h-[7px] w-[7px] flex-none rounded-full {{ $openToday ? 'bg-[oklch(0.78_0.15_158)]' : 'bg-white/40' }}" aria-hidden="true"></span>
@@ -148,9 +130,6 @@
                     @endunless
                 </div>
 
-                {{-- The mockup adds "Accounts approved within one working day".
-                     There is no account approval step and no defined
-                     turnaround, so that half is not repeated here. --}}
                 <span class="text-[13px] text-white/50">
                     @if($user)
                         Signed in as {{ $user->name }}.
@@ -160,10 +139,6 @@
                 </span>
             </div>
 
-            {{-- Shelf card, with the reminder overlapping its bottom-left
-                 corner. The wrapper's 84px bottom padding is where the
-                 reminder sits; the card's own 64px bottom padding is the empty
-                 strip it overlaps into, so it can never cover a shelf row. --}}
             <div class="relative min-w-0 pb-[84px] pl-6 sm:pl-10" data-shelf-stage>
                 <div class="flex flex-col gap-4 rounded-[20px] bg-white px-6 pb-16 pt-[22px] text-[oklch(0.24_0.012_258)] shadow-[0_40px_80px_oklch(0.1_0.05_264_/_0.5),0_0_0_1px_oklch(1_0_0_/_0.08)]"
                      data-welcome-shelf>
@@ -213,8 +188,6 @@
                     </ul>
                 </div>
 
-                {{-- Illustrative, and deliberately static: it shows the kind
-                     of reminder a borrower sees, not anyone's real loan. --}}
                 <div class="absolute bottom-0 left-0 flex w-[min(300px,86%)] items-start gap-3 rounded-2xl border border-white/[0.14] bg-[oklch(0.3_0.08_264)] px-4 py-3.5 shadow-[0_24px_48px_oklch(0.1_0.05_264_/_0.45)]"
                      data-reminder-card aria-hidden="true">
                     <span class="grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px] bg-[oklch(0.82_0.13_75_/_0.18)] text-[oklch(0.86_0.13_80)]">
@@ -229,7 +202,6 @@
         </div>
     </section>
 
-    {{-- 2 · Key figures ------------------------------------------------- --}}
     <section class="border-b border-[oklch(0.92_0.006_258)] bg-white" aria-label="Key figures">
         <dl class="mx-auto grid max-w-[1200px] grid-cols-[repeat(auto-fit,minmax(min(100%,150px),1fr))] px-5 sm:px-8" data-welcome-facts>
             @foreach($facts as $fact)
@@ -241,7 +213,6 @@
         </dl>
     </section>
 
-    {{-- 3 · How it works ------------------------------------------------ --}}
     <section id="how" class="scroll-mt-5" data-welcome-steps>
         <div class="mx-auto flex max-w-[1200px] flex-col gap-14 px-5 pb-20 pt-24 sm:px-8 sm:pb-[104px] sm:pt-28">
             <div class="flex flex-wrap items-end justify-between gap-8">
@@ -274,7 +245,6 @@
         </div>
     </section>
 
-    {{-- 4 · The rules --------------------------------------------------- --}}
     <section id="rules" class="scroll-mt-5 border-y border-[oklch(0.92_0.006_258)] bg-white" data-welcome-rules>
         <div class="mx-auto grid max-w-[1200px] grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))] items-start gap-16 px-5 py-20 sm:px-8 sm:py-[104px]">
             <div class="flex flex-col gap-4">
@@ -304,7 +274,6 @@
         </div>
     </section>
 
-    {{-- 5 · Visit ------------------------------------------------------- --}}
     <section id="visit" class="scroll-mt-5" data-welcome-visit>
         <div class="mx-auto max-w-[1200px] px-5 py-20 sm:px-8 sm:py-[104px]">
             <div class="relative grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-center gap-12 overflow-hidden rounded-[28px] bg-[oklch(0.22_0.06_264)] p-7 text-white sm:p-10 lg:p-14">
@@ -314,8 +283,6 @@
                     <h2 class="text-[clamp(1.875rem,1rem+2.2vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.028em] text-balance">
                         Ready when you are.
                     </h2>
-                    {{-- The mockup ends this with "approves new accounts within
-                         a working day"; no such step or timeframe exists. --}}
                     <p class="max-w-[420px] text-[15.5px] leading-[1.65] text-white/70 text-pretty">
                         Sign in with your school account, or request one with your {{ '@'.\App\Models\User::SCHOOL_DOMAIN }} address.
                     </p>
@@ -357,7 +324,6 @@
         </div>
     </section>
 
-    {{-- 6 · Footer ------------------------------------------------------ --}}
     <footer class="border-t border-[oklch(0.92_0.006_258)]">
         <div class="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-5 px-5 py-7 text-[13px] text-[oklch(0.55_0.012_258)] sm:px-8">
             <span>College of Information &amp; Communications Technology · University of Northwestern Mindanao</span>

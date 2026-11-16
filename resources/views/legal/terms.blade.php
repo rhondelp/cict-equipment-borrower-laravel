@@ -1,14 +1,5 @@
-{{-- Content only. layouts/legal.blade.php renders it, and also builds the
-     contents rail from these headings — see the note at the top of that file.
-
-     The prose is unchanged from the previous revision except where a long
-     paragraph has been split in two at a sentence boundary, and where the
-     availability fallback has been lifted out into `note`. No clause was
-     added, removed or reworded. --}}
 @extends('layouts.legal')
 
-{{-- The borrow period is read from config('office.loan_days'), as the landing
-     page does, so the Terms never quote a number the approve step does not use. --}}
 @php
     $loanDays = (int) config('office.loan_days', 1);
     $numberWords = [1 => 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen'];
@@ -78,10 +69,6 @@
             'paras' => [
                 'This is an internal departmental system. It may be taken offline for maintenance or during academic breaks.',
             ],
-            // Lifted out of the paragraph above. This is the one sentence on
-            // the page that tells someone what to physically do when the site
-            // is down, and it was the last clause of a sentence about
-            // maintenance windows.
             'note' => 'Where the system is unavailable, borrowing falls back to the paper process at the department office.',
         ],
         [

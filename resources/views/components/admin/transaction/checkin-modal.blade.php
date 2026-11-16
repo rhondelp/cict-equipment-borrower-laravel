@@ -1,12 +1,3 @@
-{{-- Check a loan back in.
-
-     This is what replaced the status dropdown in the table. An admin no longer
-     picks "Returned" from a list of three words; they record the event — what
-     came back and in what condition — and the status follows from that.
-
-     Condition is a set of chips rather than a select because there are three
-     options and two of them change what the form asks for next: anything other
-     than Good needs a description, and the submit says so until it has one. --}}
 <div id="checkin-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="checkin-title">

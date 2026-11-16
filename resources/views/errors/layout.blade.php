@@ -1,9 +1,3 @@
-{{-- Shared shell for the error pages. Kept deliberately close to the legal
-     layout: the point of a branded error page is that it looks like the rest of
-     the app rather than like the server fell over.
-
-     Every error page offers a way onward, and where someone is signed in that
-     way is their own dashboard rather than the public landing page. --}}
 @extends('components.default')
 
 @section('title', View::yieldContent('code') . ' ' . View::yieldContent('heading') . ' - CICT Equipment Borrower System')
@@ -17,8 +11,6 @@
                  alt="College of Information and Communications Technology" class="object-contain w-10 h-10">
         </div>
 
-        {{-- The code is set in a lighter weight than the heading: it labels the
-             page, the sentence beneath it is what the reader actually needs. --}}
         <p class="mt-8 text-sm font-semibold tracking-widest uppercase text-primary-700 tabular-nums">
             Error @yield('code')
         </p>

@@ -16,16 +16,11 @@ class ItemRequestController extends Controller
 {
     public function index()
     {
-        // Oldest first. A queue is worked in order, and `id` breaks ties so two
-        // requests filed the same day keep a stable position between renders.
         $requests = ItemRequest::with(['user', 'equipment', 'decider'])
             ->orderBy('requested_date')
             ->orderBy('id')
             ->get();
 
-        // Split here rather than in the view: the queue that needs a decision
-        // and the archive of decisions already made are two different screens
-        // stacked on one page, not one table with a status column.
         $pending = $requests->where('status', 'Pending')->values();
         $decided = $requests->where('status', '!=', 'Pending')->sortByDesc(
             fn ($request) => $request->decided_at ?? $request->updated_at
@@ -42,24 +37,12 @@ class ItemRequestController extends Controller
         ]);
     }
 
-    /**
-     * What each borrower in the queue is already holding — units out and how
-     * many of those loans are late.
-     *
-     * One grouped query for the whole queue rather than two per row: this sits
-     * next to every name on the page, and a request list of twenty would
-     * otherwise fire forty queries to draw a subtitle.
-     *
-     * @param  list<int>  $userIds
-     * @return \Illuminate\Support\Collection<int, object>
-     */
     private function borrowerStanding(array $userIds)
     {
         if ($userIds === []) {
             return collect();
         }
 
-        // Late by dueAt(): a timed loan by its time, a date-only one by its day.
         [$overdueCase, $bindings] = BorrowTransaction::overdueCaseSql();
 
         return BorrowTransaction::query()
@@ -73,27 +56,10 @@ class ItemRequestController extends Controller
             ->keyBy('user_id');
     }
 
-    /**
-     * The queue, annotated with the two things an admin actually needs to know
-     * before saying yes: what approving would leave on the shelf, and anything
-     * that makes this a bad yes.
-     *
-     * `leaves` is computed **cumulatively**. Availability alone answers "can I
-     * fill this one", but the admin is working down a list, and three pending
-     * requests for four units of a six-unit item are individually fillable and
-     * collectively not. Walking the queue in the order it will be worked and
-     * subtracting as it goes is the only reading that matches what will
-     * actually happen.
-     *
-     * Nothing here authorises anything: requestActions() re-checks under a row
-     * lock before it deducts. This is the screen telling the truth in advance.
-     *
-     * @return array<int, array<string, mixed>>
-     */
     private function reviewQueue($pending, $standing): array
     {
         $queue = [];
-        $claimed = [];   // equipment_id => units already spoken for by earlier rows
+        $claimed = [];
 
         foreach ($pending as $request) {
             $equipment = $request->equipment;
@@ -111,8 +77,6 @@ class ItemRequestController extends Controller
                 $conflicts[] = ['key' => 'stock', 'text' => 'Asks for '.$request->quantity.' but only '
                     .$available.' '.($available === 1 ? 'is' : 'are').' on the shelf.'];
             } elseif ($leaves < 0) {
-                // Fillable on its own, but earlier requests in this queue want
-                // the same units. Approving those first leaves this one short.
                 $conflicts[] = ['key' => 'overlap', 'text' => 'Earlier requests in this queue already claim '
                     .$already.' of the '.$available.' available — approving them first leaves this one short.'];
             }
@@ -145,9 +109,6 @@ class ItemRequestController extends Controller
         $isApprove = $request->route()->getName() === 'admin.request.approve';
         $isDecline = $request->route()->getName() === 'admin.request.decline';
 
-        // A decline is a message to a person, so it carries a reason. The rule
-        // is enforced here and not only in the form: the field is required on
-        // the server, and there is no path that writes Declined without one.
         $rules = ['id' => 'required|exists:item_requests,id'];
         if ($isDecline) {
             $rules['reason'] = 'required|string|min:5|max:500';
@@ -159,7 +120,6 @@ class ItemRequestController extends Controller
 
         $itemRequest = ItemRequest::with(['equipment', 'user'])->findOrFail($validated['id']);
 
-        // Authorization / idempotency: only pending requests can be processed
         if (! $itemRequest->isPending()) {
             return back()->with('error', 'Request has already been '.strtolower($itemRequest->status).'.');
         }
@@ -167,7 +127,6 @@ class ItemRequestController extends Controller
         if ($isApprove) {
             try {
                 $loan = DB::transaction(function () use ($itemRequest) {
-                    // Lock equipment to guard race on available_quantity
                     $equipment = Equipment::where('id', $itemRequest->equipment_id)->lockForUpdate()->firstOrFail();
 
                     if ($equipment->isRetired()) {
@@ -176,22 +135,14 @@ class ItemRequestController extends Controller
                         ]);
                     }
 
-                    // Read before the stock moves, for the refusal below.
                     $shortMessage = 'Cannot approve — only '.$equipment->available_quantity.' of '.$equipment->equipment_name
                         .' available and this request needs '.$itemRequest->quantity.'.';
 
-                    // Flip request
                     $itemRequest->status = 'Approved';
                     $itemRequest->decided_at = now();
                     $itemRequest->decided_by = Auth::id();
                     $itemRequest->save();
 
-                    // Auto-create the loan so approved requests don't sit idle,
-                    // shaped by the item's loan type as read under the lock:
-                    //   returnable      today → today + loan_days, by date
-                    //   time_limited    now → now + time_limited_minutes, timed
-                    //   non_returnable  Issued today, nothing due back
-                    // Purpose falls back to the remarks.
                     $schedule = match ($equipment->loan_type) {
                         Equipment::LOAN_TIME_LIMITED => [
                             'borrow_date' => now(),
@@ -224,16 +175,8 @@ class ItemRequestController extends Controller
                     $loan->setRelation('equipment', $equipment);
                     $loan->setRelation('user', $itemRequest->user);
 
-                    // Deduct stock. The same arithmetic serves every loan type:
-                    // available_quantity is quantity − out − issued, so an issue
-                    // comes off the shelf here exactly as a loan does. What makes
-                    // it an issue is the row above — counted by unitsIssued(),
-                    // never by unitsOut(), and never released by a check-in.
-                    // After the row is written so the stock helper can name the
-                    // loan; a short shelf throws and rolls everything back.
                     $equipment->reserveStock($itemRequest->quantity, $shortMessage, $loan);
 
-                    // Two events: the decision, and the hand-over it caused.
                     ActivityLog::record('request_approved', [
                         'loan' => $loan,
                         'quantity' => $itemRequest->quantity,
@@ -294,9 +237,6 @@ class ItemRequestController extends Controller
             'remarks' => 'nullable|string|max:1000',
         ]);
 
-        // A suspended account signs in, sees its loans, and cannot borrow.
-        // Checked on the server because the borrower's form is not the only
-        // way to reach this action.
         $borrower = Auth::user();
         if ($borrower && $borrower->isSuspended()) {
             return back()->withErrors([
@@ -306,11 +246,6 @@ class ItemRequestController extends Controller
             ])->withInput();
         }
 
-        // Overdue items pause borrowing — the rule the terms and the landing
-        // page both state. Checked here, on the server, for the same reason as
-        // suspension: the borrower's form is not the only way in. "Overdue" is
-        // the scope's dueAt() rule, so a one-hour loan that is ten minutes late
-        // blocks, and an Issued item, which is never due back, never does.
         $overdue = BorrowTransaction::where('user_id', Auth::id())
             ->overdue()
             ->with('equipment')
@@ -366,8 +301,6 @@ class ItemRequestController extends Controller
         $itemRequest = ItemRequest::with('equipment')->findOrFail($validated['id']);
         $this->assertOwner($itemRequest);
 
-        // A decided request is a record of what was decided. Editing one would
-        // change the thing the admin approved after the fact.
         if (! $itemRequest->isPending()) {
             return back()->with('error', 'This request was already '.strtolower($itemRequest->status)
                 .' and can no longer be changed.');
@@ -384,7 +317,6 @@ class ItemRequestController extends Controller
             'remarks' => $validated['remarks'] ?? null,
         ]);
 
-        // A save that changed nothing is not an event.
         $changes = ActivityLog::changes($before, ['quantity' => $itemRequest->quantity, 'remarks' => $itemRequest->remarks]);
         if ($changes !== []) {
             ActivityLog::record('request_updated', [
@@ -409,8 +341,6 @@ class ItemRequestController extends Controller
         $itemRequest = ItemRequest::with('equipment')->findOrFail($id);
         $this->assertOwner($itemRequest);
 
-        // Withdrawing is only for a request nobody has acted on yet. Once it is
-        // approved or declined it belongs to the decision log.
         if (! $itemRequest->isPending()) {
             return back()->with('error', 'This request was already '.strtolower($itemRequest->status)
                 .' — it stays in your history.');
@@ -434,10 +364,6 @@ class ItemRequestController extends Controller
             ->with('success', 'Withdrew your request for '.$name.'.');
     }
 
-    /**
-     * The cap the request form enforces client-side, restated here so the
-     * server is the one that decides. Returns null when the ask is fillable.
-     */
     private function availabilityError(Equipment $equipment, int $quantity): ?string
     {
         if ($equipment->isRetired()) {
@@ -456,9 +382,6 @@ class ItemRequestController extends Controller
         return null;
     }
 
-    /**
-     * A borrower may only modify their own item requests.
-     */
     private function assertOwner(ItemRequest $itemRequest): void
     {
         if ($itemRequest->user_id !== Auth::id()) {

@@ -11,9 +11,6 @@
     $waitingCount = $requests->where('status', 'Pending')->count();
     $dueSoonCount = $openLoans->filter(fn ($tx) => in_array($tx->daysUntilDue(), [0, 1], true))->count();
 
-    // The band at the top says one true sentence about where this person stands,
-    // in the order that matters to them: overdue first, then due soon, then
-    // waiting, then nothing at all.
     if ($overdueCount > 0) {
         $headline = $overdueCount === 1 ? 'One thing is overdue' : $overdueCount.' things are overdue';
         $subline = 'Bring it back to the equipment room today — overdue items hold up your next request.';
@@ -37,12 +34,8 @@
         ->implode('') ?: '—';
     $firstName = $nameParts->first() ?? 'Account';
 
-    // The bell's dot means "act on something". Overdue is the only such state:
-    // approval hands the equipment over at once, so nothing waits to be collected.
     $bellAlert = $overdueCount > 0;
 
-    // Fully out first, then running low (scarcest first), then the rest in
-    // name order. sortBy is stable, so equal keys keep the query's order.
     $shelfRatio = fn ($item) => $item->quantity > 0 ? $item->available_quantity / $item->quantity : 0;
     $shelf = $equipments->sortBy(function ($item) use ($shelfRatio) {
         $ratio = $shelfRatio($item);
@@ -63,8 +56,6 @@
     ];
 @endphp
 
-{{-- 100dvh rather than 100vh: on mobile Safari the viewport unit shifts as the
-     URL bar collapses, which makes a 100vh column jump during scroll. --}}
 <div class="flex flex-col min-h-[100dvh] page-bg">
 
     <a href="#main-content"
@@ -72,12 +63,8 @@
         Skip to content
     </a>
 
-    {{-- :menu="false" — this page has no sidebar, so the header's hamburger has
-         nothing to toggle. See the note in components/ui/page-header. --}}
     <x-ui.page-header logo :menu="false">
         <x-slot:actions>
-            {{-- Notifications bell. Read-only feed of the rows written by the
-                 return-reminder job; nothing here creates or mutates them. --}}
             <div class="relative">
                 <button type="button" id="notif-btn"
                         class="relative inline-flex items-center justify-center transition bg-white border rounded-md w-11 h-11 text-neutral-700 border-neutral-300 hover:bg-neutral-50 hover:border-neutral-400"
@@ -89,8 +76,6 @@
                     @endif
                 </button>
 
-                {{-- Width is clamped to the viewport so the panel cannot overflow the
-                     screen edge on a narrow phone, where a flat w-80 would. --}}
                 <div id="notif-panel"
                      class="absolute right-0 z-overlay mt-2 hidden w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-pop sm:w-96">
                     <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-200 bg-neutral-50">
@@ -125,8 +110,6 @@
                 </div>
             </div>
 
-            {{-- The user chip. There is no profile page, so "Profile" shows the
-                 account details in place rather than linking somewhere. --}}
             <div class="relative">
                 <button type="button" id="user-btn"
                         class="inline-flex items-center gap-2 h-9 pl-1.5 pr-2.5 rounded-[9px] border border-neutral-200 bg-white text-[13px] font-medium text-neutral-700 whitespace-nowrap transition hover:bg-neutral-50"
@@ -154,8 +137,6 @@
 
     <main id="main-content" class="flex-1 w-full p-4 mx-auto space-y-5 sm:p-6 max-w-content">
 
-        {{-- Where you stand, in a sentence. This replaced three counter tiles
-             that read 0 / 0 / 0 for most borrowers most of the time. --}}
         <section class="p-5 text-white anim-rise rounded-xl bg-[oklch(0.32_0.09_262)] sm:p-6">
             <div class="flex flex-wrap items-end justify-between gap-6">
                 <div class="min-w-0">
@@ -182,8 +163,6 @@
 
         <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
 
-            {{-- The agenda. One row per thing this person has to do, soonest
-                 first, each with the date it hangs off in the rail beside it. --}}
             <section aria-labelledby="agenda-heading" class="min-w-0 space-y-3 anim-rise [animation-delay:70ms]">
                 <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <h2 id="agenda-heading" class="text-lg font-semibold text-neutral-900">What needs doing</h2>
@@ -192,9 +171,6 @@
                     </p>
                 </div>
 
-                {{-- No margin between rows: the gap is the card wrapper's bottom
-                     padding, so the rail column (and its line) stretches through it
-                     and the line runs unbroken from one card to the next. --}}
                 <div>
                 @php $previousDate = null; @endphp
                 @forelse($agenda as $item)
@@ -312,7 +288,6 @@
                 @endif
             </section>
 
-            {{-- What is on the shelf, and how to reach the office. --}}
             <aside class="space-y-4 min-w-0 anim-rise [animation-delay:140ms] lg:sticky lg:top-24">
                 <button type="button" data-modal-open="request-modal"
                         class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-5 py-3.5 text-base font-semibold text-white transition hover:bg-primary-700">
@@ -338,8 +313,6 @@
                             <span class="flex-1 min-w-0">
                                 <span class="block text-sm font-medium truncate {{ $none ? 'text-neutral-500' : 'text-neutral-900' }}">{{ $item->equipment_name }}</span>
                                 <span class="block text-xs truncate">
-                                    {{-- Stock first: when a long category runs out of
-                                         room, the truncation eats the label, not the count. --}}
                                     <span class="{{ $none ? 'text-danger-700' : 'text-neutral-600' }}">{{ $none ? 'None left' : $item->available_quantity.' of '.$item->quantity.' free' }}</span>
                                     @if($item->category)
                                         <span class="text-neutral-500" data-shelf-category>· {{ $item->category }}</span>
@@ -354,8 +327,6 @@
                         <p class="px-4 py-8 text-sm text-center text-neutral-600">No equipment has been added yet.</p>
                     @endforelse
 
-                    {{-- There is no borrower-facing inventory page, so "See all"
-                         reveals the remaining rows here instead of linking away. --}}
                     @if($shelf->count() > $shelfLimit)
                         <button type="button" id="shelf-more" aria-expanded="false"
                                 class="w-full px-4 py-2.5 text-sm font-semibold text-left text-primary-700 hover:bg-neutral-50 hover:text-primary-800">
@@ -381,7 +352,6 @@
 @include('components.instructor.request-item-modal')
 @include('components.instructor.update-request-modal')
 
-{{-- Submitted by the withdraw confirm; no markup of its own. --}}
 <form id="withdraw-form" method="POST" action="" class="hidden">
     @csrf
     @method('DELETE')
@@ -390,7 +360,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    /* ---- notifications panel ----------------------------------------- */
     const notifBtn = document.getElementById('notif-btn');
     const notifPanel = document.getElementById('notif-panel');
     if (notifBtn && notifPanel) {
@@ -412,7 +381,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /* ---- earlier activity -------------------------------------------- */
     const historyToggle = document.getElementById('history-toggle');
     if (historyToggle) {
         const panel = document.getElementById('history-panel');
@@ -427,7 +395,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /* ---- new request -------------------------------------------------- */
     const requestForm = document.getElementById('request-form');
     if (requestForm) {
         const quantity = document.getElementById('request-quantity');
@@ -446,8 +413,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return requestForm.querySelector('.request-equipment:checked');
         }
 
-        // The cap is the item's real availability, so the form cannot be used
-        // to ask for five of something there are two of.
         function sync() {
             const choice = picked();
             const available = choice ? parseInt(choice.dataset.available, 10) || 0 : 0;
@@ -456,8 +421,6 @@ document.addEventListener('DOMContentLoaded', function () {
             quantity.max = Math.max(available, 1);
             maxNote.textContent = choice ? '(max ' + available + ')' : '';
 
-            // What happens after approval, for the item chosen: the note text
-            // is rendered by the server from the item's loan type and config.
             loanNote.classList.toggle('hidden', !choice);
             loanNote.classList.toggle('flex', !!choice);
             if (choice) {
@@ -484,7 +447,6 @@ document.addEventListener('DOMContentLoaded', function () {
             hint.textContent = !choice ? 'Choose what you need'
                 : !qtyOk ? 'Lower the quantity'
                 : !purposeOk ? 'Say what it is for'
-                // No review time is promised: nothing in the system sets one.
                 : 'Nothing is held until an admin approves it';
             hint.classList.toggle('text-danger-700', !ok);
             hint.classList.toggle('text-neutral-600', ok);
@@ -502,8 +464,6 @@ document.addEventListener('DOMContentLoaded', function () {
             sync();
         });
 
-        // "Request" on a shelf row is the same form, opened with that item
-        // already chosen.
         document.addEventListener('click', function (event) {
             const trigger = event.target.closest('[data-request-equipment]');
             if (!trigger) return;
@@ -518,7 +478,6 @@ document.addEventListener('DOMContentLoaded', function () {
         sync();
     }
 
-    /* ---- edit request -------------------------------------------------- */
     const editForm = document.getElementById('edit-request-form');
     if (editForm) {
         const quantity = document.getElementById('edit-request-quantity');
@@ -554,7 +513,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /* ---- withdraw a request ------------------------------------------- */
     document.addEventListener('click', function (event) {
         const trigger = event.target.closest('[data-request-withdraw]');
         if (!trigger) return;
@@ -571,7 +529,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    /* ---- user chip ---------------------------------------------------- */
     const userBtn = document.getElementById('user-btn');
     const userPanel = document.getElementById('user-panel');
     if (userBtn && userPanel) {
@@ -593,7 +550,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /* ---- shelf: see all ------------------------------------------------ */
     document.getElementById('shelf-more')?.addEventListener('click', function () {
         document.querySelectorAll('[data-shelf-extra]').forEach(function (row) { row.hidden = false; });
         this.remove();

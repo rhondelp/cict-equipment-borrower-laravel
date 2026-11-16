@@ -1,15 +1,8 @@
-{{-- Shared status badge — flat light theme.
-     Usage: <x-ui.badge status="Available" variant="success" />
-            <x-ui.badge :status="$item->status" variant="success" />
-     Variants map to Tailwind color tokens (success / warning / danger / neutral). --}}
 @props(['status' => '', 'variant' => 'neutral'])
 
 @php
-    // Normalize variant: accept legacy color names
     $v = strtolower($variant);
     $map = [
-        // Deeper tint + darker ink than the old 50/700 pairing, for legibility
-        // at a glance in dense tables.
         'success'    => 'bg-success-100 text-success-800 border-success-300',
         'available'  => 'bg-success-100 text-success-800 border-success-300',
         'approved'   => 'bg-success-100 text-success-800 border-success-300',
@@ -22,8 +15,6 @@
         'unavailable'=> 'bg-danger-100 text-danger-700 border-danger-300',
         'declined'   => 'bg-danger-100 text-danger-700 border-danger-300',
         'overdue'    => 'bg-danger-100 text-danger-700 border-danger-300',
-        // Informational, not a status: the reports screen tags loan activity
-        // with it, where green or red would read as good or bad news.
         'primary'    => 'bg-primary-100 text-primary-800 border-primary-300',
         'neutral'    => 'bg-neutral-100 text-neutral-800 border-neutral-300',
         'default'    => 'bg-neutral-100 text-neutral-800 border-neutral-300',

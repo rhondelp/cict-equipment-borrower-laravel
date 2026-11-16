@@ -1,5 +1,4 @@
 @php
-    // $pendingRequests is shared by the view composer in AppServiceProvider::boot().
     $navGroups = [
         'Overview' => [
             ['route' => 'admin.dashboard',   'icon' => 'dashboard',   'label' => 'Dashboard'],
@@ -24,12 +23,9 @@
         ->implode('');
 @endphp
 
-<!-- Sidebar Overlay (mobile) -->
 <div class="fixed inset-0 z-overlay bg-neutral-900/50 backdrop-blur-sm sidebar-overlay md:hidden" style="display: none;"></div>
 
-<!-- Sidebar — flat light theme -->
 <aside class="fixed inset-y-0 left-0 z-modal flex flex-col w-64 transition-transform duration-200 transform -translate-x-full bg-white border-r border-neutral-200 text-neutral-900 sidebar md:translate-x-0 px-3">
-    <!-- Header -->
     <div class="flex items-center h-[114.59375px] -mx-3 px-6 border-b border-neutral-200 shrink-0">
         <div class="flex items-center min-w-0 gap-3">
             <div class="flex items-center justify-center overflow-hidden bg-white border rounded-lg w-9 h-9 border-neutral-200 shrink-0">
@@ -42,7 +38,6 @@
         </div>
     </div>
 
-    <!-- Navigation -->
     <nav class="flex-1 py-2 overflow-y-auto">
         @foreach ($navGroups as $group => $links)
             <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-neutral-400 px-3 {{ $loop->first ? 'pt-5' : 'pt-6' }} pb-2">{{ $group }}</p>
@@ -66,7 +61,6 @@
         @endforeach
     </nav>
 
-    <!-- User Profile -->
     <div class="p-3">
         <div class="flex items-center gap-3 p-2 border rounded-xl border-neutral-200">
             <div class="grid w-8 h-8 text-xs font-semibold rounded-full bg-primary-100 text-primary-700 place-items-center shrink-0" aria-hidden="true">{{ $initials }}</div>

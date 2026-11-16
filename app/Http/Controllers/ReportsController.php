@@ -16,61 +16,20 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
-/**
- * The Reports screen: the activity log, filtered — and, picked with
- * `?report=`, the office's five official report formats.
- *
- * The official reports are fixed formats copied from the office's paper
- * forms: exact headings in an exact order, a title, and a signature block.
- * Each has one method here that returns plain row arrays (borrowerRows() and
- * the rest). The screen, CSV, PDF and print all read those rows, and print
- * and PDF render them through one partial driven by the COLUMNS array, so no
- * output can show a column the others lack.
- *
- * Every figure and row on the page comes from one query built by
- * ActivityLog::filter(), from filters read out of the query string by
- * resolveFilters(). The CSV, PDF and print outputs go through the same two
- * calls (reportQuery()), so the screen and the three exports cannot disagree
- * about what "this report" contains.
- *
- * Nothing is cached: the page reads the log on every request, so it shows an
- * action the moment it is recorded.
- */
 class ReportsController extends Controller
 {
     public const PER_PAGE = 50;
 
-    /** The default range, ending today: today and the 29 days before it. */
     public const DEFAULT_DAYS = 30;
 
-    /**
-     * The most rows a PDF or printout will lay out. Beyond this dompdf takes
-     * too long and the paper stops being something anyone reads; the CSV has
-     * no limit because it streams.
-     */
     public const MAX_PAGED_ROWS = 2000;
 
     public const TITLE = 'Activity and Transactions Report';
 
-    /**
-     * Rows per table in the PDF. dompdf's cost for one table grows faster
-     * than its rows; consecutive tables of this size keep a 2,000-row report
-     * near 30 seconds and 550 MB instead of 96 seconds and 3 GB.
-     */
     public const PDF_TABLE_ROWS = 100;
 
-    /** Pixel width the logo is scaled to for the PDF (shown at 48pt). */
     private const PDF_LOGO_PX = 192;
 
-    /**
-     * The official reports, keyed by their `?report=` value, in tab order.
-     * `dated` reports take the From/To range. The others are a snapshot of
-     * right now: what is out, owned or broken does not depend on a date range.
-     * `optional_range` lets a snapshot be narrowed by From/To. With both left
-     * empty it is still the whole snapshot, so a defect reported months ago
-     * and never resolved is not dropped by a default range.
-     * `noun` counts the rows ("12 loans"); `file` names the download.
-     */
     public const REPORTS = [
         'borrowers' => ['tab' => 'Borrower Report', 'title' => 'Borrower Report', 'dated' => true, 'noun' => 'transaction', 'file' => 'borrower-report'],
         'inventory' => ['tab' => 'Inventory Report', 'title' => 'Inventory Report', 'dated' => false, 'noun' => 'item', 'file' => 'inventory-report'],
@@ -79,11 +38,6 @@ class ReportsController extends Controller
         'defective' => ['tab' => 'Defective Items', 'title' => 'List of Defective Items', 'dated' => false, 'optional_range' => true, 'noun' => 'defect', 'file' => 'defective-items'],
     ];
 
-    /**
-     * Each official report's columns, in the order and with the headings of
-     * the paper form. `width` is for print and PDF (dompdf ignores <col>, so
-     * it goes on the header cell); `num` right-aligns a figure.
-     */
     public const COLUMNS = [
         'borrowers' => [
             ['label' => 'Date & Time Borrowed', 'width' => 18],
@@ -120,7 +74,6 @@ class ReportsController extends Controller
         ],
     ];
 
-    /** How many rows Most Borrowed may show; the first is the default. */
     public const TOP_LIMITS = [10, 25, 50];
 
     public const INVENTORY_STATUSES = ['serviceable' => 'Serviceable', 'non-serviceable' => 'Non-serviceable'];
@@ -136,8 +89,6 @@ class ReportsController extends Controller
 
         $query = $this->reportQuery($filters);
 
-        // One grouped COUNT feeds the summary strip and the paginator's total,
-        // so the figures above the table are the rows in it, counted once.
         $counts = (clone $query)->selectRaw('type, COUNT(*) as aggregate')->groupBy('type')
             ->pluck('aggregate', 'type')->map(fn ($n) => (int) $n);
         $total = $counts->sum();
@@ -164,15 +115,6 @@ class ReportsController extends Controller
         ])->header('Cache-Control', 'no-store, private');
     }
 
-    /**
-     * Every matching row as CSV, streamed: rows are read with a cursor and
-     * written as they come, so a year of activity never sits in memory.
-     *
-     * UTF-8 with a byte-order mark, which is what makes Excel read "Ñ" and "→"
-     * correctly. A cell that starts with = + - @ (or a tab or carriage
-     * return) is prefixed with an apostrophe, so a name or a note can never
-     * run as a formula when the file is opened.
-     */
     public function exportCsv(Request $request)
     {
         if (($report = $this->requestedReport($request)) !== 'activity') {
@@ -212,8 +154,6 @@ class ReportsController extends Controller
 
             fclose($out);
 
-            // Logged once the rows are written, so the count is the file's
-            // and the export's own entry is never one of its rows.
             $this->recordExport('CSV', $rows, $filters);
         }, $this->filename($filters, 'csv'), [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -221,11 +161,6 @@ class ReportsController extends Controller
         ]);
     }
 
-    /**
-     * The report as an A4 landscape PDF, built by dompdf from local files only:
-     * remote fetching and embedded PHP stay off, and file access is confined
-     * to public/images, where the logo is read from disk.
-     */
     public function exportPdf(Request $request)
     {
         if (($official = $this->requestedReport($request)) !== 'activity') {
@@ -244,15 +179,8 @@ class ReportsController extends Controller
         return $pdf->download($this->filename($report['filters'], 'pdf'));
     }
 
-    /**
-     * Lay a report view out as an A4 landscape PDF and stamp the footer. One
-     * place for the dompdf options, so the activity log and the official
-     * reports cannot drift apart on what dompdf is allowed to read.
-     */
     private function renderPdf(string $view, array $data, string $footerTitle)
     {
-        // A full 2,000-row report needs about half a minute and half a
-        // gigabyte; never lower a limit the server already allows.
         if ((int) ini_get('max_execution_time') !== 0 && (int) ini_get('max_execution_time') < 120) {
             set_time_limit(120);
         }
@@ -268,15 +196,11 @@ class ReportsController extends Controller
             'chroot' => public_path('images'),
             'allowed_protocols' => ['data://' => ['rules' => []], 'file://' => ['rules' => []]],
             'default_font' => 'DejaVu Sans',
-            // Embed only the glyphs used. Off by default, which put the
-            // whole of DejaVu Sans regular and bold (~900 KB) in every file.
             'enable_font_subsetting' => true,
         ])->loadView($view, $data + [
             'logoSrc' => $this->pdfLogo(),
         ])->setPaper('a4', 'landscape');
 
-        // "Page X of Y" needs the page count, which exists only after layout,
-        // so it is stamped onto every page once rendering is done.
         $pdf->render();
         $dompdf = $pdf->getDomPDF();
         $canvas = $dompdf->getCanvas();
@@ -289,7 +213,6 @@ class ReportsController extends Controller
         return $pdf;
     }
 
-    /** The report as a printable page: no sidebar, the PDF's header, then the full table. */
     public function print(Request $request)
     {
         if (($official = $this->requestedReport($request)) !== 'activity') {
@@ -309,10 +232,6 @@ class ReportsController extends Controller
         ])->header('Cache-Control', 'no-store, private');
     }
 
-    /**
-     * Everything the PDF and the printout share, or a redirect back to the
-     * screen when there is too much to lay out on paper.
-     */
     private function pagedReport(Request $request): array|\Illuminate\Http\RedirectResponse
     {
         $resolved = $this->resolveFilters($request);
@@ -342,13 +261,6 @@ class ReportsController extends Controller
         ];
     }
 
-    /**
-     * The logo for the PDF: read from disk (public/images/logo.png) and, when
-     * GD is available, scaled down in memory to a data URI. The original is
-     * 1840 px and 375 KB, which made even a one-page PDF 1.2 MB; at 48pt on
-     * the page nobody can see the difference. Without GD the file path is
-     * used as is.
-     */
     private function pdfLogo(): string
     {
         $path = public_path('images/logo.png');
@@ -378,7 +290,6 @@ class ReportsController extends Controller
         return 'data:image/png;base64,'.base64_encode($png);
     }
 
-    /** "512M" → bytes, for comparing memory limits. */
     private function bytes(string $value): int
     {
         $number = (int) $value;
@@ -391,13 +302,11 @@ class ReportsController extends Controller
         };
     }
 
-    /** The one query every output reads: the screen, CSV, PDF and print. */
     private function reportQuery(array $filters): Builder
     {
         return ActivityLog::filter($filters);
     }
 
-    /** $report is an official report's key; null for the activity log. */
     private function recordExport(string $format, int $rows, array $filters, ?string $report = null): void
     {
         ActivityLog::record('report_exported', [
@@ -412,17 +321,11 @@ class ReportsController extends Controller
         ]);
     }
 
-    /** cict-activity-report_2026-10-01_to_2026-10-31.csv */
     private function filename(array $filters, string $extension): string
     {
         return 'cict-activity-report_'.$filters['from'].'_to_'.$filters['to'].'.'.$extension;
     }
 
-    /**
-     * Spreadsheet formula injection: a cell starting with = + - @, a tab or
-     * a carriage return is read as a formula by Excel and LibreOffice. The
-     * apostrophe makes it text. Numbers are left alone.
-     */
     public static function csvCell(mixed $value): mixed
     {
         if (is_string($value) && $value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
@@ -432,13 +335,11 @@ class ReportsController extends Controller
         return $value;
     }
 
-    /** "Oct 1, 2026 – Oct 31, 2026" */
     private function rangeWords(array $filters): string
     {
         return Carbon::parse($filters['from'])->format('M j, Y').' – '.Carbon::parse($filters['to'])->format('M j, Y');
     }
 
-    /** "Activity: Loans; Equipment: Projector; User: Ana Cruz", or "None". */
     private function filterWords(array $filters): string
     {
         $words = collect($this->appliedFilters($filters))->except('Dates')
@@ -448,15 +349,6 @@ class ReportsController extends Controller
         return $words !== '' ? $words : 'None';
     }
 
-    /**
-     * The report's filters, read from the query string and checked.
-     *
-     * A bad value never fails the page. It is dropped, an error is returned
-     * for the form to show beside its field, and the report runs without it —
-     * for a bad date range, over the default range instead.
-     *
-     * @return array{filters: array, errors: array<string, string>, defaultRange: bool}
-     */
     public function resolveFilters(Request $request): array
     {
         $input = collect($request->query())
@@ -502,7 +394,6 @@ class ReportsController extends Controller
         ];
     }
 
-    /** Four figures from the grouped counts; no further queries. */
     private function summary($counts, array $filters): array
     {
         $count = fn (string ...$types) => collect($types)->sum(fn ($type) => $counts->get($type, 0));
@@ -536,12 +427,6 @@ class ReportsController extends Controller
         ];
     }
 
-    /**
-     * The filters in words, for the empty state and the line above the
-     * table: what this report is a report of.
-     *
-     * @return array<string, string>
-     */
     private function appliedFilters(array $filters): array
     {
         $applied = [
@@ -569,19 +454,6 @@ class ReportsController extends Controller
         return $applied;
     }
 
-    /* ---------------------------------------------------------------------
-     | Official reports
-     |
-     | Each report is one *Rows() method returning a list of rows. A row is a
-     | list of cells, in COLUMNS order. A cell is a string or a number, or —
-     | for a cell that carries a flag, such as an overdue due date — an array
-     | ['text' => ..., 'mark' => 'Overdue']. The mark is always written out as
-     | a word (in the table and in the CSV), never left to colour alone. A
-     | cell whose CSV form differs from the page's (a date Excel should sort)
-     | is ['text' => 'Oct 16, 2026 3:33 PM', 'csv' => '2026-10-16 15:33'].
-     --------------------------------------------------------------------- */
-
-    /** 'activity' unless ?report= names an official report. */
     private function requestedReport(Request $request): string
     {
         $report = $request->query('report');
@@ -593,8 +465,6 @@ class ReportsController extends Controller
     {
         $data = $this->officialReport($request, $report);
 
-        // The rows are already worked out; the screen shows them 50 at a time
-        // and the exports take all of them.
         $rows = collect($data['rows']);
         $page = LengthAwarePaginator::resolveCurrentPage();
         $rowsPage = (new LengthAwarePaginator(
@@ -659,7 +529,6 @@ class ReportsController extends Controller
         ])->header('Cache-Control', 'no-store, private');
     }
 
-    /** officialReport(), or a redirect back when there is too much for paper. */
     private function officialPaged(Request $request, string $report): array|\Illuminate\Http\RedirectResponse
     {
         $data = $this->officialReport($request, $report);
@@ -674,7 +543,6 @@ class ReportsController extends Controller
         return $data;
     }
 
-    /** Everything one official report needs, for every output. */
     private function officialReport(Request $request, string $report): array
     {
         $resolved = $this->resolveOfficial($request, $report);
@@ -690,7 +558,6 @@ class ReportsController extends Controller
         };
 
         $user = $request->user();
-        // Dated reports always have a range; an optional one only when given.
         $ranged = isset($filters['from']);
 
         return [
@@ -719,16 +586,6 @@ class ReportsController extends Controller
         ];
     }
 
-    /**
-     * An official report's filters from the query string. Like
-     * resolveFilters(), a bad value is dropped with an error rather than
-     * failing the page. Dated reports take From/To through resolveFilters()
-     * itself, so the default range and the fallbacks are the activity log's.
-     * A report with an optional range takes one only when a valid From or To
-     * is given; otherwise, and after a bad range, it has none.
-     *
-     * @return array{filters: array, errors: array<string, string>, defaultRange: bool}
-     */
     public function resolveOfficial(Request $request, string $report): array
     {
         $filters = [];
@@ -783,11 +640,6 @@ class ReportsController extends Controller
         return ['filters' => $filters, 'errors' => $errors, 'defaultRange' => $defaultRange];
     }
 
-    /**
-     * 1 · Borrower Report — every loan and issue in the range, oldest first,
-     * voided ones excluded. A non-returnable hand-over reads "Issued" and has
-     * no return.
-     */
     private function borrowerRows(array $filters): array
     {
         return BorrowTransaction::query()
@@ -811,10 +663,6 @@ class ReportsController extends Controller
             ->all();
     }
 
-    /**
-     * 2 · Inventory Report — every item still in use (retired ones excluded),
-     * A–Z, with Equipment::isServiceable() preloaded in the same query.
-     */
     private function inventoryRows(array $filters): array
     {
         $query = Equipment::lendable()
@@ -841,11 +689,6 @@ class ReportsController extends Controller
             ->all();
     }
 
-    /**
-     * 3 · List of Borrowers Not Yet Returned — every loan out right now
-     * (BorrowTransaction::out(): never voided, never Issued), soonest due
-     * first, so the most overdue lead. An overdue due date carries the word.
-     */
     private function notReturnedRows(): array
     {
         return BorrowTransaction::out()
@@ -865,12 +708,6 @@ class ReportsController extends Controller
             ->all();
     }
 
-    /**
-     * 4 · Most Borrowed Equipment — transactions per item in the range
-     * (voided ones excluded, issues included), most first; ties on times
-     * borrowed share a rank (1, 2, 2, 4). Ties are then broken by units and
-     * by name, which also decides who makes the cut at the limit.
-     */
     private function mostBorrowedRows(array $filters): array
     {
         $top = BorrowTransaction::query()
@@ -905,15 +742,6 @@ class ReportsController extends Controller
         })->all();
     }
 
-    /**
-     * 5 · List of Defective Items — ReturnLog::defects(): every return that
-     * came back other than Good with no resolution recorded, newest first.
-     * The defect is the log's remarks, or its condition when nobody wrote any.
-     *
-     * "Reported" is the log's created_at, the moment the return was recorded.
-     * return_date is a DATE column and holds no time. An optional From/To
-     * narrows by that same moment, the To day included whole.
-     */
     private function defectiveRows(array $filters): array
     {
         $query = ReturnLog::defects()->reorder()->orderByDesc('created_at')->orderByDesc('id');
@@ -935,40 +763,27 @@ class ReportsController extends Controller
             ->all();
     }
 
-    /** From 00:00 on the first day to the end of the last, inclusive. */
     private function dayBounds(array $filters): array
     {
         return [Carbon::parse($filters['from'])->startOfDay(), Carbon::parse($filters['to'])->endOfDay()];
     }
 
-    /** "Projector (Epson), 2 pc" */
     private function itemWords(BorrowTransaction $loan): string
     {
         return ($loan->equipment?->equipment_name ?? 'Removed item').', '.$loan->quantity.' '
             .($loan->equipment?->unit ?? Equipment::DEFAULT_UNIT);
     }
 
-    /**
-     * "Oct 5, 2026, 2:30 PM". A date-only loan is stored at midnight, which
-     * is not when anyone borrowed it. Its time is taken from when the loan
-     * was recorded if that was the same day, and left off otherwise (a loan
-     * entered later for an earlier day) rather than printed as 12:00 AM.
-     */
     private function borrowedAtWords(BorrowTransaction $loan): string
     {
         return $this->momentWords($loan->borrow_date, $loan->timed ? $loan->borrow_date : $loan->created_at);
     }
 
-    /**
-     * The return log's day, with the time it was logged that day:
-     * return_logs.return_date is a DATE column and holds no time of its own.
-     */
     private function returnedAtWords(BorrowTransaction $loan): string
     {
         return $this->momentWords($loan->returnLog?->return_date, $loan->returnLog?->created_at);
     }
 
-    /** "Oct 5, 2026, 2:30 PM" when $time falls on $day; "Oct 5, 2026" otherwise; "—" for no day. */
     private function momentWords(?CarbonInterface $day, ?CarbonInterface $time): string
     {
         if ($day === null) {
@@ -980,7 +795,6 @@ class ReportsController extends Controller
             : $day->format('M j, Y');
     }
 
-    /** A timed loan is due at its time; a date-only one by the end of its day (see dueAt()). */
     private function dueWords(BorrowTransaction $loan): string
     {
         if ($loan->return_date === null) {
@@ -992,10 +806,6 @@ class ReportsController extends Controller
             : $loan->return_date->format('M j, Y').', end of day';
     }
 
-    /**
-     * A cell as CSV text: its CSV form when it has one ("2026-10-16 15:33"),
-     * otherwise its text with the mark written out, "Oct 7, 2026, end of day (Overdue)".
-     */
     public static function cellText(mixed $cell): mixed
     {
         if (is_array($cell)) {
@@ -1005,7 +815,6 @@ class ReportsController extends Controller
         return $cell;
     }
 
-    /** "Category: Projectors; Status: Non-serviceable", "Top 10", or "None". */
     private function officialFilterWords(string $report, array $filters): string
     {
         $words = array_filter([
@@ -1017,7 +826,6 @@ class ReportsController extends Controller
         return $words !== [] ? implode('; ', $words) : 'None';
     }
 
-    /** What an empty report says, on screen and on paper. */
     private function officialEmptyMessage(string $report, array $filters): string
     {
         return match ($report) {
@@ -1033,7 +841,6 @@ class ReportsController extends Controller
         };
     }
 
-    /** cict-borrower-report_2026-10-01_to_2026-10-31.pdf, or cict-inventory-report_2026-10-14.csv */
     private function officialFilename(string $report, array $filters, string $extension): string
     {
         $span = isset($filters['from']) ? $filters['from'].'_to_'.$filters['to'] : today()->toDateString();

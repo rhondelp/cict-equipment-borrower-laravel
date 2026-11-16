@@ -9,7 +9,6 @@ use Illuminate\Support\Carbon;
 
 class BorrowTransaction extends Model
 {
-    //
     protected $fillable = ['user_id', 'equipment_id', 'borrow_date', 'return_date', 'quantity', 'purpose', 'status', 'remarks', 'class_schedule_id', 'voided_at', 'void_reason', 'timed'];
 
     protected function casts(): array
@@ -37,11 +36,6 @@ class BorrowTransaction extends Model
         return $this->belongsTo(ClassSchedule::class);
     }
 
-    /**
-     * Reminders sent about this loan, newest first. Written by
-     * BorrowTransactionController::sendManualEmail so the loans screen can tell
-     * a first nudge from a fourth.
-     */
     public function reminders()
     {
         return $this->hasMany(Notification::class)->latest('send_date');
@@ -51,21 +45,6 @@ class BorrowTransaction extends Model
     {
         return $this->hasOne(ReturnLog::class);
     }
-
-    /* ---------------------------------------------------------------------
-     | Derived state
-     |
-     | The stored `status` enum is what the stock arithmetic keys off, and the
-     | nightly job still writes Overdue so the reminder mails can find their
-     | targets. What a screen *shows*, though, is worked out here from the due
-     | date every time it renders — so a loan reads as overdue the morning it
-     | becomes overdue, not the morning after the job next runs.
-     |
-     | Two kinds of due date. A date-only loan (`timed` false, stored at
-     | 00:00:00) is due by the end of its return day. A timed loan is due at the
-     | exact return_date. dueAt() is the one place that tells them apart.
-     | An Issued transaction is a hand-over for good: never out, never overdue.
-     --------------------------------------------------------------------- */
 
     public function isVoided(): bool
     {
@@ -77,22 +56,16 @@ class BorrowTransaction extends Model
         return $this->status === 'Returned';
     }
 
-    /** Units are off the shelf: stock is deducted and the loan is still open. */
     public function isOut(): bool
     {
         return ! $this->isVoided() && in_array($this->status, ['Borrowed', 'Overdue'], true);
     }
 
-    /** Handed over for good: the units left the shelf and nothing is due back. */
     public function isIssued(): bool
     {
         return ! $this->isVoided() && $this->status === 'Issued';
     }
 
-    /**
-     * The moment the loan becomes late. Timed loans are due at return_date
-     * itself; date-only loans have the whole of their return day.
-     */
     public function dueAt(): ?CarbonInterface
     {
         if ($this->return_date === null) {
@@ -102,21 +75,11 @@ class BorrowTransaction extends Model
         return $this->timed ? $this->return_date->copy() : $this->return_date->copy()->endOfDay();
     }
 
-    /**
-     * isOut() as a query: units still with the borrower. Issued rows are not
-     * out, so every "out now" aggregate that uses this leaves them alone.
-     */
     public function scopeOut(Builder $query): Builder
     {
         return $query->whereNull('voided_at')->whereIn('status', ['Borrowed', 'Overdue']);
     }
 
-    /**
-     * isOverdue() as a query, so aggregates agree with what a row renders:
-     * a timed loan is overdue once its exact return moment has passed, a
-     * date-only loan once its return day has (it is stored at 00:00:00, so
-     * "the day has passed" is "return_date is before today").
-     */
     public function scopeOverdue(Builder $query, ?CarbonInterface $now = null): Builder
     {
         [$moment, $today] = static::overdueBounds($now);
@@ -126,12 +89,6 @@ class BorrowTransaction extends Model
             ->orWhere(fn (Builder $dated) => $dated->where('timed', false)->where('return_date', '<', $today)));
     }
 
-    /**
-     * The same rule for a SUM(CASE …) over loans already narrowed to out():
-     * `[sql, bindings]`, as borrowerStanding() in ItemRequestController needs.
-     *
-     * @return array{0: string, 1: list<string>}
-     */
     public static function overdueCaseSql(?CarbonInterface $now = null): array
     {
         [$moment, $today] = static::overdueBounds($now);
@@ -142,7 +99,6 @@ class BorrowTransaction extends Model
         ];
     }
 
-    /** @return array{0: string, 1: string} now, and the start of today, as stored-format strings */
     private static function overdueBounds(?CarbonInterface $now): array
     {
         $now = $now ? Carbon::instance($now) : now();
@@ -157,7 +113,6 @@ class BorrowTransaction extends Model
         return $this->isOut() && $due !== null && $due->lt(now());
     }
 
-    /** 'Void' | 'Issued' | 'Returned' | 'Overdue' | 'Out' */
     public function derivedStatus(): string
     {
         if ($this->isVoided()) {
@@ -183,11 +138,6 @@ class BorrowTransaction extends Model
         };
     }
 
-    /**
-     * Whole days past the due date; 0 when not overdue. Date-only loans count
-     * calendar days. Timed loans count whole 24-hour periods since dueAt(), so
-     * one that is 40 minutes late reads 0 here and timingLabel() says the rest.
-     */
     public function daysLate(): int
     {
         if (! $this->isOverdue()) {
@@ -201,11 +151,6 @@ class BorrowTransaction extends Model
         return (int) $this->return_date->copy()->startOfDay()->diffInDays(now()->startOfDay());
     }
 
-    /**
-     * Calendar days from today to the due day; negative once that day has
-     * passed, null with no due date or for an issued item. Calendar days for
-     * both kinds of loan, so the "due today" counters mean the same thing.
-     */
     public function daysUntilDue(): ?int
     {
         if ($this->return_date === null || $this->isIssued()) {
@@ -215,27 +160,16 @@ class BorrowTransaction extends Model
         return (int) now()->startOfDay()->diffInDays($this->return_date->copy()->startOfDay(), false);
     }
 
-    /**
-     * Loans with the same dates and purpose went out as one booking. The
-     * borrower dashboard groups by this, and the slip lists the whole booking.
-     */
     public function bookingKey(): string
     {
         return $this->bookingMoment($this->borrow_date).'|'.$this->bookingMoment($this->return_date).'|'.trim((string) $this->purpose);
     }
 
-    /**
-     * A date-only loan keys on its day, exactly as before the columns became
-     * datetimes. A timed loan keys on the minute, so two sessions on the same
-     * day are two bookings while loans saved seconds apart in one submit
-     * still fall together.
-     */
     private function bookingMoment(?CarbonInterface $date): ?string
     {
         return $this->timed ? $date?->format('Y-m-d H:i') : $date?->toDateString();
     }
 
-    /** Every non-voided loan of this borrower in the same booking, this one included. */
     public function bookingLoans()
     {
         return static::with('equipment')
@@ -253,11 +187,6 @@ class BorrowTransaction extends Model
             ->values();
     }
 
-    /**
-     * "Sep 10 → Sep 17" — never a raw ISO date. A timed loan carries times,
-     * and drops the second date when it comes back the same day:
-     * "Oct 5, 2:30 PM → 3:30 PM". An issued item reads "Issued Oct 5".
-     */
     public function dateRangeLabel(): string
     {
         if ($this->status === 'Issued') {
@@ -281,10 +210,6 @@ class BorrowTransaction extends Model
         return $from.' → '.$to;
     }
 
-    /**
-     * The half of the date line that carries the urgency:
-     * "3 days late", "due tomorrow", "returned on time".
-     */
     public function timingLabel(): string
     {
         if ($this->isVoided()) {
@@ -330,10 +255,6 @@ class BorrowTransaction extends Model
         };
     }
 
-    /**
-     * The whole line: "Sep 10 → Sep 17 · 3 days late". An issued item has no
-     * timing to report, so its line is just "Issued Oct 5".
-     */
     public function dateLine(): string
     {
         if ($this->isIssued()) {
@@ -343,14 +264,6 @@ class BorrowTransaction extends Model
         return $this->dateRangeLabel().' · '.$this->timingLabel();
     }
 
-    /**
-     * timingLabel() for a loan due at a time of day: "due in 25 min",
-     * "due at 3:30 PM", "10 min late", "2 hr late", "3 days late".
-     *
-     * A return is judged against the moment it was logged (the log's
-     * created_at), because return_logs.return_date is a DATE column and would
-     * make every same-day return look on time.
-     */
     private function timedTimingLabel(): string
     {
         $due = $this->dueAt();
@@ -387,7 +300,6 @@ class BorrowTransaction extends Model
         };
     }
 
-    /** "10 min late" under an hour, "2 hr late" under a day, then days. */
     private function lateLabel(CarbonInterface $due, CarbonInterface $at): string
     {
         $minutes = (int) ceil($due->diffInMinutes($at));
@@ -410,7 +322,6 @@ class BorrowTransaction extends Model
         return $date ? $date->format('M j') : '—';
     }
 
-    /** "Oct 5, 2:30 PM" */
     private function formatMoment(?CarbonInterface $date): string
     {
         return $date ? $date->format('M j, g:i A') : '—';

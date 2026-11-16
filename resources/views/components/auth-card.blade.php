@@ -1,6 +1,3 @@
-{{-- Shared auth-card wrapper — flat light theme.
-     Provides centered white card on neutral-50 background.
-     Usage: <x-auth-card title="Sign in" subtitle="...">...form...</x-auth-card> --}}
 @props([
     'title'    => '',
     'subtitle' => '',

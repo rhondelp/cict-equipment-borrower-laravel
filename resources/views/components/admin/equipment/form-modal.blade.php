@@ -1,17 +1,3 @@
-{{-- Add / edit equipment — one modal for both, because they ask for the same
-     six things.
-
-     Two fields that used to be here are gone:
-
-       Available quantity  was a number an admin typed in that was supposed to
-                           agree with the loans. Now it is total − units out,
-                           computed on save.
-       Status              was a dropdown that could say "Available" while the
-                           shelf was empty. Now it follows from the stock.
-
-     What is left validates against the loans as you type: the total cannot go
-     below the units currently with borrowers, and the submit says so rather
-     than failing after the round trip. --}}
 <div id="equipment-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="equipment-modal-title">
@@ -42,11 +28,6 @@
                     <p data-error-for="equipment-name" class="mt-2 text-sm font-medium text-danger-700" hidden></p>
                 </div>
 
-                {{-- How the item leaves the room. Three cards rather than a
-                     select, so the plain-language line under each is read
-                     before choosing, not after. Locked while units are out:
-                     the page script disables the other two and says why, and
-                     EquipmentController::update refuses the change anyway. --}}
                 <fieldset>
                     <legend class="block text-base font-medium text-neutral-800">Borrow type</legend>
                     <div class="grid gap-2 mt-2">
@@ -73,9 +54,6 @@
                     <p data-loan-type-locked class="mt-2 text-sm font-medium text-warning-700" hidden></p>
                 </fieldset>
 
-                {{-- Pick one already in use or type a new one. The server folds
-                     "cables" onto an existing "Cables", so a slip of the shift
-                     key does not split the borrower's list into two groups. --}}
                 <div>
                     <label for="equipment-category" class="flex items-baseline gap-2 text-base font-medium text-neutral-800">
                         Category <span class="text-sm font-normal text-neutral-600">optional</span>
@@ -100,10 +78,6 @@
                               class="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"></textarea>
                 </div>
 
-                {{-- Quantity and what it is counted in, side by side because
-                     they read as one phrase on the official reports: "3 set",
-                     "12 pc". The unit suggests the common ones but takes any
-                     word up to 20 characters. --}}
                 <div class="grid grid-cols-[minmax(0,1fr)_7.5rem] gap-3">
                 <div class="min-w-0">
                     <label for="equipment-quantity" data-quantity-label class="block text-base font-medium text-neutral-800">Units to add</label>
@@ -134,9 +108,6 @@
                 </div>
                 <p id="equipment-unit-error" data-error-for="equipment-unit" class="-mt-2 text-sm font-medium text-danger-700" hidden></p>
 
-                {{-- What the row will read after saving, written out in the same
-                     words the table uses. It turns red the moment the total
-                     drops below the units that are physically elsewhere. --}}
                 <p data-equipment-preview
                    class="flex items-center gap-2.5 rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
                     <span data-equipment-preview-dot class="w-2 h-2 rounded-full shrink-0 bg-success-600" aria-hidden="true"></span>

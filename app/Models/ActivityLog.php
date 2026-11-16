@@ -10,18 +10,6 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use LogicException;
 
-/**
- * One entry in the audit trail.
- *
- * Append-only, in the same spirit as the return logs: a row is written once and
- * never changed or removed. Updating or deleting one throws, whether through the
- * model or a query. A wrong entry is answered by a later one. Only a raw
- * `DB::table()` call or the foreign keys going null can still touch a row, and
- * the second is deliberate: the name snapshots keep the history readable.
- *
- * Write entries with record(), inside the same DB transaction as the change
- * they describe, so a rolled-back change leaves no entry behind.
- */
 class ActivityLog extends Model
 {
     protected $fillable = [
@@ -43,25 +31,14 @@ class ActivityLog extends Model
         ];
     }
 
-    /** Groups in the order a report lists them. */
     public const GROUPS = ['Loans', 'Requests', 'Equipment', 'Users', 'Returns', 'Account & system'];
 
-    /**
-     * Display names for group keys. A key is also a filter value in the URL
-     * (?type=Loans), so it stays as it is and only its label changes.
-     */
     public const GROUP_LABELS = ['Loans' => 'Borrows'];
 
-    /** What the backfill writes as the actor where the old schema never stored who. */
     public const ACTOR_NOT_RECORDED = 'Not recorded';
 
-    /** The actor of something done by nobody signed in: a failed sign-in, a reset request. */
     public const ACTOR_ANONYMOUS = 'Not signed in';
 
-    /**
-     * Every event type. The key is what is stored, so never rename one; the
-     * label is what a screen shows and can change freely.
-     */
     public const TYPES = [
         'loan_created' => ['label' => 'Borrow recorded', 'group' => 'Loans'],
         'loan_issued' => ['label' => 'Item issued', 'group' => 'Loans'],
@@ -112,24 +89,6 @@ class ActivityLog extends Model
         'report_exported' => ['label' => 'Report exported', 'group' => 'Account & system'],
     ];
 
-    /* ---------------------------------------------------------------------
-     | Writing
-     --------------------------------------------------------------------- */
-
-    /**
-     * Write one entry, now.
-     *
-     * $attrs takes any column, plus four models whose names are snapshotted:
-     *  - 'actor': the User who did it. Defaults to the signed-in user; pass
-     *    `'actor' => null` for the system (the scheduler).
-     *  - 'subject': the User it happened to.
-     *  - 'equipment': the Equipment it was about.
-     *  - 'loan': the BorrowTransaction. Its item and borrower fill 'equipment'
-     *    and 'subject' when those are not given.
-     *
-     * A column passed explicitly wins over a snapshot. The backfill uses that
-     * to set occurred_at to the real time and actor_name to "Not recorded".
-     */
     public static function record(string $type, array $attrs = []): self
     {
         if (! isset(self::TYPES[$type])) {
@@ -163,12 +122,6 @@ class ActivityLog extends Model
         return $log;
     }
 
-    /**
-     * The entry for a hand-over: loan_created for a loan, loan_issued for a
-     * non-returnable issue. Shared by the New loan form and request approval,
-     * which both write one per item. $attrs overrides the defaults, except
-     * `meta`, which is merged into the default meta rather than replacing it.
-     */
     public static function recordHandover(BorrowTransaction $loan, array $attrs = []): self
     {
         $issued = $loan->status === 'Issued';
@@ -196,11 +149,6 @@ class ActivityLog extends Model
         return self::record($issued ? 'loan_issued' : 'loan_created', $entry);
     }
 
-    /**
-     * The address of the web request being served. A console run (the
-     * scheduler, artisan) gets a synthetic request that always says 127.0.0.1,
-     * which is not where anything came from, so it records none.
-     */
     private static function requestIp(): ?string
     {
         if (app()->runningInConsole() && ! app()->runningUnitTests()) {
@@ -210,12 +158,6 @@ class ActivityLog extends Model
         return request()?->ip();
     }
 
-    /* ---------------------------------------------------------------------
-     | Wording, shared by the controllers and the backfill so an entry reads
-     | the same whichever side wrote it
-     --------------------------------------------------------------------- */
-
-    /** "2 × Projector (Epson)" */
     public static function units(?BorrowTransaction $loan): string
     {
         return $loan
@@ -223,7 +165,6 @@ class ActivityLog extends Model
             : 'a deleted borrow';
     }
 
-    /** "due Oct 12, 2026", with the time for a timed loan, or "with no due date". */
     public static function dueWords(BorrowTransaction $loan): string
     {
         if (! $loan->return_date) {
@@ -233,10 +174,6 @@ class ActivityLog extends Model
         return 'due '.$loan->return_date->format($loan->timed ? 'M j, Y, g:i A' : 'M j, Y');
     }
 
-    /**
-     * A loan's status as a log label: derivedStatus(), with "Out" read as
-     * "Borrowed" so it matches the stored vocabulary.
-     */
     public static function loanStatus(BorrowTransaction $loan): string
     {
         $status = $loan->derivedStatus();
@@ -244,12 +181,6 @@ class ActivityLog extends Model
         return $status === 'Out' ? 'Borrowed' : $status;
     }
 
-    /**
-     * The fields that differ between two snapshots, as
-     * [field => ['old' => …, 'new' => …]]. Values are compared as strings, so
-     * 3 and "3" are the same and a date compares by its text. A whole number
-     * posted as text is stored as a number, so meta reads 2 → 3, not 2 → "3".
-     */
     public static function changes(array $old, array $new): array
     {
         $changes = [];
@@ -265,11 +196,6 @@ class ActivityLog extends Model
         return $changes;
     }
 
-    /**
-     * "quantity 2 → 3, due date Oct 12 → Oct 14" from changes(). A long or
-     * multi-line value (a description, remarks) is only named — the full old
-     * and new text is in meta.
-     */
     public static function changeWords(array $changes, array $labels = []): string
     {
         $short = fn ($value) => mb_strlen((string) $value) <= 40 && ! str_contains((string) $value, "\n");
@@ -283,20 +209,13 @@ class ActivityLog extends Model
         })->join(', ');
     }
 
-    /** A snapshot cut to its column, so a long name cannot fail the write. */
     private static function fit(?string $value, int $length): ?string
     {
         return $value === null ? null : mb_substr($value, 0, $length);
     }
 
-    /* ---------------------------------------------------------------------
-     | Append-only
-     --------------------------------------------------------------------- */
-
     protected static function booted(): void
     {
-        // Covers update(), save() on a loaded row, touch(), increment() and
-        // delete() on a model instance.
         static::updating(fn () => throw self::appendOnly('changed'));
         static::deleting(fn () => throw self::appendOnly('deleted'));
     }
@@ -306,10 +225,6 @@ class ActivityLog extends Model
         return new LogicException("Activity log entries are append-only and cannot be {$what}.");
     }
 
-    /**
-     * The same refusal for query writes such as `ActivityLog::where(...)->delete()`,
-     * which never load a model and so never fire the events above.
-     */
     public function newEloquentBuilder($query): Builder
     {
         return new class($query) extends Builder
@@ -351,16 +266,11 @@ class ActivityLog extends Model
         };
     }
 
-    /* ---------------------------------------------------------------------
-     | Reading
-     --------------------------------------------------------------------- */
-
     public function typeLabel(): string
     {
         return self::TYPES[$this->type]['label'] ?? Str::headline((string) $this->type);
     }
 
-    /** The group key, as stored in TYPES and used in ?type= — not for display. */
     public function group(): string
     {
         return self::TYPES[$this->type]['group'] ?? 'Other';
@@ -371,13 +281,11 @@ class ActivityLog extends Model
         return self::groupName($this->group());
     }
 
-    /** What a screen shows for a group key; keys without an entry show as they are. */
     public static function groupName(string $group): string
     {
         return self::GROUP_LABELS[$group] ?? $group;
     }
 
-    /** The type keys in one group, in TYPES order. */
     public static function typesInGroup(string $group): array
     {
         return array_keys(array_filter(
@@ -386,23 +294,11 @@ class ActivityLog extends Model
         ));
     }
 
-    /** "Quincy Jane Oliver", "Not recorded", or "System" when no person was involved. */
     public function actorLabel(): string
     {
         return $this->actor_name ?? 'System';
     }
 
-    /**
-     * Report filters. Every key is optional and a blank value is ignored:
-     *  - from / to: dates, inclusive; `to` covers the whole of its day in the
-     *    app timezone. An unreadable date is ignored rather than failing;
-     *  - type: a type key, or a group name from GROUPS (any case). Anything
-     *    else matches nothing;
-     *  - equipment_id;
-     *  - user_id: the person as actor or as subject;
-     *  - status: matches status_to, the status after the event;
-     *  - q: a substring of details, actor_name, subject_name or equipment_name.
-     */
     public function scopeFilter(Builder $query, array $filters): Builder
     {
         if ($from = self::day($filters['from'] ?? null)) {
@@ -443,13 +339,11 @@ class ActivityLog extends Model
         return $query;
     }
 
-    /** Newest first; id breaks ties between entries written in the same second. */
     public function scopeNewestFirst(Builder $query): Builder
     {
         return $query->orderByDesc('occurred_at')->orderByDesc('id');
     }
 
-    /** A filter date in the app timezone, or null when blank or unreadable. */
     private static function day(mixed $value): ?CarbonInterface
     {
         if (blank($value)) {
@@ -462,10 +356,6 @@ class ActivityLog extends Model
             return null;
         }
     }
-
-    /* ---------------------------------------------------------------------
-     | Relationships — all nullable, the snapshots outlive them
-     --------------------------------------------------------------------- */
 
     public function actor()
     {

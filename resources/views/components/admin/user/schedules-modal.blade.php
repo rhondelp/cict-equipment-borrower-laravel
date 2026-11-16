@@ -1,13 +1,4 @@
-{{-- Class schedules: a per-person list, and the add/edit form that sits above
-     it. Both live here so the users page keeps one schedule story rather than
-     three scattered modals.
 
-     Deleting a schedule is destructive in a quiet way: borrow_transactions
-     keeps its rows (the FK is set null) but loses which class each loan was
-     for. So the delete states the count and ClassScheduleController refuses it
-     outright while any loan points here. --}}
-
-{{-- Per-person list --}}
 <div id="schedules-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="schedules-title">
@@ -88,7 +79,6 @@
     </div>
 </div>
 
-{{-- Add / edit form. z-[60] so it sits above the list, which stays open behind it. --}}
 <div id="schedule-modal" data-modal
      class="fixed inset-0 z-toast items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
@@ -101,8 +91,6 @@
             </button>
         </div>
 
-        {{-- One form, two targets: the page script points it at the add route
-             or the update route as the modal is opened. --}}
         <form id="schedule-form" method="POST" action="{{ route('admin.add-sched') }}"
               data-add-url="{{ route('admin.add-sched') }}"
               data-update-url="{{ route('admin.sched.update') }}">
@@ -171,7 +159,6 @@
     </div>
 </div>
 
-{{-- Submitted by the confirm on the users page; no markup of its own. --}}
 <form id="schedule-delete-form" method="POST" action="" class="hidden">
     @csrf
     @method('DELETE')

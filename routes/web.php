@@ -22,13 +22,9 @@ Route::get('/register', [AuthenticateUser::class, 'registerUser'])->name('regist
 
 Route::get('/welcome', [UserController::class, 'welcome'])->name('auth.welcome');
 
-// Legal pages. Plain view routes: there is no state and no controller worth
-// adding. The register form links to both, and
-// its consent checkbox used to point at href="#".
 Route::view('/privacy', 'legal.privacy')->name('legal.privacy');
 Route::view('/terms', 'legal.terms')->name('legal.terms');
 
-// Password reset — must stay outside the 'auth' group so a locked-out user can reach it.
 Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
 Route::post('/forgot-password', [PasswordResetController::class, 'email'])->name('password.email');
 Route::get('/reset-password/{token}', [PasswordResetController::class, 'reset'])->name('password.reset');
@@ -40,11 +36,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/equipment', [EquipmentController::class, 'index'])->name('admin.equipment');
         Route::post('/admin/equipment', [EquipmentController::class, 'store'])->name('admin.equipment.store');
         Route::post('/admin/equipment/update', [EquipmentController::class, 'update'])->name('admin.equipment.update');
-        // Retire is the safe half of the remove dialog; destroy is refused
-        // while any loan or request still references the item.
         Route::post('/admin/equipment/{id}/retire', [EquipmentController::class, 'retire'])->name('admin.equipment.retire');
         Route::post('/admin/equipment/{id}/restore', [EquipmentController::class, 'restore'])->name('admin.equipment.restore');
-        // Record-only: writes one activity log entry, never touches stock.
         Route::post('/admin/equipment/{id}/maintenance', [EquipmentController::class, 'logMaintenance'])->name('admin.equipment.maintenance');
         Route::delete('/admin/equipment/{id}', [EquipmentController::class, 'destroy'])->name('admin.equipment.destroy');
         Route::get('/admin/users', [UserController::class, 'adminUser'])->name('admin.users');
@@ -55,8 +48,6 @@ Route::middleware('auth')->group(function () {
         Route::delete('/admin/users/sched/{id}', [ClassScheduleController::class, 'destroy'])->name('admin.sched.destroy');
         Route::post('/admin/users/{id}/deactivate', [UserController::class, 'deactivate'])->name('admin.users.deactivate');
         Route::post('/admin/users/{id}/reactivate', [UserController::class, 'reactivate'])->name('admin.users.reactivate');
-        // Suspension is a different state from deactivation: the account signs
-        // in and cannot borrow. Enforced in ItemRequestController::store.
         Route::post('/admin/users/{id}/suspend', [UserController::class, 'suspend'])->name('admin.users.suspend');
         Route::post('/admin/users/{id}/lift-suspension', [UserController::class, 'liftSuspension'])->name('admin.users.lift');
         Route::post('/admin/users/{id}/instructor/confirm', [UserController::class, 'confirmInstructor'])->name('admin.users.instructor.confirm');
@@ -67,8 +58,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/transaction/update', [BorrowTransactionController::class, 'update'])->name('admin.transaction.update');
         Route::post('/admin/transaction/{id}/void', [BorrowTransactionController::class, 'void'])->name('admin.transaction.void');
         Route::delete('/admin/transaction/{id}', [BorrowTransactionController::class, 'destroy'])->name('admin.transaction.destroy');
-        // Records equipment physically coming back. Replaces the old
-        // inline status dropdown, which let an admin type any status at all.
         Route::post('/admin/transaction/check-in', [BorrowTransactionController::class, 'checkIn'])->name('admin.transaction.checkin');
         Route::post('/send-email/{id}', [BorrowTransactionController::class, 'sendManualEmail']);
         Route::get('/admin/notifications', [NotificationController::class, 'index'])->name('admin.notifications');
@@ -77,23 +66,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/request/decline', [ItemRequestController::class, 'requestActions'])->name('admin.request.decline');
 
         Route::get('/admin/logs', [ReturnLogsController::class, 'index'])->name('admin.logs');
-        // Every return ever recorded for one item — a pattern of damage is
-        // invisible on a date-ordered list.
         Route::get('/admin/logs/item/{equipment}', [ReturnLogsController::class, 'itemHistory'])->name('admin.logs.item');
-        // The only two writes this screen has. There is deliberately no update
-        // and no destroy: a return log is immutable, and a correction is
-        // appended as a note rather than overwriting what was recorded.
         Route::post('/admin/logs/{id}/resolve', [ReturnLogsController::class, 'resolve'])->name('admin.logs.resolve');
         Route::post('/admin/logs/{id}/notes', [ReturnLogsController::class, 'addNote'])->name('admin.logs.note');
 
-        // The activity log, filtered by query string so a report is a URL.
         Route::get('/admin/reports', [ReportsController::class, 'index'])->name('admin.reports');
-        // Same query string as the screen, read by the same resolveFilters().
         Route::get('/admin/reports/export.csv', [ReportsController::class, 'exportCsv'])->name('admin.reports.csv');
         Route::get('/admin/reports/export.pdf', [ReportsController::class, 'exportPdf'])->name('admin.reports.pdf');
         Route::get('/admin/reports/print', [ReportsController::class, 'print'])->name('admin.reports.print');
 
-        // Admin-only mail utilities (previously public)
         Route::get('/admin/send-return-alerts', [BorrowTransactionController::class, 'sendReturnAlertNotification'])
             ->name('admin.send-return-alerts');
 

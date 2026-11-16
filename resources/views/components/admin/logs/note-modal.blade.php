@@ -1,5 +1,3 @@
-{{-- A correction. The entry itself is never edited — this appends a note with
-     its own author and timestamp, so the original reading survives beside it. --}}
 <div id="note-modal" data-modal
      class="fixed inset-0 z-modal items-center justify-center hidden p-4 overflow-y-auto bg-neutral-900/50"
      role="dialog" aria-modal="true" aria-labelledby="note-modal-title">
@@ -48,9 +46,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Both dialogs point their form at the row that opened them. The action is
-    // rebuilt from a template URL rather than assembled by hand, so a route
-    // change cannot silently break the post target.
     const RESOLVE_URL = @json(route('admin.logs.resolve', ['id' => 0]));
     const NOTE_URL = @json(route('admin.logs.note', ['id' => 0]));
 
@@ -65,8 +60,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             form.action = template.replace(/\/0$/, '/' + trigger.dataset.id)
                                   .replace(/\/0\//, '/' + trigger.dataset.id + '/');
-            // Falls back to the dialog's own sentence rather than to
-            // `undefined` when a row does not carry a summary.
             if (summary && trigger.dataset.summary) summary.textContent = trigger.dataset.summary;
 
             window.appUI.openModal(modalId);
